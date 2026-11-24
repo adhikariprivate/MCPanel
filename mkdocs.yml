@@ -16,11 +16,40 @@ plugins:
   - search
 nav:
   - Home: index.md
+  - Getting started:
+      - Introduction: getting-started/introduction.md
+      - Installation: getting-started/installation.md
+      - First-run setup: getting-started/first-run-setup.md
+      - Signing in: getting-started/signing-in.md
+      - Changelog: changelog.md
   - Websites:
       - Overview: websites/index.md
+      - Adding a website: websites/adding-a-website.md
+      - Overview tab: websites/overview-tab.md
+      - Files: websites/files.md
+      - SSH / SFTP: websites/ssh-sftp.md
+      - Databases: websites/databases.md
+      - Backups: websites/backups.md
+      - SSL: websites/ssl.md
+      - Custom vHost: websites/custom-vhost.md
+      - Cron: websites/cron.md
+      - Logs: websites/logs.md
+      - Terminal: websites/terminal.md
+      - WordPress: websites/wordpress.md
       - Compiled binaries: binary-apps.md
       - mise apps: mise-sites.md
-  - Changelog: changelog.md
+  - Email:
+      - Email: email/index.md
+      - Webmail: email/webmail.md
+      - DNS via Cloudflare: email/dns-cloudflare.md
+  - Monitoring:
+      - Server monitoring: monitoring/server-monitoring.md
+      - Telegram alerts: monitoring/telegram-alerts.md
+      - Activity log: monitoring/activity-log.md
+  - Firewall: firewall.md
+  - Services: services.md
+  - Security: security.md
+  - Account settings: account-settings.md
 markdown_extensions:
   - admonition
   - attr_list

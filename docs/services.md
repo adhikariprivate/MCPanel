@@ -1,0 +1,39 @@
+---
+title: Services
+---
+
+# Services
+
+![The Services page](assets/mpanel/services.D2OwN24K_20woy2.webp)
+
+The **Services** page lists what MCPN manages on the server. Installed components can be started, stopped or reloaded right here. Components that are not installed can be installed with one button.
+
+## Service groups
+
+* **Background services**: the web server, security and mail server programs. The mail suite and fail2ban are installed from their own pages.
+* **Database server**: each machine uses one kind, MariaDB or MySQL. Pick a version before installing. Available versions depend on the operating system. Once one exists, the other kind cannot be installed here.
+* **PHP versions**: install more when a website needs them. A version runs only when a website uses it, so a freshly installed version shows as stopped.
+* **Node.js versions**: installed into `/opt/node`. A Node website picks its version at creation or in its settings.
+* **Tools**: phpMyAdmin, opened from the button in each website’s [Databases](websites/databases.md) tab. From 1.2.0, installing MariaDB or MySQL also installs phpMyAdmin.
+
+## States and actions
+
+States: **Not installed**, **Installed**, **Running**, **Stopped**, **Failed**.
+
+* **Reload**: re-reads configuration without dropping existing connections.
+* **Restart**: stops then starts again.
+* **Stop**: websites using the service will not work properly until it is started again. The panel asks for confirmation.
+* **Install**: can take a few minutes, so do not close the page.
+* **Remove**: see below.
+
+The panel, SSH and the firewall are not in this list, because stopping them would cut your access.
+
+## Removing
+
+From 1.3.0, a PHP version, a Node.js version, phpMyAdmin and fail2ban have a **Remove** button. Type the name to confirm. The program is removed, but its settings stay, so installing it again from this page brings them back.
+
+* A PHP or Node.js version that a website runs on shows **In use** instead. Hover over it to see which websites; give them another version first.
+* PHP 8.3 stays in use while phpMyAdmin is installed, because phpMyAdmin runs on it.
+* MariaDB, MySQL and the mail programs cannot be removed here, because their databases and mailboxes would go with them.
+
+Each removal is recorded as Important in the [activity log](monitoring/activity-log.md).

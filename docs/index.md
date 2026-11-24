@@ -4,11 +4,13 @@
 
 ![MCPN — My Control Panel](websites/assets/logo.svg){ width="88" }
 
-## Guides
+## Documentation
 
-- [Websites overview](websites/index.md): the website list and the actions available there.
-- [Compiled binary web apps](binary-apps.md): deploy Go, Rust and other executable web servers.
-- [Changelog](changelog.md): release history.
+- [Introduction](getting-started/introduction.md) and [installation](getting-started/installation.md) explain what MCPN does and how to install it.
+- [Website guides](websites/index.md) cover website setup, files, runtime settings, backups, SSL and logs.
+- [Email](email/index.md), [monitoring](monitoring/server-monitoring.md), [firewall](firewall.md), [services](services.md), [security](security.md), and [account settings](account-settings.md) explain the remaining panel features.
+- [Compiled binary web apps](binary-apps.md) and [mise websites](mise-sites.md) cover executable app deployments.
+- [Changelog](changelog.md) records release history.
 
 ## Build these docs locally
 
