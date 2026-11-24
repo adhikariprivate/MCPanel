@@ -19,7 +19,7 @@ func TestEachKindGetsThePageThatFitsIt(t *testing.T) {
 		name string
 		has  string
 	}{
-		{pageSite(site.Static, ""), "index.html", "<title>Website đã sẵn sàng | Mini Panel</title>"},
+		{pageSite(site.Static, ""), "index.html", "<title>Website đã sẵn sàng | MCPN</title>"},
 		{pageSite(site.PHP, ""), "index.php", "PHP_VERSION"},
 		{pageSite(site.Node, "server.js"), "server.js", "process.env.PORT"},
 		{pageSite(site.Node, "dist/app.js"), "", ""},

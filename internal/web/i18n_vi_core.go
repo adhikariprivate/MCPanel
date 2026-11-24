@@ -3,7 +3,7 @@ package web
 // Vietnamese text of the shell of every page: the name, the navigation, the sign-in form and the errors of the first-run page.
 func init() {
 	for k, v := range map[string]string{
-		"app.name":         "Mini Panel",
+		"app.name":         "MCPN",
 		"theme.toggle":     "Đổi giao diện sáng/tối",
 		"nav.main":         "Điều hướng chính",
 		"nav.skip":         "Bỏ qua, vào nội dung",
@@ -11,7 +11,7 @@ func init() {
 		"login.wrong":      "Sai tên đăng nhập hoặc mật khẩu.",
 		"login.locked":     "Bạn đã nhập sai quá nhiều lần. Hãy thử lại sau %d giây.",
 		"page.login":       "Đăng nhập",
-		"page.setup":       "Thiết lập Mini Panel",
+		"page.setup":       "Thiết lập MCPN",
 		"page.notfound":    "Không tìm thấy trang",
 		"setup.err.user":   "Tên đăng nhập không hợp lệ. Chỉ dùng chữ thường, số và dấu gạch ngang/dưới, bắt đầu bằng chữ cái.",
 		"setup.err.short":  "Mật khẩu phải có ít nhất %d ký tự.",

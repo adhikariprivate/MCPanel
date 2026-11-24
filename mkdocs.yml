@@ -1,0 +1,28 @@
+site_name: MCPN — My Control Panel
+site_description: Documentation for MCPN (My Control Panel)
+repo_url: https://github.com/adhikariprivate/MCPanel
+repo_name: adhikariprivate/MCPanel
+edit_uri: edit/main/docs/
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+plugins:
+  - search
+nav:
+  - Home: index.md
+  - Websites:
+      - Overview: websites/index.md
+      - Compiled binaries: binary-apps.md
+  - Changelog: changelog.md
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - toc:
+      permalink: true

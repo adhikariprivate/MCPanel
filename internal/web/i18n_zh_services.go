@@ -6,7 +6,7 @@ func init() {
 		"nav.services":           "服务",
 		"page.services":          "服务",
 		"svc.title":              "服务",
-		"svc.sub":                "Mini Panel 管理的软件。可在此启动、停止或重新加载已安装的服务，也可安装缺少的软件。",
+		"svc.sub":                "MCPN 管理的软件。可在此启动、停止或重新加载已安装的服务，也可安装缺少的软件。",
 		"svc.col.name":           "名称",
 		"svc.col.state":          "状态",
 		"svc.col.actions":        "操作",

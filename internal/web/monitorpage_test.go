@@ -81,11 +81,11 @@ func TestTheMonitorPageShowsTheMachineChartsServicesAndATable(t *testing.T) {
 	if strings.Count(services, ">SSH<") != 1 || strings.Count(services, ">MariaDB<") != 1 {
 		t.Error("each service once")
 	}
-	if !strings.Contains(services, "Mini Panel (trình hỗ trợ)") || strings.Contains(services, "svc.unit.") {
+	if !strings.Contains(services, "MCPN (trình hỗ trợ)") || strings.Contains(services, "svc.unit.") {
 		t.Errorf("the panel's own services are named in the reader's language:\n%s", services)
 	}
 	en := do(h, "GET", "/monitor", nil, cookie(c), cookie(&http.Cookie{Name: "mpn_language", Value: "en"})).Body.String()
-	if !strings.Contains(en, "Mini Panel (root helper)") || !strings.Contains(en, "Mini Panel (web interface)") || strings.Contains(en, "trình hỗ trợ") {
+	if !strings.Contains(en, "MCPN (root helper)") || !strings.Contains(en, "MCPN (web interface)") || strings.Contains(en, "trình hỗ trợ") {
 		t.Error("the panel's own services are not translated to English")
 	}
 	if strings.Count(body, "viz-key viz-key-2") < 1 || strings.Count(body, `<ul class="flex gap-4`) != 1 {

@@ -21,7 +21,7 @@ import (
 
 const (
 	elPackagesRelease = "el-r2"
-	elPackagesBase    = "https://github.com/marixdev/mpn-packages/releases/download/" + elPackagesRelease
+	elPackagesBase    = "https://github.com/adhikariprivate/mcpn-packages/releases/download/" + elPackagesRelease
 
 	// Fingerprints of the signing keys of the RPM repositories, read on 2026-11-13. A key that does not hold its fingerprint is
 	// refused, and dnf then checks every package of the repository against the key.

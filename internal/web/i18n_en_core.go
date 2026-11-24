@@ -3,7 +3,7 @@ package web
 // English text of the shell of every page: the name, the navigation, the sign-in form and the errors of the first-run page.
 func init() {
 	for k, v := range map[string]string{
-		"app.name":         "Mini Panel",
+		"app.name":         "MCPN",
 		"theme.toggle":     "Toggle light/dark theme",
 		"nav.main":         "Main navigation",
 		"nav.skip":         "Skip to content",
@@ -11,7 +11,7 @@ func init() {
 		"login.wrong":      "Incorrect username or password.",
 		"login.locked":     "Too many failed attempts. Try again in %d seconds.",
 		"page.login":       "Sign in",
-		"page.setup":       "Set up Mini Panel",
+		"page.setup":       "Set up MCPN",
 		"page.notfound":    "Page not found",
 		"setup.err.user":   "Invalid username. Use lowercase letters, numbers, hyphens or underscores, starting with a letter.",
 		"setup.err.short":  "Password must contain at least %d characters.",

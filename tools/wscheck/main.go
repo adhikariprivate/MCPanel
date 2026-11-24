@@ -101,7 +101,7 @@ func main() {
 	}
 	send := func(s string) { _ = c.Write(ctx, websocket.MessageBinary, []byte(s)) }
 
-	if waitFor("the login banner appears", "Mini Panel") {
+	if waitFor("the login banner appears", "MCPN") {
 		time.Sleep(300 * time.Millisecond)
 		check(!strings.Contains(seen.String(), "Welcome to") && !strings.Contains(seen.String(), "Last login"), "no system welcome text and no \"Last login\"")
 		check(true, "the login banner appears")

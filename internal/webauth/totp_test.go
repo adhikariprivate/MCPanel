@@ -67,7 +67,7 @@ func TestSecretsAreRandomAndWellFormed(t *testing.T) {
 }
 
 func TestTheAppAddressCarriesTheSecretAndTheSettings(t *testing.T) {
-	u := TOTPURI("Mini Panel", "admin", "ABCDEFGH")
+	u := TOTPURI("MCPN", "admin", "ABCDEFGH")
 	for _, want := range []string{"otpauth://totp/Mini%20Panel:admin?", "secret=ABCDEFGH", "issuer=Mini+Panel", "algorithm=SHA1", "digits=6", "period=30"} {
 		if !strings.Contains(u, want) {
 			t.Errorf("missing %q in %s", want, u)

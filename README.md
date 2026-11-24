@@ -1,13 +1,13 @@
-<p align="center"><img src="logo.svg" alt="Mini Panel" width="72"></p>
+<p align="center"><img src="logo.svg" alt="MCPN — My Control Panel" width="72"></p>
 
-<h1 align="center">Mini Panel</h1>
+<h1 align="center">MCPN</h1>
 
 <p align="center">
 A lightweight hosting control panel for small VPS, written in Go. One binary, runs well on 1 vCPU / 1 GB RAM.<br>
-<a href="https://mpanel.biz">mpanel.biz</a> · <a href="https://mpanel.biz/install/">Install</a> · <a href="https://github.com/marixdev/mini-panel/releases">Releases</a>
+<a href="https://github.com/adhikariprivate/MCPanel">Source</a> · <a href="https://github.com/adhikariprivate/MCPanel/releases">Releases</a> · <a href="docs/">Documentation</a>
 </p>
 
-<p align="center"><b>English</b> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.zh.md">简体中文</a></p>
+<p align="center">MCPN means <b>My Control Panel</b>.</p>
 
 ---
 
@@ -16,7 +16,7 @@ A lightweight hosting control panel for small VPS, written in Go. One binary, ru
 Log in to the VPS as root and run:
 
 ```sh
-curl -fsSL https://mpanel.biz/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/adhikariprivate/MCPanel/main/scripts/installer/install.sh | sh
 ```
 
 The installer checks the operating system, downloads `mpn` from the latest GitHub release and compares its SHA-256 with `SHA256SUMS`. It then installs nginx 1.30.7 with the PageSpeed module, and the panel on port 2610 with a self-signed certificate. The ModSecurity module is installed only when you turn on the web application firewall in the Security tab. The installer does **not** install PHP, Node.js or a database: you choose those later on the panel's Services page.
@@ -33,7 +33,7 @@ Options: `MPN_VERSION=1.0.2` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 - **App installer:** WordPress, Laravel, CodeIgniter 4, CakePHP, Yii 2, plus a WordPress manager (updates, plugins, themes).
 - **SSL:** Let's Encrypt with a DNS check first and automatic renewal, custom certificates, CSR generation. The panel has its own certificate as well.
 - **Databases:** MariaDB or MySQL, one user per database, phpMyAdmin that signs in with a temporary account.
-- **Email** (off by default): Postfix, Dovecot, OpenDKIM. Domains, mailboxes and aliases are managed inside each website, with ready MX/SPF/DKIM/DMARC records that can be added straight to Cloudflare. The [mpn-mail](https://github.com/marixdev/mpn-mail) web mail exits when nobody uses it.
+- **Email** (off by default): Postfix, Dovecot, OpenDKIM. Domains, mailboxes and aliases are managed inside each website, with ready MX/SPF/DKIM/DMARC records that can be added straight to Cloudflare. The [mpn-mail](https://github.com/adhikariprivate/mcpn-mail) web mail exits when nobody uses it.
 - **Backups:** nightly, 7 kept, restore from the interface, copied off-site through rclone to Google Drive, S3 (Cloudflare R2, AWS, Wasabi), Backblaze B2, SFTP, WebDAV or FTP. Each MANIFEST is signed with the machine's own key.
 - **Security:** an nftables firewall that cannot lock out SSH or the panel port, ModSecurity with OWASP CRS, fail2ban, two-factor sign-in (TOTP), visitors' real addresses behind Cloudflare.
 - **Monitoring:** CPU, memory, load, network, disk and service status over 24 hours.
@@ -48,7 +48,7 @@ Options: `MPN_VERSION=1.0.2` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 - `mpn root` is a helper running as root. It listens on a Unix socket and accepts only a fixed list of operations. Every value is checked again before it becomes a command-line argument, and no shell is involved.
 - Passwords, private keys and certificates travel over standard input, never in arguments, logs or the database.
 - Every change to the machine is a plan of steps. By default it is only shown, and it runs with `-apply`. If `nginx -t` or a step fails, the old files are restored.
-- nginx is pinned at 1.30.7 on every operating system (from nginx.org, held with `apt-mark hold` or `dnf versionlock`), so `apt upgrade` or `dnf upgrade` does not break the modules built for that version ([mpn-packages](https://github.com/marixdev/mpn-packages)). Every download is compared with a SHA-256 written in the source, and Node.js releases must also carry a valid signature of a Node.js releaser.
+- nginx is pinned at 1.30.7 on every operating system (from nginx.org, held with `apt-mark hold` or `dnf versionlock`), so `apt upgrade` or `dnf upgrade` does not break the modules built for that version ([mpn-packages](https://github.com/adhikariprivate/mcpn-packages)). Every download is compared with a SHA-256 written in the source, and Node.js releases must also carry a valid signature of a Node.js releaser.
 - The panel's data is in SQLite, `/var/lib/mpn/mpn.db`, mode 0600.
 
 ## Companion repositories
@@ -57,8 +57,8 @@ The panel downloads these components from their releases and checks the SHA-256 
 
 | Repository | Used by the panel for | Pinned in |
 |---|---|---|
-| [marixdev/mpn-mail](https://github.com/marixdev/mpn-mail) | Web mail at `/webmail/` (a customised lilmail) | `internal/mail/webmail.go` |
-| [marixdev/mpn-packages](https://github.com/marixdev/mpn-packages) | PageSpeed and ModSecurity modules built for nginx 1.30.7; PHP 7.0 to 7.3 and the OWASP CRS for AlmaLinux, Rocky Linux, CentOS Stream | `internal/installer/nginx.go`, `internal/installer/el.go` |
+| [adhikariprivate/mcpn-mail](https://github.com/adhikariprivate/mcpn-mail) | Web mail at `/webmail/` (a customised lilmail) | `internal/mail/webmail.go` |
+| [adhikariprivate/mcpn-packages](https://github.com/adhikariprivate/mcpn-packages) | PageSpeed and ModSecurity modules built for nginx 1.30.7; PHP 7.0 to 7.3 and the OWASP CRS for AlmaLinux, Rocky Linux, CentOS Stream | `internal/installer/nginx.go`, `internal/installer/el.go` |
 
 ## Command line
 
@@ -86,8 +86,8 @@ Requires Go 1.27 or newer:
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o mpn ./cmd/mpn
 ```
 
-Run the tests with `go test ./...`; CI runs gofmt, vet, the tests and govulncheck on every push ([ci.yml](.github/workflows/ci.yml)). Releases are built and signed by GitHub Actions when a `v*` tag is pushed ([release.yml](.github/workflows/release.yml)); the release notes come from that version's section of [CHANGELOG.md](CHANGELOG.md). After editing templates in `internal/web`, rebuild the CSS with Tailwind v4: `tailwindcss -i assets/input.css -o assets/app.css --minify`. The CodeMirror editor is built in `tools/editor`.
+Run the tests with `go test ./...`; CI runs gofmt, vet, the tests and govulncheck on every push ([ci.yml](.github/workflows/ci.yml)). Releases are built and signed by GitHub Actions when a `v*` tag is pushed ([release.yml](.github/workflows/release.yml)); the release notes come from that version's section of [docs/changelog.md](docs/changelog.md). After editing templates in `internal/web`, rebuild the CSS with Tailwind v4: `tailwindcss -i assets/input.css -o assets/app.css --minify`. The CodeMirror editor is built in `tools/editor`.
 
 ## Licence
 
-Mini Panel is released under the [GNU General Public License v3.0](LICENSE). Third-party libraries and their licences are listed in [NOTICE](NOTICE).
+MCPN (My Control Panel) is released under the [GNU General Public License v3.0](LICENSE). Third-party libraries and their licences are listed in [NOTICE](NOTICE).

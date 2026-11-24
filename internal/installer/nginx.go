@@ -11,7 +11,7 @@ import (
 
 // One nginx version on every system. A dynamic module only loads into the exact nginx it was built for, and each distribution ships a
 // different nginx (1.18 to 1.28), so the panel uses nginx 1.30.7 from nginx.org and loads two modules built for that version by
-// github.com/marixdev/mpn-packages. Ubuntu 26.04 kept the nginx and the packaged modules of the distribution until 1.2.2, when
+// github.com/adhikariprivate/mcpn-packages. Ubuntu 26.04 kept the nginx and the packaged modules of the distribution until 1.2.2, when
 // nginx.org had no package for it (see osinfo.Target.NginxOrg and NginxUpgradeActions).
 const (
 	NginxVersion = "1.30.7"
@@ -20,7 +20,7 @@ const (
 
 	modulesRelease = "nginx-1.30.7-r2"
 	// The repository was called mpn-nginx-modules until 2026-11-13; GitHub sends the old address to this one.
-	modulesBase = "https://github.com/marixdev/mpn-packages/releases/download/" + modulesRelease
+	modulesBase = "https://github.com/adhikariprivate/mcpn-packages/releases/download/" + modulesRelease
 
 	nginxModulesEnabled = "/etc/nginx/modules-enabled"
 	nginxKeyring        = "/usr/share/keyrings/nginx-archive-keyring.gpg"

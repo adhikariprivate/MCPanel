@@ -299,7 +299,7 @@ func TestGuessingFromInsideASessionIsLimited(t *testing.T) {
 }
 
 func TestTheQRCodeIsAnInlineImageThatNeedsNoScript(t *testing.T) {
-	svg, err := qrSVG(webauth.TOTPURI("Mini Panel", "admin", "JBSWY3DPEHPK3PXP"), `a "quoted" <label>`)
+	svg, err := qrSVG(webauth.TOTPURI("MCPN", "admin", "JBSWY3DPEHPK3PXP"), `a "quoted" <label>`)
 	if err != nil {
 		t.Fatal(err)
 	}

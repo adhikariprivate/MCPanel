@@ -12,7 +12,7 @@ import (
 // its size from such a class and showed as a dot. The image now carries its size itself, and every class it names must be in the
 // stylesheet that is embedded in the program.
 func TestTheQRCodeHasASizeOfItsOwnAndItsClassesAreInTheStylesheet(t *testing.T) {
-	svg, err := qrSVG(webauth.TOTPURI("Mini Panel", "admin", "JBSWY3DPEHPK3PXP"), "alt")
+	svg, err := qrSVG(webauth.TOTPURI("MCPN", "admin", "JBSWY3DPEHPK3PXP"), "alt")
 	if err != nil {
 		t.Fatal(err)
 	}

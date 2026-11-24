@@ -34,10 +34,10 @@ const (
 // the checksum fixed here; a file that does not match is never installed. There is one file per CPU, and this program picks the one for
 // its own CPU, which is the machine's.
 const (
-	WebmailVersion       = "1.0.2"
-	webmailSHA256AMD64   = "22bcdaed0017ba626654591b9347de859ecd737eec827c40de8a6c13440ea5bd"
-	webmailSHA256ARM64   = "0fe47af6794b41faf762472dfcab2ac677af545346af485456a28d53c3490db7"
-	webmailReleaseFolder = "https://github.com/marixdev/mpn-mail/releases/download/v" + WebmailVersion + "/"
+	WebmailVersion       = "1.13.0"
+	webmailSHA256AMD64   = "19591054a8e817938a712db5d223bd9f2ca4857d019cc2f858fbd7825a6d8e51"
+	webmailSHA256ARM64   = "a1fc468c24d0bd46f8d752f81840b1808646fc83e525b1bf5d7f4011e32eb713"
+	webmailReleaseFolder = "https://github.com/adhikariprivate/mcpn-mail/releases/download/v" + WebmailVersion + "/"
 )
 
 // WebmailArch is the CPU the web mail is downloaded for: arm64 on arm64, amd64 everywhere else.

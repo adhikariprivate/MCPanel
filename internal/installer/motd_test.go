@@ -22,7 +22,7 @@ func TestPanelInstallsLoginGreeting(t *testing.T) {
 	if strings.Contains(motdOffScript, "rm -f /etc/update-motd.d") || strings.Contains(motdOffScript, "rm -rf") {
 		t.Error("the distribution's greeting must be switched off, not deleted")
 	}
-	for _, want := range []string{"#!/bin/sh", "01-mpn-panel.conf", "https://mpanel.biz", "mpn version"} {
+	for _, want := range []string{"#!/bin/sh", "01-mpn-panel.conf", "https://github.com/adhikariprivate/MCPanel/tree/main/docs", "mpn version"} {
 		if !strings.Contains(MotdScript, want) {
 			t.Errorf("greeting lacks %q", want)
 		}

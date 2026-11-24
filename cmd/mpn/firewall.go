@@ -28,7 +28,7 @@ const (
 	fwUnitFile   = "/etc/systemd/system/mpn-firewall.service"
 	fwUnitName   = "mpn-firewall.service"
 	panelNginx   = "/etc/nginx/conf.d/01-mpn-panel.conf"
-	fwUnitSource = "[Unit]\nDescription=Mini Panel firewall\nBefore=network-pre.target\nWants=network-pre.target\nAfter=local-fs.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/mpn firewall load\nExecStop=" + nftBin + " -f " + fwOffFile + "\n\n[Install]\nWantedBy=multi-user.target\n"
+	fwUnitSource = "[Unit]\nDescription=MCPN firewall\nBefore=network-pre.target\nWants=network-pre.target\nAfter=local-fs.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/mpn firewall load\nExecStop=" + nftBin + " -f " + fwOffFile + "\n\n[Install]\nWantedBy=multi-user.target\n"
 )
 
 func firewallUsage() {

@@ -150,7 +150,7 @@ func WPConfig(dbName, dbUser, dbPass string) (string, error) {
 		}
 	}
 	var b strings.Builder
-	b.WriteString("<?php\n// Written by Mini Panel.\n")
+	b.WriteString("<?php\n// Written by MCPN.\n")
 	fmt.Fprintf(&b, "define( 'DB_NAME', '%s' );\ndefine( 'DB_USER', '%s' );\ndefine( 'DB_PASSWORD', '%s' );\n", dbName, dbUser, dbPass)
 	b.WriteString("define( 'DB_HOST', 'localhost' );\ndefine( 'DB_CHARSET', 'utf8mb4' );\ndefine( 'DB_COLLATE', '' );\n\n")
 	for _, k := range wpKeys {

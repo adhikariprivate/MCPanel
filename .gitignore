@@ -3,6 +3,7 @@
 *.exe
 *.test
 node_modules/
+/site/
 
 # editors and local files
 .vscode/

@@ -70,7 +70,7 @@ func MakeCode(hubURL, pin, secret string) string {
 // ReadCode reads a pairing code.
 func ReadCode(code string) (hubURL, pin, secret string, err error) {
 	code = strings.Join(strings.Fields(code), "") // a code copied from a chat may be broken over lines
-	bad := errors.New("this is not a pairing code of Mini Panel")
+	bad := errors.New("this is not a pairing code of MCPN")
 	if !strings.HasPrefix(code, codePrefix) || len(code) > 2000 {
 		return "", "", "", bad
 	}

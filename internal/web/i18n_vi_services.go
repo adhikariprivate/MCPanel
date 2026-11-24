@@ -6,7 +6,7 @@ func init() {
 		"nav.services":           "Dịch vụ",
 		"page.services":          "Dịch vụ",
 		"svc.title":              "Dịch vụ",
-		"svc.sub":                "Những gì Mini Panel quản lý trên máy chủ. Cái nào đã cài thì khởi động, dừng hoặc nạp lại ngay tại đây; cái chưa cài thì cài bằng một nút.",
+		"svc.sub":                "Những gì MCPN quản lý trên máy chủ. Cái nào đã cài thì khởi động, dừng hoặc nạp lại ngay tại đây; cái chưa cài thì cài bằng một nút.",
 		"svc.col.name":           "Tên",
 		"svc.col.state":          "Trạng thái",
 		"svc.col.actions":        "Thao tác",

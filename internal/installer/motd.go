@@ -5,7 +5,7 @@ package installer
 // the panel's nginx file at each login, so a port changed later is still right. It prints ASCII only, so it looks the
 // same whatever the locale of the SSH client.
 const MotdScript = `#!/bin/sh
-# Mini Panel login greeting, written by the installer. The greeting of the distribution is switched off;
+# MCPN login greeting, written by the installer. The greeting of the distribution is switched off;
 # the scripts it used are kept (see /etc/mpn/motd-off and the execute bits in /etc/update-motd.d).
 a='\033[38;5;69m'; b='\033[1m'; d='\033[2m'; r='\033[0m'
 ver=$(/usr/local/bin/mpn version 2>/dev/null || echo "?")
@@ -18,7 +18,7 @@ mem=$(free -m 2>/dev/null | awk '/^Mem:/ { print $3 " / " $2 " MB" }')
 disk=$(df -h / 2>/dev/null | awk 'NR == 2 { print $3 " / " $2 }')
 sites=$(find /etc/nginx/sites-enabled -maxdepth 1 -name '*.conf' 2>/dev/null | wc -l)
 printf '\n'
-printf "  ${a}%s${r}   ${b}Mini Panel${r} %s\n" ' /| /|' "$ver"
+printf "  ${a}%s${r}   ${b}MCPN${r} %s\n" ' /| /|' "$ver"
 printf "  ${a}%s${r}   ${d}%s, up %s${r}\n\n" '/ |/ |' "$os" "${up:-?}"
 printf "  ${d}%-9s${r} ${a}https://%s:%s${r}\n" 'Panel' "${ip:-<server-ip>}" "${port:-2610}"
 # Until the first account exists, the link that opens the setup page (it carries a one-time key).
@@ -26,7 +26,7 @@ if [ ! -e /var/lib/mpn-web/account.json ]; then
   link=$(/usr/local/bin/mpn web setup-link -quiet 2>/dev/null)
   [ -z "$link" ] || printf "  ${d}%-9s${r} ${b}%s${r}\n" 'Setup' "$link"
 fi
-printf "  ${d}%-9s${r} %s\n" 'Docs' 'https://mpanel.biz'
+printf "  ${d}%-9s${r} %s\n" 'Docs' 'https://github.com/adhikariprivate/MCPanel/tree/main/docs'
 printf "  ${d}%-9s${r} %s\n\n" 'Command' 'mpn  (mpn web passwd resets the panel password)'
 printf "  ${d}load${r} %s   ${d}memory${r} %s   ${d}disk${r} %s   ${d}websites${r} %s\n\n" "$load" "${mem:-?}" "${disk:-?}" "$sites"
 `

@@ -15,12 +15,12 @@ import (
 	"mpn/internal/minisig"
 )
 
-// ReleaseKey is the public key the releases are signed with (minisign, key id FACCA3F6CCA9CE7F). The secret key is a secret of the
-// release workflow; an encrypted copy is kept in a private repository of the project.
-const ReleaseKey = "RWR/zqnM9qPM+hqG8NyZykVj+a3YkFsV4sFO2zhtHGAcaTPA145/bH07"
+// ReleaseKey is the public key used to verify release assets signed by the MCPN release workflow.
+// The corresponding private key is stored as a GitHub Actions secret in the panel repository.
+const ReleaseKey = "RWQf6VbboWp/OOcdh4NowG8zM9IU7woN8pKWhYT8FrIBQgMjBOPYIiSJ"
 
 // Repo is where releases are published.
-const Repo = "marixdev/mini-panel"
+const Repo = "adhikariprivate/MCPanel"
 
 // Version is a release number, x.y.z.
 type Version struct{ Major, Minor, Patch int }

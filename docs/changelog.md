@@ -1,8 +1,19 @@
 # Changelog
 
-All notable changes to Mini Panel are recorded here. Version numbers follow [Semantic Versioning](https://semver.org/).
+All notable changes to MCPN (My Control Panel) are recorded here. Version numbers follow [Semantic Versioning](https://semver.org/).
 
-Translations: [Tiếng Việt](CHANGELOG.vi.md) · [中文](CHANGELOG.zh.md).
+
+## [1.2.4] - 2026-11-24
+
+### Added
+
+- Compiled binary web apps. A site can run an executable such as a Go or Rust web server as its own systemd service, with automatic restart, an allocated loopback port exposed as `PORT`, nginx proxying, and an optional memory limit.
+- MkDocs Material documentation under `docs/`, including the Websites overview and the release history.
+
+### Changed
+
+- The product is now MCPN (My Control Panel). User-facing branding is MCPN while the `mpn` executable and existing service identifiers remain compatible with installations.
+- The installer is maintained in `scripts/installer/install.sh` and downloads releases from `adhikariprivate/MCPanel`. Update checks and companion component URLs now use the MCPN-owned repositories.
 
 ## [1.2.3] - 2026-11-22
 
@@ -21,7 +32,7 @@ Translations: [Tiếng Việt](CHANGELOG.vi.md) · [中文](CHANGELOG.zh.md).
 
 ### Changed
 
-- Ubuntu 26.04 now takes nginx 1.30.7 from nginx.org, like every other supported system, with the PageSpeed and ModSecurity modules of [mpn-packages](https://github.com/marixdev/mpn-packages/releases/tag/nginx-1.30.7-r2). It used to keep Ubuntu's nginx 1.28.3, which the panel holds with `apt-mark hold`; a held package gets no security updates, so a machine installed before 18 November stayed without the fix for CVE-2026-123007.
+- Ubuntu 26.04 now takes nginx 1.30.7 from nginx.org, like every other supported system, with the PageSpeed and ModSecurity modules of [mpn-packages](https://github.com/adhikariprivate/mcpn-packages/releases/tag/nginx-1.30.7-r2). It used to keep Ubuntu's nginx 1.28.3, which the panel holds with `apt-mark hold`; a held package gets no security updates, so a machine installed before 18 November stayed without the fix for CVE-2026-123007.
 
 ### Upgrade notes
 
@@ -31,7 +42,7 @@ Translations: [Tiếng Việt](CHANGELOG.vi.md) · [中文](CHANGELOG.zh.md).
 
 ### Security
 
-- nginx moves from 1.28.3 to 1.30.7, which fixes the nginx advisories of 18 November 2026, among them CVE-2026-123007 (memory corruption in HTTP/2 flow control, reachable without signing in on every site with HTTP/2) and CVE-2026-118899. The 1.28 branch gets no fix. The PageSpeed and ModSecurity modules are built again for 1.30.7 ([nginx-1.30.7-r1](https://github.com/marixdev/mpn-packages/releases/tag/nginx-1.30.7-r1), [el-r2](https://github.com/marixdev/mpn-packages/releases/tag/el-r2)) and checked by SHA-256 as before.
+- nginx moves from 1.28.3 to 1.30.7, which fixes the nginx advisories of 18 November 2026, among them CVE-2026-123007 (memory corruption in HTTP/2 flow control, reachable without signing in on every site with HTTP/2) and CVE-2026-118899. The 1.28 branch gets no fix. The PageSpeed and ModSecurity modules are built again for 1.30.7 ([nginx-1.30.7-r1](https://github.com/adhikariprivate/mcpn-packages/releases/tag/nginx-1.30.7-r1), [el-r2](https://github.com/adhikariprivate/mcpn-packages/releases/tag/el-r2)) and checked by SHA-256 as before.
 
 ### Fixed
 
@@ -98,7 +109,7 @@ Translations: [Tiếng Việt](CHANGELOG.vi.md) · [中文](CHANGELOG.zh.md).
 
 ### Added
 
-- Runs on AlmaLinux, Rocky Linux and CentOS Stream 9 and 10, on both x86_64 and arm64. Nginx 1.28.3 comes from nginx.org and is held with `dnf versionlock`; PHP 7.4 and later from Remi (with EPEL); PHP 7.0 to 7.3, the ModSecurity module and OWASP CRS 4.25.2 from the [el-r1](https://github.com/marixdev/mpn-packages/releases/tag/el-r1) release of mpn-packages; PageSpeed from the [nginx-1.28.3-r3](https://github.com/marixdev/mpn-packages/releases/tag/nginx-1.28.3-r3) release. Every download is checked against a pinned SHA-256.
+- Runs on AlmaLinux, Rocky Linux and CentOS Stream 9 and 10, on both x86_64 and arm64. Nginx 1.28.3 comes from nginx.org and is held with `dnf versionlock`; PHP 7.4 and later from Remi (with EPEL); PHP 7.0 to 7.3, the ModSecurity module and OWASP CRS 4.25.2 from the [el-r1](https://github.com/adhikariprivate/mcpn-packages/releases/tag/el-r1) release of mpn-packages; PageSpeed from the [nginx-1.28.3-r3](https://github.com/adhikariprivate/mcpn-packages/releases/tag/nginx-1.28.3-r3) release. Every download is checked against a pinned SHA-256.
 - MariaDB comes from rpm.mariadb.org and MySQL from repo.mysql.com; the signing keys of both repositories are checked by fingerprint. EL10 has MySQL 8.4 only.
 - SELinux stays enabled: the panel labels website folders, logs, PHP-FPM sockets, the venvs of Python sites, Node.js, mailboxes and the panel's port, and turns on `httpd_can_network_connect` so sites can reach their databases and outside services.
 - The installer turns off firewalld, because the panel manages the firewall with nftables.
@@ -112,7 +123,7 @@ Translations: [Tiếng Việt](CHANGELOG.vi.md) · [中文](CHANGELOG.zh.md).
 
 ### Added
 
-- Runs on ARM machines (arm64, aarch64). The installer recognises aarch64 and downloads `mpn_linux_arm64`. The PageSpeed and ModSecurity modules for arm64 come from the [nginx-1.28.3-r2](https://github.com/marixdev/mpn-packages/releases/tag/nginx-1.28.3-r2) release (built on GitHub's ARM runners, SHA-256 pinned per operating system and architecture). Web mail moves to [mpn-mail 1.0.2](https://github.com/marixdev/mpn-mail/releases/tag/v1.0.2), which has an `mpn-mail_linux_arm64` build.
+- Runs on ARM machines (arm64, aarch64). The installer recognises aarch64 and downloads `mpn_linux_arm64`. The PageSpeed and ModSecurity modules for arm64 come from the [nginx-1.28.3-r2](https://github.com/adhikariprivate/mcpn-packages/releases/tag/nginx-1.28.3-r2) release (built on GitHub's ARM runners, SHA-256 pinned per operating system and architecture). Web mail moves to [mpn-mail 1.0.2](https://github.com/adhikariprivate/mcpn-mail/releases/tag/v1.0.2), which has an `mpn-mail_linux_arm64` build.
 - Turning on mail removes existing mail servers that would hold port 25 (Exim, Sendmail, OpenSMTPD) before installing Postfix, instead of stopping and asking for them to be removed by hand.
 
 ### Fixed
@@ -140,18 +151,18 @@ Translations: [Tiếng Việt](CHANGELOG.vi.md) · [中文](CHANGELOG.zh.md).
 
 ### Changed
 
-- Web mail moves to [mpn-mail 1.0.1](https://github.com/marixdev/mpn-mail/releases/tag/v1.0.1), which has Chinese and follows the panel's language.
+- Web mail moves to [mpn-mail 1.0.1](https://github.com/adhikariprivate/mcpn-mail/releases/tag/v1.0.1), which has Chinese and follows the panel's language.
 - The descriptions of the PHP settings in the Overview tab now follow the selected language; before, they were always in Vietnamese.
-- The README is now also in English and Chinese ([README.zh.md](README.zh.md)), with a table of the companion repositories (mpn-mail, mpn-nginx-modules).
+- The English README includes the companion repository table (mpn-mail and mpn-packages).
 
 ## [1.0.0] - 2026-11-12
 
 First release: PHP, Node.js, Python, static and proxy websites; Let's Encrypt SSL; MariaDB/MySQL and phpMyAdmin; email and the mpn-mail 1.0.0 web mail; backups; firewall, ModSecurity, fail2ban, 2FA; monitoring; Vietnamese and English interface.
 
-[1.2.0]: https://github.com/marixdev/mini-panel/compare/v1.1.1...v1.2.0
-[1.1.1]: https://github.com/marixdev/mini-panel/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/marixdev/mini-panel/compare/v1.0.3...v1.1.0
-[1.0.3]: https://github.com/marixdev/mini-panel/compare/v1.0.2...v1.0.3
-[1.0.2]: https://github.com/marixdev/mini-panel/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/marixdev/mini-panel/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/marixdev/mini-panel/releases/tag/v1.0.0
+[1.2.0]: https://github.com/adhikariprivate/MCPanel/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/adhikariprivate/MCPanel/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/adhikariprivate/MCPanel/compare/v1.0.3...v1.1.0
+[1.0.3]: https://github.com/adhikariprivate/MCPanel/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/adhikariprivate/MCPanel/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/adhikariprivate/MCPanel/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/adhikariprivate/MCPanel/releases/tag/v1.0.0

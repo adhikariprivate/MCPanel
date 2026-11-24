@@ -162,7 +162,7 @@ func TestEnableGivesTheAccountItsOwnWelcomeInsteadOfTheSystemsText(t *testing.T)
 	if !strings.HasPrefix(w.args, "-u demo -- sh -c ") || !strings.HasSuffix(w.args, " sh /home/demo") {
 		t.Errorf("runuser call: %q", w.args)
 	}
-	for _, want := range []string{"# mpn banner", "case $- in *i*)", "Mini Panel", "'demo.example.com'", "'/home/demo/htdocs'", "Account %s · web root %s", "Type exit to leave."} {
+	for _, want := range []string{"# mpn banner", "case $- in *i*)", "MCPN", "'demo.example.com'", "'/home/demo/htdocs'", "Account %s · web root %s", "Type exit to leave."} {
 		if !strings.Contains(w.stdin, want) {
 			t.Errorf("the profile text lacks %q:\n%s", want, w.stdin)
 		}

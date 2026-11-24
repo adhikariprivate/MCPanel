@@ -6,7 +6,7 @@ func init() {
 		"nav.services":           "Services",
 		"page.services":          "Services",
 		"svc.title":              "Services",
-		"svc.sub":                "Software managed by Mini Panel. Start, stop or reload installed services, or install missing software here.",
+		"svc.sub":                "Software managed by MCPN. Start, stop or reload installed services, or install missing software here.",
 		"svc.col.name":           "Name",
 		"svc.col.state":          "Status",
 		"svc.col.actions":        "Actions",
