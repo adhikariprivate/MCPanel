@@ -168,7 +168,7 @@
 }
 
 /* The few parts of the interface that repeat everywhere. Each one is written out in full, not built from the others. The style is
-   plain and flat (after the UI/UX Pro Max "Minimalism & Swiss" profile, see design-system/mini-panel): thin borders instead of
+   plain and flat (after the UI/UX Pro Max "Minimalism & Swiss" profile, see design-system/mcpn): thin borders instead of
    shadows, one green for what is current or primary, red only for what removes something, and 150 ms colour changes that stop when
    the person asks for less motion. */
 @layer components {
