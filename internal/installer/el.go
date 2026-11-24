@@ -297,8 +297,14 @@ label httpd_var_run_t '/run/mpn-web(/.*)?' 2>/dev/null || label httpd_var_run_t 
 # home of the site, user_home_t ("Unable to locate executable .../venv/bin/python: Permission denied", seen on Rocky Linux 10).
 label bin_t '/home/[^/]+/venv/bin(/.*)?'
 label bin_t '/opt/node/[^/]+/bin(/.*)?'
+# mise tools are downloaded into a private per-site data directory. systemd may execute these tools as the site user.
+label bin_t '/var/lib/mpn/mise/[^/]+/installs(/.*)?'
+# File tasks are optional; only the conventional mise task directories receive an executable label.
+label bin_t '/home/[^/]+/htdocs/mise-tasks(/.*)?'
+label bin_t '/home/[^/]+/htdocs/\.mise/tasks(/.*)?'
 [ ! -d /opt/node ] || restorecon -R /opt/node
 [ ! -d /opt/mpn/php ] || restorecon -R /opt/mpn/php
+[ ! -d /home ] || restorecon -R /home/*/htdocs/mise-tasks /home/*/htdocs/.mise/tasks 2>/dev/null || true
 install -d -m 0755 /var/log/mpn/sites
 restorecon -R /var/log/mpn /home 2>/dev/null || true
 [ ! -d /usr/share/mpn ] || restorecon -R /usr/share/mpn
@@ -315,6 +321,11 @@ func SELinuxStep(ports []int) Step {
 // RestoreconHome labels a web root that was just made, so nginx and PHP-FPM may use it. It does nothing where SELinux is off.
 func RestoreconHome(path string) Action {
 	return Run("sh", "-c", "command -v restorecon >/dev/null && [ \"$(getenforce 2>/dev/null)\" != Disabled ] && restorecon -R '"+path+"' || true")
+}
+
+// RestoreconPath labels one known path without descending into content the site's account can change.
+func RestoreconPath(path string) Action {
+	return Run("sh", "-c", "command -v restorecon >/dev/null && [ \"$(getenforce 2>/dev/null)\" != Disabled ] && [ -d '"+path+"' ] && [ ! -L '"+path+"' ] && restorecon '"+path+"' || true")
 }
 
 // ---- steps of the plan ---------------------------------------------------------------------------------------------------------

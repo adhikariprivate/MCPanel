@@ -67,6 +67,10 @@
         <input id="f-entry" name="entry" class="field" value="bin/server" required>
         <p class="hint">{{T "new.binary.entry"}}</p>
       </div>
+      {{else if eq .Kind "mise"}}
+      <div class="sm:col-span-2">
+        <p class="hint">{{T "new.mise.hint"}}</p>
+      </div>
       {{else if eq .Kind "proxy"}}
       <div>
         <label for="f-up" class="label">{{T "f.upstream"}}</label>

@@ -27,7 +27,7 @@ func TestStepOrderWithSwap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := names(p), "base packages,swap,journald limit,nginx,nginx pagespeed,database mariadb"; got != want {
+	if got, want := names(p), "base packages,swap,journald limit,nginx,nginx pagespeed,mise,database mariadb"; got != want {
 		t.Errorf("steps=%s want %s", got, want)
 	}
 	if !strings.Contains(p.String(), "run   fallocate -l 1024M /swapfile") {
@@ -37,7 +37,7 @@ func TestStepOrderWithSwap(t *testing.T) {
 
 func TestSwapSkippedWhenEnough(t *testing.T) {
 	p, _ := Build(opts("", 1024))
-	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed"; got != want {
+	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,mise"; got != want {
 		t.Errorf("steps=%s want %s", got, want)
 	}
 }

@@ -21,6 +21,7 @@ func siteMkroot(args []string) {
 	fs := flag.NewFlagSet("site mkroot", flag.ExitOnError)
 	name := fs.String("user", "", "the account of the site")
 	root := fs.String("root", "", "the web root, /home/<user>/htdocs or a folder below it")
+	miseSite := fs.String("mise-site", "", "also create this mise site's private runtime data directories")
 	_ = fs.Parse(args)
 	requireLinuxRoot()
 	if !site.ValidName(*name) {
@@ -36,6 +37,23 @@ func siteMkroot(args []string) {
 		return
 	}
 	fail(err)
+	if *miseSite != "" {
+		if !site.ValidName(*miseSite) {
+			fail(fmt.Errorf("invalid mise site name %q", *miseSite))
+		}
+		u, err := user.Lookup(*name)
+		fail(err)
+		runtimeUID, e1 := strconv.Atoi(u.Uid)
+		runtimeGID, e2 := strconv.Atoi(u.Gid)
+		if e1 != nil || e2 != nil || runtimeUID == 0 {
+			fail(fmt.Errorf("invalid uid or gid for %s", *name))
+		}
+		for _, dir := range []string{*miseSite + "/installs", *miseSite + "/data"} {
+			dataFolders, err := safedir.Split(dir)
+			fail(err)
+			fail(safedir.MkdirAll("/var/lib/mpn/mise", dataFolders, runtimeUID, runtimeGID, 0o700))
+		}
+	}
 }
 
 // lookupIDs returns the uid of the account and the gid of the group, and fails when either is missing.

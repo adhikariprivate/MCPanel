@@ -19,6 +19,7 @@ nav:
   - Websites:
       - Overview: websites/index.md
       - Compiled binaries: binary-apps.md
+      - mise apps: mise-sites.md
   - Changelog: changelog.md
 markdown_extensions:
   - admonition

@@ -24,6 +24,7 @@ func init() {
 		"f.upstream":              "Upstream address",
 		"kind.static":             "Static",
 		"kind.binary":             "Binary app",
+		"kind.mise":               "mise app",
 		"kind.php":                "PHP",
 		"kind.node":               "Node.js",
 		"kind.python":             "Python",

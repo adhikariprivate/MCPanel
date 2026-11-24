@@ -20,7 +20,13 @@ const (
 	Proxy  Kind = "proxy"
 	Python Kind = "python"
 	Binary Kind = "binary"
+	Mise   Kind = "mise"
 )
+
+var miseTaskRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
+
+// ValidMiseTask reports whether name is safe as one argv item to mise run.
+func ValidMiseTask(name string) bool { return miseTaskRe.MatchString(name) }
 
 // pythonVersionRe matches the minor version of a Python 3 interpreter such as "3.12". Python sites use the interpreters the
 // system packages provide (/usr/bin/python3.N), so the list of versions is read from the machine, not fixed here.
@@ -39,6 +45,12 @@ func ValidPythonEntry(e string) bool {
 
 // VenvDir is the virtual environment of a Python site. The site's own packages go here, never into the system's Python.
 func VenvDir(user string) string { return "/home/" + user + "/venv" }
+
+// MiseDataDir contains mutable mise metadata and caches for one site.
+func MiseDataDir(name string) string { return "/var/lib/mpn/mise/" + name + "/data" }
+
+// MiseInstallsDir separates executable runtimes so their directory can carry the EL executable label.
+func MiseInstallsDir(name string) string { return "/var/lib/mpn/mise/" + name + "/installs" }
 
 // PHPVersions are the versions offered. 8.6 is left out until it is confirmed as a stable release.
 var PHPVersions = []string{"7.0", "7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"}
@@ -59,6 +71,7 @@ type Site struct {
 	NodeVersion string   // node only, a major version such as "22"
 	PyVersion   string   // python only, a minor version such as "3.12"
 	Entry       string   // node and python start script relative to Root; binary executable relative to the site's home
+	MiseTask    string   // mise task selected as the supervised web process; empty means not configured
 	Upstream    string   // proxy only, an http or https URL
 	TLS         bool     // HTTPS is on; set once a certificate is installed
 	// Settings a person may change later (see settings.go).
@@ -196,6 +209,19 @@ func (s Site) Validate() error {
 		if !ValidMemMB(s.MemMB) {
 			add("memory %d MB must be 0 (the default) or between 64 and 8192", s.MemMB)
 		}
+	case Mise:
+		if s.Root != HtdocsOf(s.User) {
+			add("mise sites use the fixed web root %q so mise.toml stays editable in the site file tools", HtdocsOf(s.User))
+		}
+		if !ValidAppPort(s.NodePort) {
+			add("mise app port %d must be between 1024 and 65535 and not one that the server itself uses", s.NodePort)
+		}
+		if s.MiseTask != "" && !ValidMiseTask(s.MiseTask) {
+			add("mise task %q has an invalid name", s.MiseTask)
+		}
+		if !ValidMemMB(s.MemMB) {
+			add("memory %d MB must be 0 (the default) or between 64 and 8192", s.MemMB)
+		}
 	case Proxy:
 		if u, err := url.Parse(s.Upstream); err != nil || (u.Scheme != "http" && u.Scheme != "https") ||
 			u.Host == "" || strings.ContainsAny(s.Upstream, " \t\r\n;{}\"'\\$") {
@@ -221,7 +247,7 @@ func AppSocket(name string) string { return AppSocketDir(name) + "/app.sock" }
 // ProxyTarget returns the URL nginx forwards to, or "" for kinds that are not proxied.
 func (s Site) ProxyTarget() string {
 	switch s.Kind {
-	case Node, Python, Binary:
+	case Node, Python, Binary, Mise:
 		if s.UsesSocket() {
 			return "http://unix:" + AppSocket(s.Name) + ":"
 		}

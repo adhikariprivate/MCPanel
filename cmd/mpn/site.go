@@ -94,6 +94,8 @@ func runSite(args []string) {
 		siteRenew(args[1:])
 	case "mkroot":
 		siteMkroot(args[1:])
+	case "mise-install":
+		siteMiseInstall(args[1:])
 	default:
 		siteUsage()
 	}
@@ -114,7 +116,7 @@ func openStore(path string) *store.Store {
 func siteAdd(args []string) {
 	fs := flag.NewFlagSet("site add", flag.ExitOnError)
 	db := fs.String("db", defaultDB, "database path")
-	kind := fs.String("kind", "php", "static, php, node, python, binary or proxy")
+	kind := fs.String("kind", "php", "static, php, node, python, binary, mise or proxy")
 	var hosts hostList
 	fs.Var(&hosts, "host", "hostname, repeat for aliases (the first is primary)")
 	var s site.Site
@@ -156,10 +158,12 @@ func siteAdd(args []string) {
 		if s.Entry == "" {
 			s.Entry = "bin/server"
 		}
+	case site.Mise:
+		// The account starts unconfigured; only its nginx upstream port is allocated here.
 	}
 	// From 1.2.0 a node or python app listens on a Unix socket unless a port is asked for (-port N). On the RHEL family it keeps a port: nginx
 	// there runs as httpd_t, and connecting to a socket of an app in another domain needs a policy of its own, not written yet.
-	if s.Kind == site.Binary && s.NodePort == 0 {
+	if (s.Kind == site.Binary || s.Kind == site.Mise) && s.NodePort == 0 {
 		p, err := st.AllocNodePort(nodePortLo, nodePortHi)
 		fail(err)
 		s.NodePort = p
@@ -220,6 +224,8 @@ func siteList(args []string) {
 			detail = fmt.Sprintf("python %s %s", s.PyVersion, listensOn(s))
 		case site.Binary:
 			detail = fmt.Sprintf("binary %s", listensOn(s))
+		case site.Mise:
+			detail = fmt.Sprintf("mise %s", listensOn(s))
 		case site.Proxy:
 			detail = s.Upstream
 		}
@@ -294,6 +300,16 @@ func printArtifacts(s site.Site, r renderFlags) error {
 			return err
 		}
 		fmt.Printf("# --- /etc/systemd/system/%s\n%s", unit.Name(s), u)
+	case site.Mise:
+		if s.MiseTask == "" {
+			fmt.Println("# no service: select a mise task in the site settings after editing mise.toml")
+		} else {
+			u, err := unit.Mise(s, s.MemMB)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("# --- /etc/systemd/system/%s\n%s", unit.Name(s), u)
+		}
 	}
 	return nil
 }

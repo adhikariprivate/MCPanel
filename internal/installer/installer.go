@@ -5,6 +5,7 @@ package installer
 import (
 	_ "embed"
 	"fmt"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -157,6 +158,7 @@ func Build(o Options) (Plan, error) {
 			ReloadNginx(),
 		})},
 		psStep,
+		Step{"mise", miseInstallStep()},
 	)
 	if o.Target.EL() {
 		plan = append(plan, SELinuxStep(elPanelPorts(o)))
@@ -201,6 +203,44 @@ func Build(o Options) (Plan, error) {
 	}
 	return plan, nil
 }
+
+// miseInstallStep installs the pinned upstream executable after checking the published archive's SHA-256.
+func miseInstallStep() []Action {
+	return miseInstallStepForArch(runtime.GOARCH)
+}
+
+func miseInstallStepForArch(arch string) []Action {
+	name, sum, err := miseAsset(arch)
+	if err != nil {
+		return []Action{Run("sh", "-c", "echo 'mise supports Linux amd64 and arm64 only' >&2; exit 1")}
+	}
+	url := "https://github.com/jdx/mise/releases/download/v2026.11.13/" + name
+	script := `set -eu
+if [ -x /usr/local/bin/mise ] && /usr/local/bin/mise --version 2>/dev/null | grep -Fq '2026.11.13'; then exit 0; fi
+d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+curl -fsSL --retry 3 --proto '=https' '` + url + `' -o "$d/mise.tar.gz"
+printf '%s  %s\n' '` + sum + `' "$d/mise.tar.gz" | sha256sum -c -
+tar -xzf "$d/mise.tar.gz" -C "$d"
+test -x "$d/mise/bin/mise"
+install -m 0755 "$d/mise/bin/mise" /usr/local/bin/mise`
+	return []Action{Run("sh", "-c", script)}
+}
+
+func miseAsset(arch string) (string, string, error) {
+	name, sum := "", ""
+	switch arch {
+	case "amd64":
+		name, sum = "mise-v2026.11.13-linux-x64.tar.gz", "22a2c32160a152d170261586dc124644d2ac2ab36c0afb48ef2b5d275c485a60"
+	case "arm64":
+		name, sum = "mise-v2026.11.13-linux-arm64.tar.gz", "31361f75c9b4ad38bfd4f8ca1a9e1cd8e8f40c5cdba432cc552adb48ac21a683"
+	default:
+		return "", "", fmt.Errorf("unsupported mise architecture %q", arch)
+	}
+	return name, sum, nil
+}
+
+// EnsureMise returns the pinned, checksum-verifying installer action for site provisioning on upgraded servers.
+func EnsureMise() Action { return miseInstallStep()[0] }
 
 // phpStep adds the Sury repo and installs each PHP version. The FPM service is stopped afterwards:
 // a version only runs once a site uses it, which keeps idle masters out of RAM.

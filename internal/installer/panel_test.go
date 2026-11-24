@@ -16,7 +16,7 @@ func TestPanelStepOrderAndContents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,renewal and backup timers,web panel"; got != want {
+	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,mise,renewal and backup timers,web panel"; got != want {
 		t.Fatalf("steps=%s want %s", got, want)
 	}
 	out := p.String()

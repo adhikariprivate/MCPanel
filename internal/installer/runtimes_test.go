@@ -12,7 +12,7 @@ func TestPHPAndNodeSteps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,php 7.4,8.4,node 22,node 24,database mariadb"; got != want {
+	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,mise,php 7.4,8.4,node 22,node 24,database mariadb"; got != want {
 		t.Errorf("steps=%s want %s", got, want)
 	}
 	s := p.String()

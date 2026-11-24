@@ -65,7 +65,7 @@
   <h2 class="h-section">{{T "ov.settings"}}</h2>
   <p class="mt-1 text-sm text-muted-foreground">{{T "ov.settings.sub"}}</p>
 
-  {{if ne $o.Kind "proxy"}}
+  {{if and (ne $o.Kind "proxy") (ne $o.Kind "mise")}}
   <fieldset class="mt-6">
     <legend class="text-sm font-semibold">{{T "ov.root.title"}}</legend>
     {{if $o.RootOutside}}
@@ -193,6 +193,21 @@
         <p class="hint">{{T "ov.node.mem.hint"}}</p>
       </div>
     </div>
+  </fieldset>
+  {{end}}
+
+  {{if eq $o.Kind "mise"}}
+  <fieldset class="mt-8">
+    <legend class="text-sm font-semibold">{{T "ov.mise.title"}}</legend>
+    <p class="hint mt-2">{{T "ov.mise.hint"}}</p>
+    {{if $o.MiseError}}<p class="alert-warn mt-3">{{T "ov.mise.error" $o.MiseError}}</p>{{else}}
+    <label for="s-mise-task" class="label mt-3">{{T "ov.mise.task"}}</label>
+    <select id="s-mise-task" name="mise_task" class="field max-w-xl">
+      <option value="">{{T "ov.mise.stopped"}}</option>
+      {{range $o.MiseTasks}}<option value="{{.Name}}"{{if eq .Name $o.MiseTask}} selected{{end}}>{{.Name}}{{if .Description}} — {{.Description}}{{end}}</option>{{end}}
+    </select>
+    <p class="hint">{{T "ov.mise.port" $o.Port}}</p>
+    {{end}}
   </fieldset>
   {{end}}
 

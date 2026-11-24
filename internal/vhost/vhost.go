@@ -48,6 +48,10 @@ var tpl = template.Must(template.New("vhost").Parse(`{{define "body"}}
     access_log /var/log/mpn/sites/{{.Site.Name}}/access.log;
     error_log /var/log/mpn/sites/{{.Site.Name}}/error.log;
     location ~ /\.(?!well-known) { deny all; }
+{{- if eq .Site.Kind "mise"}}
+    # Task configuration and scripts may contain secrets or executable site-owner code.
+    location ~* ^/(?:mise(?:\.[^/]*)?\.toml|mise-tasks/) { deny all; }
+{{- end}}
 {{- if .Site.Speed}}
     pagespeed on;
     pagespeed FileCachePath /var/cache/ngx_pagespeed;

@@ -2,6 +2,11 @@
 
 All notable changes to MCPN (My Control Panel) are recorded here. Version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Optional mise websites. Site owners can edit `mise.toml`, choose a task to supervise, and run it as their own Linux account with an allocated loopback `PORT`. See [mise websites](mise-sites.md).
 
 ## [1.2.4] - 2026-11-24
 

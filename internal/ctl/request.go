@@ -40,6 +40,7 @@ type Request struct {
 	Node      string   `json:"node,omitempty"`
 	Python    string   `json:"python,omitempty"` // a python site's interpreter, such as 3.12
 	Entry     string   `json:"entry,omitempty"`
+	MiseTask  string   `json:"mise_task,omitempty"`
 	Upstream  string   `json:"upstream,omitempty"`
 	Purge     bool     `json:"purge,omitempty"`
 	Backup    string   `json:"backup,omitempty"` // a backup name, or "latest"
@@ -715,6 +716,8 @@ func (r Request) addSite() ([]string, error) {
 		}
 		s.NodePort = 20000 // only for validation; mpn allocates the real port
 		a = append(a, "-entry", s.Entry)
+	case site.Mise:
+		s.NodePort = 20000 // only for validation; the real port is picked by mpn
 	case site.Proxy:
 		a = append(a, "-upstream", s.Upstream)
 	}
@@ -785,6 +788,7 @@ func (r Request) setSite() ([]string, error) {
 		}
 		a = append(a, "-root-sub", r.RootSub)
 	case site.Proxy:
+	case site.Mise: // mise keeps its config at the fixed, file-tool-visible htdocs root
 	default:
 		return nil, fmt.Errorf("unknown kind %q", r.Kind)
 	}
@@ -839,6 +843,14 @@ func (r Request) setSite() ([]string, error) {
 			return nil, fmt.Errorf("memory %d MB must be 0 (the default) or between 64 and 8192", r.Mem)
 		}
 		a = append(a, "-entry", r.Entry, "-port", strconv.Itoa(r.Port), "-mem", strconv.Itoa(r.Mem))
+	case site.Mise:
+		if r.MiseTask != "" && !site.ValidMiseTask(r.MiseTask) {
+			return nil, fmt.Errorf("mise task %q has an invalid name", r.MiseTask)
+		}
+		if !site.ValidAppPort(r.Port) || !site.ValidMemMB(r.Mem) {
+			return nil, fmt.Errorf("invalid mise app port or memory limit")
+		}
+		a = append(a, "-port", strconv.Itoa(r.Port), "-mem", strconv.Itoa(r.Mem), "-mise-task", r.MiseTask)
 	case site.Proxy:
 		if !site.ValidUpstream(r.Upstream) {
 			return nil, fmt.Errorf("upstream %q must be a plain http or https URL", r.Upstream)

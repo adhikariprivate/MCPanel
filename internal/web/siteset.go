@@ -15,34 +15,40 @@ import (
 
 // siteInfo is the answer of "mpn site info": what the overview of a site shows.
 type siteInfo struct {
-	Name          string            `json:"name"`
-	Kind          string            `json:"kind"`
-	User          string            `json:"user"`
-	Hostnames     []string          `json:"hostnames"`
-	Root          string            `json:"root"`
-	RootSub       string            `json:"root_sub"`
-	RootOutside   bool              `json:"root_outside"`
-	TLS           bool              `json:"tls"`
-	CertExpiry    int64             `json:"cert_expiry"`
-	Running       bool              `json:"running"`
-	RunDetail     string            `json:"run_detail"`
-	DiskBytes     int64             `json:"disk_bytes"`
-	DiskCut       bool              `json:"disk_cut"`
-	LastBackup    string            `json:"last_backup"`
-	PHPVersion    string            `json:"php_version"`
-	PHPValues     map[string]string `json:"php_values"`
-	PHPSet        map[string]string `json:"php_set"`
-	PHPMemory     int               `json:"php_memory_default"`
-	NodeVer       string            `json:"node_version"`
-	PyVer         string            `json:"python_version"`
-	Entry         string            `json:"entry"`
-	Port          int               `json:"port"`
-	MemMB         int               `json:"mem_mb"`
-	Upstream      string            `json:"upstream"`
-	InstalledPHP  []string          `json:"installed_php"`
-	InstalledNode []string          `json:"installed_node"`
-	InstalledPy   []string          `json:"installed_python"`
-	Nginx         string            `json:"nginx"`
+	Name        string            `json:"name"`
+	Kind        string            `json:"kind"`
+	User        string            `json:"user"`
+	Hostnames   []string          `json:"hostnames"`
+	Root        string            `json:"root"`
+	RootSub     string            `json:"root_sub"`
+	RootOutside bool              `json:"root_outside"`
+	TLS         bool              `json:"tls"`
+	CertExpiry  int64             `json:"cert_expiry"`
+	Running     bool              `json:"running"`
+	RunDetail   string            `json:"run_detail"`
+	DiskBytes   int64             `json:"disk_bytes"`
+	DiskCut     bool              `json:"disk_cut"`
+	LastBackup  string            `json:"last_backup"`
+	PHPVersion  string            `json:"php_version"`
+	PHPValues   map[string]string `json:"php_values"`
+	PHPSet      map[string]string `json:"php_set"`
+	PHPMemory   int               `json:"php_memory_default"`
+	NodeVer     string            `json:"node_version"`
+	PyVer       string            `json:"python_version"`
+	Entry       string            `json:"entry"`
+	Port        int               `json:"port"`
+	MemMB       int               `json:"mem_mb"`
+	MiseTask    string            `json:"mise_task"`
+	MiseTasks   []struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	} `json:"mise_tasks"`
+	MiseError     string   `json:"mise_error"`
+	Upstream      string   `json:"upstream"`
+	InstalledPHP  []string `json:"installed_php"`
+	InstalledNode []string `json:"installed_node"`
+	InstalledPy   []string `json:"installed_python"`
+	Nginx         string   `json:"nginx"`
 }
 
 // phpField is one PHP setting as the form shows it.
@@ -131,7 +137,7 @@ func (s *Server) settingsRequest(r *http.Request, row siteRow, info siteInfo) (c
 	req := ctl.Request{Op: "site.set", Site: row.Name, Kind: row.Kind}
 	get := func(k string) string { return strings.TrimSpace(r.PostFormValue(k)) }
 	kind := site.Kind(row.Kind)
-	if kind != site.Proxy {
+	if kind != site.Proxy && kind != site.Mise {
 		if info.RootOutside {
 			return req, T("set.err.rootoutside")
 		}
@@ -208,6 +214,25 @@ func (s *Server) settingsRequest(r *http.Request, row siteRow, info siteInfo) (c
 				return req, T("set.err.mem")
 			}
 		}
+	case site.Mise:
+		if info.MiseError != "" {
+			return req, T("set.err.mise", info.MiseError)
+		}
+		req.MiseTask = get("mise_task")
+		if req.MiseTask != "" && !site.ValidMiseTask(req.MiseTask) {
+			return req, T("set.err.misetask")
+		}
+		found := req.MiseTask == ""
+		for _, task := range info.MiseTasks {
+			if task.Name == req.MiseTask {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return req, T("set.err.misetask")
+		}
+		req.Port, req.Mem = info.Port, info.MemMB
 	case site.Proxy:
 		req.Upstream = get("upstream")
 		if !site.ValidUpstream(req.Upstream) {

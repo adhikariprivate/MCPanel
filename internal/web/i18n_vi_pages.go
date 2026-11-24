@@ -24,6 +24,7 @@ func init() {
 		"f.upstream":              "Địa chỉ đích",
 		"kind.static":             "Tĩnh",
 		"kind.binary":             "Ứng dụng nhị phân",
+		"kind.mise":               "Ứng dụng mise",
 		"kind.php":                "PHP",
 		"kind.node":               "Node.js",
 		"kind.python":             "Python",

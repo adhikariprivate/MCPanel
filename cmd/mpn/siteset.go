@@ -41,6 +41,7 @@ func siteSet(args []string) {
 	entry := fs.String("entry", "", "start script or binary path for an app site")
 	port := fs.Int("port", 0, "app port, or 0 for a Unix socket on node/python sites")
 	mem := fs.Int("mem", 0, "memory the app may use in MB, 0 for the default")
+	miseTask := fs.String("mise-task", "", "mise task to supervise; empty leaves the app stopped")
 	upstream := fs.String("upstream", "", "http(s) URL, proxy sites only")
 	apply := fs.Bool("apply", false, "make the changes on this machine (Linux, root); otherwise the plan is only printed")
 	r := addRenderFlags(fs)
@@ -73,9 +74,11 @@ func siteSet(args []string) {
 	}
 	onlyFor("node", site.Node)
 	onlyFor("python", site.Python)
-	for _, f := range []string{"entry", "port", "mem"} {
-		onlyFor(f, site.Node, site.Python, site.Binary)
+	onlyFor("entry", site.Node, site.Python, site.Binary)
+	for _, f := range []string{"port", "mem"} {
+		onlyFor(f, site.Node, site.Python, site.Binary, site.Mise)
 	}
+	onlyFor("mise-task", site.Mise)
 	onlyFor("upstream", site.Proxy)
 
 	if given["root-sub"] {
@@ -134,6 +137,23 @@ func siteSet(args []string) {
 	if given["mem"] {
 		cur.MemMB = *mem
 	}
+	if given["mise-task"] {
+		cur.MiseTask = *miseTask
+		if cur.MiseTask != "" {
+			tasks, err := listMiseTasks(cur)
+			fail(err)
+			found := false
+			for _, task := range tasks {
+				if task.Name == cur.MiseTask {
+					found = true
+					break
+				}
+			}
+			if !found {
+				fail(fmt.Errorf("mise task %q is not present in this site's mise.toml", cur.MiseTask))
+			}
+		}
+	}
 	if given["upstream"] {
 		cur.Upstream = *upstream
 	}
@@ -172,7 +192,7 @@ func portHolder(st interface {
 		return "", err
 	}
 	for _, s := range all {
-		if s.Name != self && (s.Kind == site.Node || s.Kind == site.Python || s.Kind == site.Binary) && s.NodePort == port {
+		if s.Name != self && (s.Kind == site.Node || s.Kind == site.Python || s.Kind == site.Binary || s.Kind == site.Mise) && s.NodePort == port {
 			return s.Name, nil
 		}
 	}

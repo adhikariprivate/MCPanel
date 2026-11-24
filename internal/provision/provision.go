@@ -37,8 +37,12 @@ var MkrootBinary = "/usr/local/bin/mpn"
 // owns the home directory and can swap any name in it for a symbolic link at any moment, so this is not done with install
 // and chmod on paths: "mpn site mkroot" walks the tree through folder descriptors that refuse links (internal/safedir) and
 // sets owner and mode through the descriptor of each folder it made. Folders that exist are left alone.
-func createRootAction(user, root string) installer.Action {
-	return installer.Run(MkrootBinary, "site", "mkroot", "-user", user, "-root", root)
+func createRootAction(s site.Site) installer.Action {
+	a := []string{MkrootBinary, "site", "mkroot", "-user", s.User, "-root", s.Root}
+	if s.Kind == site.Mise {
+		a = append(a, "-mise-site", s.Name)
+	}
+	return installer.Run(a...)
 }
 
 // RootFolders returns the folders below the home directory of user that make up the web root root: htdocs, then each
@@ -149,7 +153,7 @@ func RemovePlan(s site.Site, purge bool) (installer.Plan, error) {
 	case site.PHP:
 		// The master stays only while another pool still uses this PHP version.
 		plan = append(plan, installer.Step{Name: "php-fpm pool", Actions: dropPHPPoolActions(s, s.PHPVersion)})
-	case site.Node, site.Python, site.Binary:
+	case site.Node, site.Python, site.Binary, site.Mise:
 		plan = append(plan, installer.Step{Name: string(s.Kind) + " service", Actions: []installer.Action{
 			installer.Run("systemctl", "disable", "--now", unit.Name(s)),
 			installer.Run("rm", "-f", "/etc/systemd/system/"+unit.Name(s)),
@@ -181,16 +185,36 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 	plan := installer.Plan{{Name: "account and directories", Actions: []installer.Action{
 		installer.Run("sh", "-c", createAccountScript(s.User, s.Name)),
 		installer.Run("chmod", "711", home),
-		createRootAction(s.User, s.Root),
-		logDirAction(s),
 	}}}
+	if s.Kind == site.Mise {
+		plan[0].Actions = append(plan[0].Actions,
+			installer.Run("install", "-d", "-o", "root", "-g", "root", "-m", "0755", "/var/lib/mpn/mise"),
+			installer.Run("install", "-d", "-o", "root", "-g", "root", "-m", "0711", "/var/lib/mpn/mise/"+s.Name),
+		)
+	}
+	plan[0].Actions = append(plan[0].Actions,
+		createRootAction(s),
+		logDirAction(s),
+	)
+	if s.Kind == site.Mise && distro.IsEL() {
+		// Label only the nonreplaceable installs directory; new files inherit its SELinux type.
+		plan[0].Actions = append(plan[0].Actions, installer.RestoreconPath(site.MiseInstallsDir(s.Name)))
+	}
 	if distro.IsEL() {
 		// SELinux labels the new web root and log folder for nginx and PHP-FPM (the rules were set when the panel was installed).
 		plan[0].Actions = append(plan[0].Actions, installer.RestoreconHome(site.HtdocsOf(s.User)), installer.RestoreconHome(LogDir(s.Name)))
 	}
+	if s.Kind == site.Mise {
+		plan = append(plan, installer.Step{Name: "pinned mise executable", Actions: []installer.Action{installer.EnsureMise()}})
+	}
 	// An interpreted app needs its start script before the service starts, so the page comes before the services.
 	if page, ok := defaultPageStep(s); ok {
 		plan = append(plan, page)
+	}
+	if s.Kind == site.Mise {
+		plan = append(plan, installer.Step{Name: "mise configuration", Actions: []installer.Action{
+			installer.Run("runuser", "-u", s.User, "--", "sh", "-c", `umask 022; test -e "$1" || printf '%s\n' '# MCPN mise site. Configure runtimes with [tools] and add a long-running web task.' '[tasks.demo]' 'description = "Harmless one-shot example; it is not a web server."' 'run = "echo MCPN mise site is ready"' > "$1"`, "sh", s.Root+"/mise.toml"),
+		}})
 	}
 
 	switch s.Kind {
@@ -248,6 +272,29 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 			return nil, err
 		}
 		plan = append(plan, installer.Step{Name: "binary service", Actions: []installer.Action{
+			installer.WriteFile("/etc/systemd/system/"+unit.Name(s), content, 0o644),
+			installer.Run("systemctl", "daemon-reload"),
+			installer.Run("systemctl", "enable", unit.Name(s)),
+			installer.Run("systemctl", "restart", unit.Name(s)),
+		}})
+	case site.Mise:
+		if s.MiseTask == "" {
+			plan = append(plan, installer.Step{Name: "mise service is not configured", Actions: []installer.Action{
+				installer.Run("sh", "-c", "systemctl disable --now "+unit.Name(s)+" >/dev/null 2>&1 || true"),
+				installer.Run("rm", "-f", "/etc/systemd/system/"+unit.Name(s)),
+				installer.Run("systemctl", "daemon-reload"),
+			}})
+			break
+		}
+		mem := o.NodeMemMB
+		if s.MemMB > 0 {
+			mem = s.MemMB
+		}
+		content, err := unit.Mise(s, mem)
+		if err != nil {
+			return nil, err
+		}
+		plan = append(plan, installer.Step{Name: "mise service", Actions: []installer.Action{
 			installer.WriteFile("/etc/systemd/system/"+unit.Name(s), content, 0o644),
 			installer.Run("systemctl", "daemon-reload"),
 			installer.Run("systemctl", "enable", unit.Name(s)),

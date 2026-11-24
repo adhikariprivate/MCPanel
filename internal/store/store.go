@@ -163,6 +163,22 @@ CREATE TABLE notify_chats (
 );`,
 	// An application that finishes its setup in the browser (phpBB) has done so.
 	`ALTER TABLE sites ADD COLUMN app_ready INTEGER NOT NULL DEFAULT 0;`,
+	// Binary and mise apps use a TCP port; mise also persists the task selected for supervision.
+	noForeignKeys + `
+CREATE TABLE sites_new (
+    id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL CHECK (kind IN ('static','php','node','proxy','python','binary','mise')),
+    system_user TEXT NOT NULL UNIQUE, root_dir TEXT NOT NULL, php_version TEXT,
+    app_port INTEGER UNIQUE, node_version TEXT, py_version TEXT, entry TEXT, upstream TEXT,
+    created_at INTEGER NOT NULL, tls INTEGER NOT NULL DEFAULT 0, php_ini TEXT, mem_mb INTEGER NOT NULL DEFAULT 0,
+    www TEXT NOT NULL DEFAULT '', allow_http INTEGER NOT NULL DEFAULT 0, ssl_mode TEXT NOT NULL DEFAULT '',
+    vhost TEXT NOT NULL DEFAULT '', speed INTEGER NOT NULL DEFAULT 0, webmail INTEGER NOT NULL DEFAULT 0,
+    app TEXT NOT NULL DEFAULT '', app_ready INTEGER NOT NULL DEFAULT 0, mise_task TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO sites_new (id,name,kind,system_user,root_dir,php_version,app_port,node_version,py_version,entry,upstream,created_at,tls,php_ini,mem_mb,www,allow_http,ssl_mode,vhost,speed,webmail,app,app_ready)
+SELECT id,name,kind,system_user,root_dir,php_version,app_port,node_version,py_version,entry,upstream,created_at,tls,php_ini,mem_mb,www,allow_http,ssl_mode,vhost,speed,webmail,app,app_ready FROM sites;
+DROP TABLE sites;
+ALTER TABLE sites_new RENAME TO sites;`,
 }
 
 // noForeignKeys, at the start of a migration, runs it with foreign key enforcement off and checks them again afterwards.
@@ -332,6 +348,8 @@ func (s *Store) AddSite(st site.Site) error {
 		port, pyVer, entry, mem = appPort(st), nullStr(st.PyVersion), nullStr(st.Entry), st.MemMB
 	case site.Binary:
 		port, entry, mem = appPort(st), nullStr(st.Entry), st.MemMB
+	case site.Mise:
+		port, mem = st.NodePort, st.MemMB
 	case site.Proxy:
 		upstream = nullStr(st.Upstream)
 	}
@@ -341,8 +359,8 @@ func (s *Store) AddSite(st site.Site) error {
 	}
 	defer tx.Rollback()
 	mode := sslModeOf(st)
-	res, err := tx.Exec(`INSERT INTO sites (name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, app, created_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, st.Name, string(st.Kind), st.User, st.Root, php, port, nodeVer, pyVer, entry, upstream, mode != "", mode, phpIni, mem, st.WWW, st.AllowHTTP, st.App, time.Now().Unix())
+	res, err := tx.Exec(`INSERT INTO sites (name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, app, created_at, mise_task)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, st.Name, string(st.Kind), st.User, st.Root, php, port, nodeVer, pyVer, entry, upstream, mode != "", mode, phpIni, mem, st.WWW, st.AllowHTTP, st.App, time.Now().Unix(), st.MiseTask)
 	if err != nil {
 		return wrap(err)
 	}
@@ -520,7 +538,7 @@ func (s *Store) AllocNodePort(lo, hi int) (int, error) {
 
 // load reads sites matching where (a fixed string from this package, never user input) and their hostnames.
 func (s *Store) load(where string, args ...any) ([]site.Site, error) {
-	rows, err := s.db.Query(`SELECT id, name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, vhost, speed, webmail, app, app_ready
+	rows, err := s.db.Query(`SELECT id, name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, vhost, speed, webmail, app, app_ready, mise_task
 		FROM sites `+where+` ORDER BY name`, args...)
 	if err != nil {
 		return nil, err
@@ -533,7 +551,8 @@ func (s *Store) load(where string, args ...any) ([]site.Site, error) {
 		var kind string
 		var php, up, nodeVer, pyVer, entry, ini sql.NullString
 		var port sql.NullInt64
-		if err := rows.Scan(&id, &st.Name, &kind, &st.User, &st.Root, &php, &port, &nodeVer, &pyVer, &entry, &up, &st.TLS, &st.SSLMode, &ini, &st.MemMB, &st.WWW, &st.AllowHTTP, &st.CustomVhost, &st.Speed, &st.Webmail, &st.App, &st.AppReady); err != nil {
+		var miseTask string
+		if err := rows.Scan(&id, &st.Name, &kind, &st.User, &st.Root, &php, &port, &nodeVer, &pyVer, &entry, &up, &st.TLS, &st.SSLMode, &ini, &st.MemMB, &st.WWW, &st.AllowHTTP, &st.CustomVhost, &st.Speed, &st.Webmail, &st.App, &st.AppReady, &miseTask); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -544,7 +563,7 @@ func (s *Store) load(where string, args ...any) ([]site.Site, error) {
 				return nil, fmt.Errorf("site %q: the stored PHP settings are not readable: %w", st.Name, err)
 			}
 		}
-		st.Kind, st.PHPVersion, st.NodePort, st.Upstream = site.Kind(kind), php.String, int(port.Int64), up.String
+		st.Kind, st.PHPVersion, st.NodePort, st.Upstream, st.MiseTask = site.Kind(kind), php.String, int(port.Int64), up.String, miseTask
 		st.NodeVersion, st.PyVersion, st.Entry = nodeVer.String, pyVer.String, entry.String
 		index[id] = len(out)
 		out = append(out, st)
@@ -613,11 +632,13 @@ func (s *Store) UpdateSite(st site.Site) error {
 		port, pyVer, entry, mem = appPort(st), nullStr(st.PyVersion), nullStr(st.Entry), st.MemMB
 	case site.Binary:
 		port, entry, mem = appPort(st), nullStr(st.Entry), st.MemMB
+	case site.Mise:
+		port, mem = st.NodePort, st.MemMB
 	case site.Proxy:
 		upstream = nullStr(st.Upstream)
 	}
-	res, err := s.db.Exec(`UPDATE sites SET root_dir = ?, php_version = ?, php_ini = ?, app_port = ?, node_version = ?, py_version = ?, entry = ?, upstream = ?, mem_mb = ?
-		WHERE name = ?`, st.Root, php, phpIni, port, nodeVer, pyVer, entry, upstream, mem, st.Name)
+	res, err := s.db.Exec(`UPDATE sites SET root_dir = ?, php_version = ?, php_ini = ?, app_port = ?, node_version = ?, py_version = ?, entry = ?, upstream = ?, mem_mb = ?, mise_task = ?
+		WHERE name = ?`, st.Root, php, phpIni, port, nodeVer, pyVer, entry, upstream, mem, st.MiseTask, st.Name)
 	if err != nil {
 		return wrap(err)
 	}

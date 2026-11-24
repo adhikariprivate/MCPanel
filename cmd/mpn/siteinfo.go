@@ -48,6 +48,9 @@ type siteInfo struct {
 	Entry         string            `json:"entry,omitempty"`
 	Port          int               `json:"port,omitempty"`
 	MemMB         int               `json:"mem_mb,omitempty"`
+	MiseTask      string            `json:"mise_task,omitempty"`
+	MiseTasks     []miseTask        `json:"mise_tasks,omitempty"`
+	MiseError     string            `json:"mise_error,omitempty"`
 	Upstream      string            `json:"upstream,omitempty"`
 	InstalledPHP  []string          `json:"installed_php"`
 	InstalledNode []string          `json:"installed_node"`
@@ -110,6 +113,12 @@ func running(s site.Site) (bool, string) {
 	case site.Node, site.Python, site.Binary:
 		out, _ := sh(3*time.Second, "systemctl", "is-active", unit.Name(s))
 		return out == "active", unit.Name(s)
+	case site.Mise:
+		if s.MiseTask == "" {
+			return false, "mise task not selected"
+		}
+		out, _ := sh(3*time.Second, "systemctl", "is-active", unit.Name(s))
+		return out == "active", unit.Name(s)
 	}
 	_, err := os.Stat("/etc/nginx/sites-enabled/" + s.Name + ".conf")
 	return err == nil, "nginx"
@@ -149,6 +158,13 @@ func buildInfo(s site.Site, ramMB int) siteInfo {
 		in.PyVer, in.Entry, in.Port, in.MemMB = s.PyVersion, s.Entry, s.NodePort, s.MemMB
 	case site.Binary:
 		in.Entry, in.Port, in.MemMB = s.Entry, s.NodePort, s.MemMB
+	case site.Mise:
+		in.MiseTask, in.Port, in.MemMB = s.MiseTask, s.NodePort, s.MemMB
+		var taskErr error
+		in.MiseTasks, taskErr = listMiseTasks(s)
+		if taskErr != nil {
+			in.MiseError = taskErr.Error()
+		}
 	case site.Proxy:
 		in.Upstream = s.Upstream
 	}

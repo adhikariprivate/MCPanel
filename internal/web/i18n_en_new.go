@@ -14,6 +14,8 @@ func init() {
 		"new.desc.node":    "A Node.js application running as a dedicated service, with nginx forwarding requests to it.",
 		"new.desc.static":  "Serve existing HTML, CSS and image files.",
 		"new.desc.binary":  "Run a compiled Go, Rust or other executable as a supervised web service, with nginx forwarding requests to it.",
+		"new.desc.mise":    "Manage language runtimes and app tasks with mise, then run a selected foreground task as a supervised web service.",
+		"new.mise.hint":    "MCPN creates mise.toml in the fixed htdocs root and leaves the service stopped. Edit the file with the site file tools, then choose a task in the site settings.",
 		"new.binary.entry": "After creating the site, upload the executable under the site's home (outside htdocs), make it executable, and have it listen on 127.0.0.1 using PORT. Then re-apply the site to start it.",
 		"new.desc.proxy":   "Forward all requests to another address, such as an application on another server.",
 		"f.hosts.hint":     "One domain, e.g. example.com. Configure www later in Overview and issue a certificate in the SSL tab.",
