@@ -1,11 +1,15 @@
 package web
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"mpn/internal/ctl"
+	"mpn/internal/webauth"
 )
 
 func notes(f *fakeHelper) []ctl.Request {
@@ -18,6 +22,99 @@ func notes(f *fakeHelper) []ctl.Request {
 		}
 	}
 	return n
+}
+
+func TestDelegatedActivityOnlyQueriesAssignedSites(t *testing.T) {
+	const blogID = "00000000000000000000000000000001"
+	const shopID = "00000000000000000000000000000002"
+	access := webauth.NewDelegatedAccess()
+	access.Users["editor"] = webauth.NewDelegatedUser("stored-hash", map[string]map[string]string{
+		blogID: {"site.view": "allow"},
+	})
+	path := filepath.Join(t.TempDir(), "access.json")
+	if err := webauth.SaveDelegatedAccess(path, access); err != nil {
+		t.Fatal(err)
+	}
+	f := &fakeHelper{answer: func(r ctl.Request) (ctl.Response, error) {
+		switch r.Op {
+		case "site.list":
+			return ctl.Response{OK: true, Output: `[{"name":"blog","access_id":"` + blogID + `"},{"name":"shop","access_id":"` + shopID + `"}]`}, nil
+		case "audit.list":
+			return ctl.Response{OK: true, Output: `{"entries":[],"total":0}`}, nil
+		default:
+			return ctl.Response{OK: true, Output: "[]"}, nil
+		}
+	}}
+	s := newServer()
+	s.Call, s.AccessFile = f.call, path
+	token, _ := s.Sessions.Create("editor")
+	h := s.Handler()
+	ck := cookie(&http.Cookie{Name: "mpn", Value: token})
+	list := do(h, "GET", "/", nil, ck)
+	if list.Code != 200 || strings.Contains(list.Body.String(), `href="/sites/new"`) || !strings.Contains(list.Body.String(), "blog") {
+		t.Fatalf("delegated site list must hide Add website and show assigned sites: %d\n%s", list.Code, list.Body.String())
+	}
+	w := do(h, "GET", "/activity", nil, ck)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `value="blog"`) || strings.Contains(w.Body.String(), `value="shop"`) {
+		t.Fatalf("delegated activity filter was not limited to the assigned site: %d\n%s", w.Code, w.Body.String())
+	}
+	r := lastList(f, 0)
+	if r == nil || r.Site != "" || len(r.AuditSites) != 1 || r.AuditSites[0] != "blog" {
+		t.Fatalf("activity query did not carry the assigned site scope: %+v", r)
+	}
+	before := len(f.reqs)
+	if w := do(h, "GET", "/activity.csv?site=shop", nil, ck); w.Code != 403 {
+		t.Fatalf("unassigned site export status %d", w.Code)
+	}
+	if lastList(f, before) != nil {
+		t.Fatal("the helper must not receive an unassigned site export")
+	}
+}
+
+func TestActivitySidebarVisibilityFollowsAssignedSiteView(t *testing.T) {
+	const siteID = "00000000000000000000000000000011"
+	for _, tc := range []struct {
+		name, capability string
+		wantActivity     bool
+	}{
+		{"assigned site viewer", "site.view", true},
+		{"assigned site without overview access", "files.read", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			access := webauth.NewDelegatedAccess()
+			access.Users["editor"] = webauth.NewDelegatedUser("stored-hash", map[string]map[string]string{
+				siteID: {tc.capability: "allow"},
+			})
+			path := filepath.Join(t.TempDir(), "access.json")
+			if err := webauth.SaveDelegatedAccess(path, access); err != nil {
+				t.Fatal(err)
+			}
+			s := newServer()
+			s.AccessFile = path
+			s.Call = func(r ctl.Request) (ctl.Response, error) {
+				if r.Op == "site.list" {
+					return ctl.Response{OK: true, Output: `[{"name":"blog","access_id":"` + siteID + `"}]`}, nil
+				}
+				return ctl.Response{OK: true, Output: "[]"}, nil
+			}
+			w := httptest.NewRecorder()
+			s.show(w, http.StatusOK, webauth.Session{User: "editor"}, view{Page: "sites"})
+			body := w.Body.String()
+			if got := strings.Contains(body, `href="/activity"`); got != tc.wantActivity {
+				t.Errorf("Activity link visible=%t, want %t", got, tc.wantActivity)
+			}
+			if strings.Contains(body, `href="/monitor"`) {
+				t.Error("Monitor must remain owner-only")
+			}
+		})
+	}
+
+	owner := newServer()
+	w := httptest.NewRecorder()
+	owner.show(w, http.StatusOK, webauth.Session{User: "admin"}, view{Page: "sites"})
+	if !strings.Contains(w.Body.String(), `href="/activity"`) || !strings.Contains(w.Body.String(), `href="/monitor"`) {
+		t.Error("instance administrator should still see Activity and Monitor")
+	}
 }
 
 // Signing in, a wrong password and signing out are told to the helper with the address; a wrong name is not kept as typed, because
@@ -96,11 +193,13 @@ func TestTheActivityPageShowsTheLogAndExportsIt(t *testing.T) {
 		!strings.Contains(w.Header().Get("Content-Disposition"), "mpn-activity-blog-") {
 		t.Errorf("csv: %v\n%s", w.Header(), w.Body)
 	}
-	// The tab of a website asks only for that website, whatever the address says.
+	// Per-site Activity is replaced by the sidebar Activity page.
 	n := len(f.reqs)
-	do(h, "GET", "/sites/blog/activity?site=shop", nil, cookie(c))
-	if r := lastList(f, n); r == nil || r.Site != "blog" {
-		t.Errorf("tab asked %+v", r)
+	if w := do(h, "GET", "/sites/blog/activity", nil, cookie(c)); w.Code != 404 {
+		t.Errorf("per-site activity tab status %d", w.Code)
+	}
+	if lastList(f, n) != nil {
+		t.Error("the removed per-site page must not fetch activity")
 	}
 	// A filter that is not valid never reaches the helper.
 	n = len(f.reqs)

@@ -21,7 +21,7 @@ func TestAPythonSiteIsStoredAndUpdated(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := s.GetSite("py")
-	if err != nil || !reflect.DeepEqual(got, pySite()) {
+	if err != nil || !reflect.DeepEqual(withoutSiteIdentity(got), pySite()) {
 		t.Fatalf("err=%v\ngot  %+v\nwant %+v", err, got, pySite())
 	}
 	next := pySite()
@@ -29,7 +29,7 @@ func TestAPythonSiteIsStoredAndUpdated(t *testing.T) {
 	if err := s.UpdateSite(next); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ = s.GetSite("py"); !reflect.DeepEqual(got, next) {
+	if got, _ = s.GetSite("py"); !reflect.DeepEqual(withoutSiteIdentity(got), next) {
 		t.Fatalf("after update: %+v", got)
 	}
 	// the port is unique across node and python sites

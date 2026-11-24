@@ -7,6 +7,8 @@ func init() {
 		"user.signedin":      "当前登录账户",
 		"user.settings":      "设置",
 		"page.settings":      "设置",
+		"page.users":         "用户和网站访问权限",
+		"page.siteaccess":    "网站访问权限",
 		"set.title":          "账户设置",
 		"set.sub":            "管理员账户的密码和双重验证。",
 		"set.pw.title":       "修改密码",

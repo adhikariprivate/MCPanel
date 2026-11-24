@@ -15,10 +15,10 @@ func vhostAnswers(custom bool) func(ctl.Request) (ctl.Response, error) {
 	return byOp(map[string]string{"site.list": siteListJSON("", "", false), "site.vhost": info, "site.vhostset": "saved", "site.vhostreset": "reset", "site.info": phpInfo()})
 }
 
-func TestTheVhostTabShowsTheConfigurationAndWhoWroteIt(t *testing.T) {
+func TestAdvancedTabShowsTheVhostConfigurationAndWhoWroteIt(t *testing.T) {
 	h, _, c, _ := setupWith(t, vhostAnswers(false), nil)
-	body := do(h, "GET", "/sites/shop/vhost", nil, cookie(c)).Body.String()
-	for _, want := range []string{`action="/sites/shop/vhost"`, `name="vhost"`, "server_name example.com;", "Panel tạo", "Lưu và áp dụng", `href="/sites/shop/vhost"`} {
+	body := do(h, "GET", "/sites/shop/advanced", nil, cookie(c)).Body.String()
+	for _, want := range []string{`action="/sites/shop/vhost"`, `name="vhost"`, "server_name example.com;", "Panel tạo", "Lưu và áp dụng"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -27,7 +27,7 @@ func TestTheVhostTabShowsTheConfigurationAndWhoWroteIt(t *testing.T) {
 		t.Error("nothing to go back to while mpn makes the file")
 	}
 	h, _, c, _ = setupWith(t, vhostAnswers(true), nil)
-	body = do(h, "GET", "/sites/shop/vhost", nil, cookie(c)).Body.String()
+	body = do(h, "GET", "/sites/shop/advanced", nil, cookie(c)).Body.String()
 	if !strings.Contains(body, "Cấu hình tự sửa") || !strings.Contains(body, `action="/sites/shop/vhost/reset"`) || !strings.Contains(body, "từ chối các thao tác") {
 		t.Errorf("a hand-written configuration says so, warns, and offers the way back")
 	}
@@ -41,7 +41,7 @@ func TestSavingSendsTheTextWithUnixLineBreaks(t *testing.T) {
 	if !ok || req.Site != "shop" || strings.Contains(req.Vhost, "\r") || !strings.Contains(req.Vhost, "return 204;") {
 		t.Fatalf("%+v\n%s", req, w.Body.String())
 	}
-	if backOf(t, w.Body.String()) != "/sites/shop/vhost" {
+	if backOf(t, w.Body.String()) != "/sites/shop/advanced" {
 		t.Errorf("back: %s", w.Body.String())
 	}
 }
@@ -97,7 +97,7 @@ func TestOtherTabsExplainAHandWrittenConfigurationRefusal(t *testing.T) {
 	for path, form := range map[string]url.Values{"/sites/shop/domain": {"domain": {"new.example.com"}}, "/sites/shop/ssl/letsencrypt": {}} {
 		form.Set("csrf", tok)
 		body := followed(h, do(h, "POST", path, form, cookie(c)), c).Body.String()
-		if !strings.Contains(body, "tab vHost") {
+		if !strings.Contains(body, "Nâng cao") {
 			t.Errorf("%s: %s", path, body)
 		}
 	}

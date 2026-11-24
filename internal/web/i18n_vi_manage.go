@@ -16,7 +16,7 @@ func init() {
 		"ps.btn.on":    "Bật tăng tốc",
 		"ps.btn.off":   "Tắt tăng tốc",
 		"ps.note":      "Tệp đã tối ưu được lưu trong bộ nhớ đệm, yêu cầu đầu tiên chậm hơn một chút, từ yêu cầu thứ hai trở đi nhanh hơn.",
-		"ps.custom":    "Website đang dùng cấu hình nginx tự sửa ở tab vHost nên không đổi được ở đây. Hãy thêm chỉ thị pagespeed vào cấu hình đó, hoặc về cấu hình mặc định.",
+		"ps.custom":    "Website đang dùng cấu hình nginx tự sửa trong mục Nâng cao nên không đổi được ở đây. Hãy thêm chỉ thị pagespeed vào cấu hình đó, hoặc về cấu hình mặc định.",
 		"act.speed":    "Đổi cài đặt tăng tốc của website %s",
 	} {
 		vi[k] = v

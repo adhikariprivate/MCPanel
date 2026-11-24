@@ -36,7 +36,7 @@ func TestTheActivityLogFiltersPagesAndPrunes(t *testing.T) {
 		f    audit.Filter
 		want int
 	}{
-		{audit.Filter{}, 5}, {audit.Filter{Site: "blog"}, 2}, {audit.Filter{IP: "1.1.1."}, 3}, {audit.Filter{IP: "2001:DB8:"}, 1},
+		{audit.Filter{}, 5}, {audit.Filter{Site: "blog"}, 2}, {audit.Filter{Sites: []string{"blog", "shop"}}, 3}, {audit.Filter{IP: "1.1.1."}, 3}, {audit.Filter{IP: "2001:DB8:"}, 1},
 		{audit.Filter{Kind: "auth"}, 2}, {audit.Filter{From: "2026-11-20", To: "2026-11-20"}, 4}, {audit.Filter{To: "2026-11-19"}, 1},
 	} {
 		if got := count(c.f); got != c.want {

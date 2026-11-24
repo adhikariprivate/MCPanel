@@ -22,7 +22,7 @@ func init() {
 		"vh.fail":          "Configuration not saved",
 		"vh.err.check":     "Invalid configuration: %s.",
 		"vh.err.nginx":     "Could not apply. The running configuration was kept; see nginx errors below.",
-		"vh.err.custom":    "This operation is unavailable while the website uses a custom nginx configuration. Restore the default in the vHost tab first.",
+		"vh.err.custom":    "This operation is unavailable while the website uses a custom nginx configuration. Restore the default in Advanced first.",
 	} {
 		en[k] = v
 	}

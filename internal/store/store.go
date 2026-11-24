@@ -180,6 +180,10 @@ SELECT id,name,kind,system_user,root_dir,php_version,app_port,node_version,py_ve
 DROP TABLE sites;
 ALTER TABLE sites_new RENAME TO sites;`,
 	`ALTER TABLE databases ADD COLUMN engine TEXT NOT NULL DEFAULT 'mysql';`,
+	// Delegated panel grants use a random stable identity so deleting and recreating a site with the same name cannot restore old access.
+	`ALTER TABLE sites ADD COLUMN access_id TEXT NOT NULL DEFAULT '';
+UPDATE sites SET access_id = lower(hex(randomblob(16))) WHERE access_id = '';
+CREATE UNIQUE INDEX sites_access_id ON sites(access_id);`,
 }
 
 // noForeignKeys, at the start of a migration, runs it with foreign key enforcement off and checks them again afterwards.
@@ -360,8 +364,8 @@ func (s *Store) AddSite(st site.Site) error {
 	}
 	defer tx.Rollback()
 	mode := sslModeOf(st)
-	res, err := tx.Exec(`INSERT INTO sites (name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, app, created_at, mise_task)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, st.Name, string(st.Kind), st.User, st.Root, php, port, nodeVer, pyVer, entry, upstream, mode != "", mode, phpIni, mem, st.WWW, st.AllowHTTP, st.App, time.Now().Unix(), st.MiseTask)
+	res, err := tx.Exec(`INSERT INTO sites (name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, app, created_at, mise_task, access_id)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,lower(hex(randomblob(16))))`, st.Name, string(st.Kind), st.User, st.Root, php, port, nodeVer, pyVer, entry, upstream, mode != "", mode, phpIni, mem, st.WWW, st.AllowHTTP, st.App, time.Now().Unix(), st.MiseTask)
 	if err != nil {
 		return wrap(err)
 	}
@@ -539,7 +543,7 @@ func (s *Store) AllocNodePort(lo, hi int) (int, error) {
 
 // load reads sites matching where (a fixed string from this package, never user input) and their hostnames.
 func (s *Store) load(where string, args ...any) ([]site.Site, error) {
-	rows, err := s.db.Query(`SELECT id, name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, vhost, speed, webmail, app, app_ready, mise_task
+	rows, err := s.db.Query(`SELECT id, name, kind, system_user, root_dir, php_version, app_port, node_version, py_version, entry, upstream, tls, ssl_mode, php_ini, mem_mb, www, allow_http, vhost, speed, webmail, app, app_ready, mise_task, access_id
 		FROM sites `+where+` ORDER BY name`, args...)
 	if err != nil {
 		return nil, err
@@ -553,11 +557,12 @@ func (s *Store) load(where string, args ...any) ([]site.Site, error) {
 		var php, up, nodeVer, pyVer, entry, ini sql.NullString
 		var port sql.NullInt64
 		var miseTask string
-		if err := rows.Scan(&id, &st.Name, &kind, &st.User, &st.Root, &php, &port, &nodeVer, &pyVer, &entry, &up, &st.TLS, &st.SSLMode, &ini, &st.MemMB, &st.WWW, &st.AllowHTTP, &st.CustomVhost, &st.Speed, &st.Webmail, &st.App, &st.AppReady, &miseTask); err != nil {
+		if err := rows.Scan(&id, &st.Name, &kind, &st.User, &st.Root, &php, &port, &nodeVer, &pyVer, &entry, &up, &st.TLS, &st.SSLMode, &ini, &st.MemMB, &st.WWW, &st.AllowHTTP, &st.CustomVhost, &st.Speed, &st.Webmail, &st.App, &st.AppReady, &miseTask, &st.AccessID); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		st.SSLMode = sslModeOf(st)
+		st.ID = id
 		if ini.String != "" {
 			if err := json.Unmarshal([]byte(ini.String), &st.PHPIni); err != nil {
 				rows.Close()

@@ -7,6 +7,8 @@ func init() {
 		"user.signedin":      "Signed in as",
 		"user.settings":      "Settings",
 		"page.settings":      "Settings",
+		"page.users":         "Users and site access",
+		"page.siteaccess":    "Site access",
 		"set.title":          "Account settings",
 		"set.sub":            "Password and two-factor authentication for the administrator account.",
 		"set.pw.title":       "Change password",

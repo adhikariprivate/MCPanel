@@ -61,6 +61,8 @@ var NodeVersions = []string{"18", "20", "22", "24"}
 var entryRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._/-]*$`)
 
 type Site struct {
+	ID          int64  `json:"-"`
+	AccessID    string `json:"-"` // random stable identity; unlike a rowid, it cannot be reused for a recreated site
 	Name        string
 	Kind        Kind
 	User        string   // system account that owns the files and runs the app

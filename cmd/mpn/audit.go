@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"mpn/internal/audit"
+	"mpn/internal/site"
 	"mpn/internal/store"
 )
 
@@ -26,7 +28,9 @@ func runAudit(args []string) {
 	fs := flag.NewFlagSet("audit "+args[0], flag.ExitOnError)
 	db := fs.String("db", defaultDB, "database path")
 	var f audit.Filter
+	var sites string
 	fs.StringVar(&f.Site, "site", "", "list: only this website")
+	fs.StringVar(&sites, "sites", "", "list: only these websites")
 	fs.StringVar(&f.IP, "ip", "", "list: only addresses that start with this")
 	fs.StringVar(&f.Kind, "kind", "", "list: only this kind of activity")
 	fs.StringVar(&f.From, "from", "", "list: from this day (YYYY-MM-DD)")
@@ -36,6 +40,14 @@ func runAudit(args []string) {
 	asJSON := fs.Bool("json", false, "list: print JSON")
 	asCSV := fs.Bool("csv", false, "list: print CSV")
 	_ = fs.Parse(args[1:])
+	if sites != "" {
+		f.Sites = strings.Split(sites, ",")
+		for _, name := range f.Sites {
+			if !site.ValidName(name) {
+				fail(fmt.Errorf("invalid site %q", name))
+			}
+		}
+	}
 	switch args[0] {
 	case "list":
 		for _, err := range []error{audit.ValidKind(f.Kind), audit.ValidDay(f.From), audit.ValidDay(f.To), audit.ValidIPFilter(f.IP)} {

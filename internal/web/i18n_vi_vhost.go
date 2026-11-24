@@ -22,7 +22,7 @@ func init() {
 		"vh.fail":          "Chưa lưu cấu hình",
 		"vh.err.check":     "Cấu hình không dùng được: %s.",
 		"vh.err.nginx":     "Không áp dụng được. Cấu hình đang chạy được giữ nguyên; lỗi của nginx nằm ở phần kết quả bên dưới.",
-		"vh.err.custom":    "Website đang dùng cấu hình nginx tự sửa nên thao tác này không áp dụng được. Hãy về cấu hình mặc định ở tab vHost trước.",
+		"vh.err.custom":    "Website đang dùng cấu hình nginx tự sửa nên thao tác này không áp dụng được. Hãy về cấu hình mặc định trong mục Nâng cao trước.",
 	} {
 		vi[k] = v
 	}

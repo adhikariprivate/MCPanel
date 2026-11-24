@@ -128,8 +128,9 @@ func webServe(args []string) {
 	}
 	collector := monitor.New(monitor.ProcSource, filepath.Join(filepath.Dir(*account), "metrics.json"))
 	srv := &web.Server{
-		Mon:     collector,
-		Account: func() (webauth.Account, error) { return webauth.LoadAccount(*account) },
+		Mon:        collector,
+		Account:    func() (webauth.Account, error) { return webauth.LoadAccount(*account) },
+		AccessFile: filepath.Join(filepath.Dir(*account), "delegated-access.json"),
 		// The account file is in the one folder the panel may write to and belongs to the panel's own account, so a new password or
 		// the secret of the two-step sign-in is saved by the panel itself.
 		SaveAccount:   func(a webauth.Account) error { return webauth.SaveAccount(*account, a, -1, -1) },

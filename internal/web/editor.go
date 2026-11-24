@@ -60,6 +60,7 @@ func (s *Server) renderEditor(w http.ResponseWriter, ss webauth.Session, fc *fil
 	nonce := base64.RawURLEncoding.EncodeToString(raw)
 	w.Header().Set("Content-Security-Policy", stylePolicy(nonce))
 	v.Page, v.Site, v.Nonce = "fileedit", fc.row, nonce
+	v.TabAccess = s.siteTabAccess(ss.User, fc.row)
 	v.EditPath = fc.dir
 	v.FileName = path.Base(fc.dir)
 	v.FileKind = fileKind(v.FileName, false)

@@ -197,7 +197,7 @@ func (s *Server) filesPage(w http.ResponseWriter, r *http.Request, ss webauth.Se
 		return
 	}
 	defer fc.close()
-	v := view{Page: "site", Site: fc.row, Tab: "files", Dir: fc.dir}
+	v := view{Page: "site", Site: fc.row, Tab: "files", Dir: fc.dir, TabAccess: s.siteTabAccess(ss.User, fc.row)}
 	if c, err := r.Cookie(s.cookieName()); err == nil {
 		v.Notice = s.takeFlash(c.Value)
 	}
@@ -276,6 +276,9 @@ func (s *Server) authStream(h func(http.ResponseWriter, *http.Request, webauth.S
 		}
 		if !s.Sessions.CheckCSRF(c.Value, r.URL.Query().Get("csrf")) {
 			http.Error(w, "invalid form token", http.StatusForbidden)
+			return
+		}
+		if !s.authorizeRequest(w, r, ss) {
 			return
 		}
 		h(w, r, ss)
@@ -407,7 +410,7 @@ func (s *Server) renamePage(w http.ResponseWriter, r *http.Request, ss webauth.S
 		http.Error(w, fmMessageText(T, fm.ErrBadName), http.StatusBadRequest)
 		return
 	}
-	s.show(w, 200, ss, view{Page: "filerename", Site: fc.row, Dir: fc.dir, FileName: name})
+	s.show(w, 200, ss, view{Page: "filerename", Site: fc.row, Dir: fc.dir, FileName: name, TabAccess: s.siteTabAccess(ss.User, fc.row)})
 }
 
 func (s *Server) deleteConfirm(w http.ResponseWriter, r *http.Request, ss webauth.Session) {

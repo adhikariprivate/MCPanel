@@ -45,9 +45,9 @@ func sslAnswers(list, info string) func(ctl.Request) (ctl.Response, error) {
 		"site.csr": "done", "site.ssloff": "done", "site.sslredirect": "done", "site.info": phpInfo()})
 }
 
-func TestTheOverviewHasTheDomainCardAndWarnsOnlyWhenSSLIsOn(t *testing.T) {
+func TestTheDomainTabHasDomainAndSSLControls(t *testing.T) {
 	h, _, c, _ := setupWith(t, sslAnswers(siteListJSON("", "", false), sslInfoJSON("", 0, false, false, "")), nil)
-	body := do(h, "GET", "/sites/shop", nil, cookie(c)).Body.String()
+	body := do(h, "GET", "/sites/shop/domain", nil, cookie(c)).Body.String()
 	for _, want := range []string{`action="/sites/shop/domain"`, `name="domain"`, `value="example.com"`, `name="www"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -57,29 +57,29 @@ func TestTheOverviewHasTheDomainCardAndWarnsOnlyWhenSSLIsOn(t *testing.T) {
 		t.Error("a site without SSL has nothing to lose, and the redirect belongs to the SSL tab")
 	}
 	h, _, c, _ = setupWith(t, sslAnswers(siteListJSON("letsencrypt", "bare", false), sslInfoJSON("letsencrypt", 60, true, true, "")), nil)
-	body = do(h, "GET", "/sites/shop", nil, cookie(c)).Body.String()
+	body = do(h, "GET", "/sites/shop/domain", nil, cookie(c)).Body.String()
 	if !strings.Contains(body, "SSL hiện tại bị gỡ") || !strings.Contains(body, `value="bare" class="mt-1 accent-primary" checked`) {
 		t.Errorf("a site with SSL says what changing the domain costs, and shows the stored www choice")
 	}
 }
 
-func TestNoDomainTabAndTheMenuHasSSL(t *testing.T) {
+func TestDomainTabReplacesTheSeparateSSLTab(t *testing.T) {
 	h, _, c, _ := setupWith(t, sslAnswers(siteListJSON("", "", false), sslInfoJSON("", 0, false, false, "")), nil)
 	body := do(h, "GET", "/sites/shop", nil, cookie(c)).Body.String()
-	if !strings.Contains(body, `href="/sites/shop/ssl"`) || strings.Contains(body, `href="/sites/shop/domain"`) {
-		t.Error("the menu has an SSL tab and no domain tab")
+	if !strings.Contains(body, `href="/sites/shop/domain"`) || !strings.Contains(body, `href="/sites/shop/sftp"`) || strings.Contains(body, `href="/sites/shop/ssl"`) {
+		t.Error("the menu has a combined Domain tab and no separate SSL tab")
 	}
-	if w := do(h, "GET", "/sites/shop/domain", nil, cookie(c)); w.Code == 200 {
-		t.Error("there is no domain page any more")
+	if w := do(h, "GET", "/sites/shop/domain", nil, cookie(c)); w.Code != 200 || !strings.Contains(w.Body.String(), `name="domain"`) {
+		t.Error("the combined Domain page is available")
 	}
-	if strings.Contains(body, "HTTPS") {
-		t.Error("the interface says SSL, not HTTPS")
+	if w := do(h, "GET", "/sites/shop/ssl", nil, cookie(c)); w.Code != 404 {
+		t.Error("the separate SSL page URL is removed")
 	}
 }
 
 func TestTheSSLTabOffersBothSourcesUntilThereIsACertificate(t *testing.T) {
 	h, _, c, _ := setupWith(t, sslAnswers(siteListJSON("", "", false), sslInfoJSON("", 0, false, false, "")), nil)
-	body := do(h, "GET", "/sites/shop/ssl", nil, cookie(c)).Body.String()
+	body := do(h, "GET", "/sites/shop/domain", nil, cookie(c)).Body.String()
 	for _, want := range []string{"Chưa bật SSL", `action="/sites/shop/ssl/letsencrypt"`, `action="/sites/shop/ssl/custom"`, `name="cert"`, `name="key"`, `name="chain"`, `action="/sites/shop/ssl/csr"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -94,7 +94,7 @@ func TestTheSSLTabOffersBothSourcesUntilThereIsACertificate(t *testing.T) {
 
 func TestALetsEncryptCertificateRenewsItselfAndAnOwnOneIsReplacedByHand(t *testing.T) {
 	h, _, c, _ := setupWith(t, sslAnswers(siteListJSON("letsencrypt", "", false), sslInfoJSON("letsencrypt", 60, true, true, "")), nil)
-	body := do(h, "GET", "/sites/shop/ssl", nil, cookie(c)).Body.String()
+	body := do(h, "GET", "/sites/shop/domain", nil, cookie(c)).Body.String()
 	for _, want := range []string{"SSL đang bật", "Let&#39;s Encrypt", "Test CA", "Tự gia hạn", `action="/sites/shop/ssl/redirect"`, `action="/sites/shop/ssl/off"`, "Thay chứng chỉ"} {
 		if !strings.Contains(body, want) && !strings.Contains(strings.ReplaceAll(body, "&#39;", "'"), strings.ReplaceAll(want, "&#39;", "'")) {
 			t.Errorf("missing %q", want)
@@ -105,7 +105,7 @@ func TestALetsEncryptCertificateRenewsItselfAndAnOwnOneIsReplacedByHand(t *testi
 	}
 
 	h, _, c, _ = setupWith(t, sslAnswers(siteListJSON("custom", "", true), sslInfoJSON("custom", 12, false, false, "")), nil)
-	body = do(h, "GET", "/sites/shop/ssl", nil, cookie(c)).Body.String()
+	body = do(h, "GET", "/sites/shop/domain", nil, cookie(c)).Body.String()
 	for _, want := range []string{"Chứng chỉ riêng", "Sắp hết hạn", "không tự gia hạn", `action="/sites/shop/ssl/letsencrypt"`, "Chuyển sang", "không phủ đủ", "không tin"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -122,7 +122,7 @@ func TestALetsEncryptCertificateRenewsItselfAndAnOwnOneIsReplacedByHand(t *testi
 func TestAPendingRequestIsShownForCopying(t *testing.T) {
 	csr := "-----BEGIN CERTIFICATE REQUEST-----\nABC\n-----END CERTIFICATE REQUEST-----\n"
 	h, _, c, _ := setupWith(t, sslAnswers(siteListJSON("", "", false), sslInfoJSON("", 0, false, false, csr)), nil)
-	body := do(h, "GET", "/sites/shop/ssl", nil, cookie(c)).Body.String()
+	body := do(h, "GET", "/sites/shop/domain", nil, cookie(c)).Body.String()
 	if !strings.Contains(body, "BEGIN CERTIFICATE REQUEST") || !strings.Contains(body, "data-copy=") || !strings.Contains(body, "<details class=\"card mt-4\" open>") {
 		t.Errorf("the request must be visible and copyable")
 	}
@@ -186,7 +186,7 @@ func TestEachSSLActionSendsItsOwnOperation(t *testing.T) {
 		if !ok || !tc.chk(req) {
 			t.Errorf("%s: %+v", tc.path, req)
 		}
-		if backOf(t, w.Body.String()) != "/sites/shop/ssl" {
+		if backOf(t, w.Body.String()) != "/sites/shop/domain" {
 			t.Errorf("%s goes back to %q", tc.path, backOf(t, w.Body.String()))
 		}
 	}

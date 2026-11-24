@@ -22,7 +22,9 @@ description = "Run the web server"
 run = "exec node server.js"
 ```
 
-Save the file, open the site's settings, and choose `serve` from the task list. MCPN runs `mise install` and `mise run serve` as the site's Linux account. Runtime installation happens when systemd starts the service; a failed install or task start appears in the service status and journal. The task list is also read as the site account. MCPN never loads a site's configuration or runs its task as root.
+Save the file and open the site's Overview. In **mise web task**, choose a task from the list. The card shows the saved task as **Active**, previews the command (`mise run <task>`), and identifies the site account that runs it. A changed selection is marked **Pending save**; **Discard** restores the saved selection. **Save & reload service** stores only the task choice and restarts the service. Choose **Do not run a task** to stop the service. MCPN runs `mise install` and `mise run <task>` as the site's Linux account. Runtime installation happens when systemd starts the service; a failed install or task start appears in the service status and journal. The task list is also read as the site account. MCPN never loads a site's configuration or runs its task as root.
+
+If the current task was removed from `mise.toml`, the card marks it as missing and lets you select a remaining task or stop the service. If MCPN cannot read the task list, it still lets you stop the service; a new task cannot be selected until the list can be read again.
 
 Treat `mise.toml`, tasks, plugins, and application code as executable site-owner code. A task can use every file and process permission the site's account has.
 

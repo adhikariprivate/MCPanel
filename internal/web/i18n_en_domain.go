@@ -1,9 +1,9 @@
 package web
 
-// English text of the domain card (on the overview) and the SSL tab.
+// English text of the Domain and SSL tab.
 func init() {
 	for k, v := range map[string]string{
-		"tab.ssl":             "SSL",
+		"tab.ssl":             "Domain and SSL",
 		"dm.title":            "Domain",
 		"dm.sub":              "Each website has one domain.",
 		"dm.domain":           "Domain",

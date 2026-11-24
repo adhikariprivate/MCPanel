@@ -8,6 +8,8 @@ import (
 // The list commands print these with -json, which is what the web panel reads. Slices are never nil, so an empty
 // result is [] and not null.
 type siteRow struct {
+	ID          int64    `json:"id"`
+	AccessID    string   `json:"access_id"`
 	Name        string   `json:"name"`
 	Kind        string   `json:"kind"`
 	User        string   `json:"user"`

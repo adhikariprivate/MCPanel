@@ -63,7 +63,7 @@ func (s *Server) sslAction(w http.ResponseWriter, r *http.Request, ss webauth.Se
 		http.Error(w, msg, status)
 		return
 	}
-	back := siteTab(row.Name, "ssl")
+	back := siteTab(row.Name, "domain")
 	req, problem := build(row)
 	if problem != "" {
 		s.refuseTo(w, ss, back, T("ssl.fail"), problem)

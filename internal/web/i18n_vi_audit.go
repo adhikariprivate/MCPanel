@@ -16,6 +16,7 @@ func init() {
 		"audit.f.from":        "Từ ngày",
 		"audit.f.to":          "Đến ngày",
 		"audit.f.all":         "Tất cả",
+		"audit.f.assigned":    "Tất cả website được giao",
 		"audit.f.show":        "Lọc",
 		"audit.csv":           "Xuất CSV",
 		"audit.count":         "%d mục khớp bộ lọc",

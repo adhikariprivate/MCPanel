@@ -18,6 +18,8 @@ import (
 
 // siteRow is one line of `mpn site list -json`.
 type siteRow struct {
+	ID               int64  `json:"id"`
+	AccessID         string `json:"access_id"`
 	Name, Kind, User string
 	Hostnames        []string
 	Detail           string
@@ -161,7 +163,28 @@ func (s *Server) runText(r *http.Request, T translator, title string, reqs ...ct
 
 func (s *Server) show(w http.ResponseWriter, status int, ss webauth.Session, v view) {
 	v.User, v.CSRF = ss.User, ss.CSRF
+	v.Owner = s.isOwner(ss.User)
+	v.ShowActivity = v.Owner || s.hasAssignedSiteView(ss.User)
 	s.render(w, status, v)
+}
+
+// hasAssignedSiteView controls only whether the Activity navigation link is shown. The Activity routes keep
+// their own authorization and site scoping checks. Any lookup failure hides the link.
+func (s *Server) hasAssignedSiteView(user string) bool {
+	access, err := s.delegatedAccess()
+	if err != nil {
+		return false
+	}
+	rows, err := s.loadSiteRows()
+	if err != nil {
+		return false
+	}
+	for _, row := range rows {
+		if row.AccessID != "" && access.Allows(user, row.AccessID, "site.view") {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) sitePages(mux *http.ServeMux) {
@@ -184,6 +207,20 @@ func (s *Server) sitesPage(w http.ResponseWriter, r *http.Request, ss webauth.Se
 	default:
 		if err := json.Unmarshal([]byte(resp.Output), &v.Sites); err != nil {
 			v.Error = T("err.badanswer")
+		}
+	}
+	if !s.isOwner(ss.User) && v.Error == "" {
+		access, err := s.delegatedAccess()
+		if err != nil {
+			v.Error = T("err.badanswer")
+		} else {
+			filtered := v.Sites[:0]
+			for _, row := range v.Sites {
+				if access.Allows(ss.User, row.AccessID, "site.view") {
+					filtered = append(filtered, row)
+				}
+			}
+			v.Sites = filtered
 		}
 	}
 	s.show(w, 200, ss, v)
@@ -387,6 +424,21 @@ func (s *Server) removeSite(w http.ResponseWriter, r *http.Request, ss webauth.S
 		s.show(w, http.StatusBadRequest, ss, view{Page: "result", Result: &result{Title: T("site.rm.fail"), Error: T("err.confirm")}})
 		return
 	}
+	var accessID string
+	if s.AccessFile != "" {
+		if rows, err := s.loadSiteRows(); err == nil {
+			for _, row := range rows {
+				if row.Name == name {
+					accessID = row.AccessID
+					break
+				}
+			}
+		}
+	}
 	req := ctl.Request{Op: "site.remove", Site: name, Purge: r.PostFormValue("purge") != ""}
-	s.finish(w, r, s.runText(r, T, T("act.site.remove", name), req))
+	res := s.runText(r, T, T("act.site.remove", name), req)
+	if res.OK {
+		s.revokeSiteAccess(r, accessID, name, ss.User)
+	}
+	s.finish(w, r, res)
 }

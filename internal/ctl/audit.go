@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"mpn/internal/audit"
+	"mpn/internal/site"
 )
 
 // Audited says whether an operation goes into the activity log: everything that changes the machine, and the opening of the
@@ -197,6 +198,14 @@ func (r Request) auditList() ([]string, error) {
 	if err := optionalSite(r.Site); err != nil {
 		return nil, err
 	}
+	if len(r.AuditSites) > 100 {
+		return nil, fmt.Errorf("too many sites")
+	}
+	for _, name := range r.AuditSites {
+		if !site.ValidName(name) {
+			return nil, fmt.Errorf("invalid site %q", name)
+		}
+	}
 	if err := audit.ValidIPFilter(r.AuditIP); err != nil {
 		return nil, err
 	}
@@ -213,6 +222,6 @@ func (r Request) auditList() ([]string, error) {
 		return nil, fmt.Errorf("the page of the log is out of range")
 	}
 	// "=" joins each value to its flag, so an empty value cannot be read as the next flag.
-	return []string{"audit", "list", "-json", "-site=" + r.Site, "-ip=" + r.AuditIP, "-kind=" + r.AuditKind, "-from=" + r.From, "-to=" + r.To,
+	return []string{"audit", "list", "-json", "-site=" + r.Site, "-sites=" + strings.Join(r.AuditSites, ","), "-ip=" + r.AuditIP, "-kind=" + r.AuditKind, "-from=" + r.From, "-to=" + r.To,
 		"-limit=" + strconv.Itoa(r.Limit), "-offset=" + strconv.Itoa(r.Offset)}, nil
 }

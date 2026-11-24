@@ -24,9 +24,7 @@ Fill in the form:
 
 Click **Create account and sign in**. The panel saves the account to `/var/lib/mpn-web/account.json` (managed directly by the panel without the root helper) and takes you straight to the main page.
 
-Only one account
-
-MCPN supports one administrator account and has no per-user roles. Protect the account with [two-factor authentication](../account-settings.md).
+The first account is the **instance administrator**. It keeps full access to every website and all server-wide settings. After signing in, the instance administrator can create delegated panel users and assign them per-site permissions from **Users and access**. Protect the instance administrator account with [two-factor authentication](../account-settings.md).
 
 ## After creating the account
 

@@ -16,6 +16,7 @@ func init() {
 		"audit.f.from":        "开始日期",
 		"audit.f.to":          "结束日期",
 		"audit.f.all":         "全部",
+		"audit.f.assigned":    "所有已分配的网站",
 		"audit.f.show":        "筛选",
 		"audit.csv":           "导出 CSV",
 		"audit.count":         "%d 条记录符合筛选",

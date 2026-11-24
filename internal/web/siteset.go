@@ -63,6 +63,7 @@ type overview struct {
 	siteInfo
 	DiskText, CertText, BackupText string
 	CertSoon                       bool // fewer than 14 days left
+	MiseTaskMissing                bool // the saved task is no longer present in mise.toml
 	PHPVersions, NodeVersions      []string
 	PyVersions                     []string
 	Fields                         []phpField
@@ -82,6 +83,16 @@ func (s *Server) loadOverviewText(T translator, row siteRow) (*overview, string)
 		return nil, e
 	}
 	o := &overview{siteInfo: in, Home: site.HtdocsOf(row.User) + "/"}
+	if in.MiseTask != "" {
+		found := false
+		for _, task := range in.MiseTasks {
+			if task.Name == in.MiseTask {
+				found = true
+				break
+			}
+		}
+		o.MiseTaskMissing = !found
+	}
 	if in.DiskCut {
 		o.DiskText = T("ov.disk.big")
 	} else {
@@ -215,23 +226,9 @@ func (s *Server) settingsRequest(r *http.Request, row siteRow, info siteInfo) (c
 			}
 		}
 	case site.Mise:
-		if info.MiseError != "" {
-			return req, T("set.err.mise", info.MiseError)
-		}
-		req.MiseTask = get("mise_task")
-		if req.MiseTask != "" && !site.ValidMiseTask(req.MiseTask) {
-			return req, T("set.err.misetask")
-		}
-		found := req.MiseTask == ""
-		for _, task := range info.MiseTasks {
-			if task.Name == req.MiseTask {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return req, T("set.err.misetask")
-		}
+		// Mise task changes have their own form and route. An old or crafted generic settings request must never
+		// treat a missing mise_task field as a request to stop the running service.
+		req.MiseTask = info.MiseTask
 		req.Port, req.Mem = info.Port, info.MemMB
 	case site.Proxy:
 		req.Upstream = get("upstream")
@@ -281,6 +278,52 @@ func (s *Server) saveSettings(w http.ResponseWriter, r *http.Request, ss webauth
 		case strings.Contains(res.Output, "is not installed on this machine"):
 			res.Error = T("set.err.notinstalled")
 		}
+		res.Error = fmt.Sprintf("%s %s", res.Error, T("set.restored"))
+	}
+	s.finish(w, r, res)
+}
+
+// saveMiseTask changes only the supervised task. The current port and memory setting come from site.info and are
+// carried through site.set unchanged so selecting a task cannot reset the other Mise service fields.
+func (s *Server) saveMiseTask(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
+	T := translatorForWriter(w)
+	row, status, msg := s.findSiteText(T, r.PathValue("name"))
+	if status != 0 {
+		http.Error(w, msg, status)
+		return
+	}
+	if row.Kind != string(site.Mise) {
+		http.Error(w, T("err.nosite"), http.StatusNotFound)
+		return
+	}
+	var info siteInfo
+	if problem := s.listText(T, ctl.Request{Op: "site.info", Site: row.Name}, &info); problem != "" {
+		s.refuseTo(w, ss, siteTab(row.Name, ""), T("set.fail"), problem)
+		return
+	}
+	task := strings.TrimSpace(r.PostFormValue("mise_task"))
+	if task != "" {
+		if !site.ValidMiseTask(task) || info.MiseError != "" {
+			s.refuseTo(w, ss, siteTab(row.Name, ""), T("set.fail"), T("set.err.misetask"))
+			return
+		}
+		found := false
+		for _, item := range info.MiseTasks {
+			if item.Name == task {
+				found = true
+				break
+			}
+		}
+		if !found {
+			s.refuseTo(w, ss, siteTab(row.Name, ""), T("set.fail"), T("set.err.misetask"))
+			return
+		}
+	}
+	res := s.runText(r, T, T("act.mise.task", row.Name), ctl.Request{
+		Op: "site.set", Site: row.Name, Kind: row.Kind, Port: info.Port, Mem: info.MemMB, MiseTask: task,
+	})
+	res.Back = siteTab(row.Name, "")
+	if !res.OK {
 		res.Error = fmt.Sprintf("%s %s", res.Error, T("set.restored"))
 	}
 	s.finish(w, r, res)

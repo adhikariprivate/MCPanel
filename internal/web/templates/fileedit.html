@@ -19,10 +19,10 @@
     <div class="flex items-center gap-3">
       <span id="edit-state" class="text-xs font-medium text-amber-600 dark:text-amber-400" aria-live="polite"></span>
       <a class="btn-secondary" href="/sites/{{.Site.Name}}/files{{if .Dir}}?path={{.Dir}}{{end}}">{{T "c.cancel"}}</a>
-      <button class="btn-primary">{{T "fm.save"}}</button>
+      {{if index .TabAccess "files.write"}}<button class="btn-primary">{{T "fm.save"}}</button>{{end}}
     </div>
   </header>
-  <textarea id="edit-content" name="content" spellcheck="false" wrap="off" aria-label="{{.FileName}}"
+  <textarea id="edit-content" name="content" spellcheck="false" wrap="off" aria-label="{{.FileName}}" {{if not (index .TabAccess "files.write")}}readonly{{end}}
     class="block h-[calc(100dvh-21rem)] min-h-[22rem] w-full resize-none border-0 bg-card p-4 font-mono text-[13px] leading-relaxed text-foreground focus:ring-0 focus:outline-none">{{.EditText}}</textarea>
   <div id="edit-host" hidden data-src="/static/editor/editor.js" data-name="{{.FileName}}" data-nonce="{{.Nonce}}"
     class="h-[calc(100dvh-21rem)] min-h-[22rem] overflow-hidden"></div>

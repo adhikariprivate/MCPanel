@@ -17,7 +17,7 @@ func TestMiseSiteCanBeStoredAndSelected(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := s.GetSite(m.Name)
-	if err != nil || !reflect.DeepEqual(got, m) {
+	if err != nil || !reflect.DeepEqual(withoutSiteIdentity(got), m) {
 		t.Fatalf("site after add: %+v err=%v", got, err)
 	}
 	m.MiseTask = "serve"

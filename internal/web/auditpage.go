@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/csv"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,6 +13,15 @@ import (
 	"mpn/internal/site"
 	"mpn/internal/webauth"
 )
+
+func containsAuditSite(sites []string, name string) bool {
+	for _, site := range sites {
+		if site == name {
+			return true
+		}
+	}
+	return false
+}
 
 // auditPageSize is how many entries one page of the activity log shows; an export takes up to audit.MaxPage.
 const auditPageSize = 50
@@ -77,13 +87,19 @@ func auditQuery(base string, f audit.Filter, page int, withSite bool) string {
 	return base + "?" + v.Encode()
 }
 
-// loadAudit reads one page of the log. base is the address of the page (/activity or the tab of a site), siteName the website the tab
-// belongs to ("" on the page of all of them).
-func (s *Server) loadAudit(w http.ResponseWriter, r *http.Request, base, siteName string) *auditView {
+// loadAudit reads one page of the log. allowedSites scopes delegated users to their site assignments.
+func (s *Server) loadAudit(w http.ResponseWriter, r *http.Request, base, siteName string, allowedSites []string) *auditView {
 	T := translatorForWriter(w)
 	f, ok := auditFilter(r.URL.Query())
 	if siteName != "" {
 		f.Site = siteName
+	} else if allowedSites != nil {
+		if f.Site != "" && !containsAuditSite(allowedSites, f.Site) {
+			f.Site = ""
+			ok = false
+		} else if f.Site == "" {
+			f.Sites = allowedSites
+		}
 	}
 	v := &auditView{Filter: f, Kinds: audit.Kinds, Action: base}
 	if !ok {
@@ -93,7 +109,12 @@ func (s *Server) loadAudit(w http.ResponseWriter, r *http.Request, base, siteNam
 	if pageNo < 1 || pageNo > 10000 {
 		pageNo = 1
 	}
-	req := ctl.Request{Op: "audit.list", Site: f.Site, AuditIP: f.IP, AuditKind: f.Kind, From: f.From, To: f.To, Limit: auditPageSize, Offset: (pageNo - 1) * auditPageSize}
+	req := ctl.Request{Op: "audit.list", Site: f.Site, AuditSites: f.Sites, AuditIP: f.IP, AuditKind: f.Kind, From: f.From, To: f.To, Limit: auditPageSize, Offset: (pageNo - 1) * auditPageSize}
+	if allowedSites != nil && len(allowedSites) == 0 {
+		v.Page = audit.Page{Entries: []audit.Entry{}}
+		v.CSVURL = auditQuery("/activity.csv", f, 0, true)
+		return v
+	}
 	if e := s.listText(T, req, &v.Page); e != "" {
 		v.Error = e
 		return v
@@ -120,9 +141,48 @@ func (s *Server) auditPages(mux *http.ServeMux) {
 
 func (s *Server) auditPage(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
 	T := translatorForWriter(w)
-	v := view{Page: "activity", Audit: s.loadAudit(w, r, "/activity", "")}
-	_ = s.listText(T, ctl.Request{Op: "site.list"}, &v.Sites)
+	v := view{Page: "activity"}
+	if s.isOwner(ss.User) {
+		_ = s.listText(T, ctl.Request{Op: "site.list"}, &v.Sites)
+		v.Audit = s.loadAudit(w, r, "/activity", "", nil)
+	} else {
+		var allowed []string
+		var err error
+		v.Sites, allowed, err = s.auditSiteScope(ss.User)
+		if err != nil {
+			http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		if allowed == nil {
+			allowed = []string{}
+		}
+		v.Audit = s.loadAudit(w, r, "/activity", "", allowed)
+	}
 	s.show(w, 200, ss, v)
+}
+
+func (s *Server) auditSiteScope(user string) ([]siteRow, []string, error) {
+	var rows []siteRow
+	msg := s.listText(T, ctl.Request{Op: "site.list"}, &rows)
+	if msg != "" {
+		return nil, nil, fmt.Errorf("list sites: %s", msg)
+	}
+	if s.isOwner(user) {
+		return rows, nil, nil
+	}
+	access, err := s.delegatedAccess()
+	if err != nil {
+		return nil, nil, err
+	}
+	visible := make([]siteRow, 0, len(rows))
+	names := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if row.AccessID != "" && access.Allows(user, row.AccessID, "site.view") {
+			visible = append(visible, row)
+			names = append(names, row.Name)
+		}
+	}
+	return visible, names, nil
 }
 
 // auditCSV gives the entries the filter chooses as a file, up to audit.MaxPage of them, newest first.
@@ -130,9 +190,29 @@ func (s *Server) auditCSV(w http.ResponseWriter, r *http.Request, ss webauth.Ses
 	T := translatorForWriter(w)
 	f, _ := auditFilter(r.URL.Query())
 	var page audit.Page
-	if e := s.listText(T, ctl.Request{Op: "audit.list", Site: f.Site, AuditIP: f.IP, AuditKind: f.Kind, From: f.From, To: f.To, Limit: audit.MaxPage}, &page); e != "" {
-		http.Error(w, e, http.StatusBadGateway)
-		return
+	var allowed []string
+	if !s.isOwner(ss.User) {
+		_, names, err := s.auditSiteScope(ss.User)
+		if err != nil {
+			http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		allowed = names
+		if f.Site != "" && !containsAuditSite(names, f.Site) {
+			http.Error(w, "not authorized", http.StatusForbidden)
+			return
+		}
+		if f.Site == "" && len(names) == 0 {
+			page = audit.Page{Entries: []audit.Entry{}}
+		}
+	}
+	req := ctl.Request{Op: "audit.list", Site: f.Site, AuditSites: allowed, AuditIP: f.IP, AuditKind: f.Kind, From: f.From, To: f.To, Limit: audit.MaxPage}
+	emptyScope := !s.isOwner(ss.User) && f.Site == "" && len(allowed) == 0
+	if !emptyScope {
+		if e := s.listText(T, req, &page); e != "" {
+			http.Error(w, e, http.StatusBadGateway)
+			return
+		}
 	}
 	name := "mpn-activity"
 	if f.Site != "" {

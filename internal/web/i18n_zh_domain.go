@@ -1,9 +1,9 @@
 package web
 
-// Simplified Chinese text of the domain card (on the overview) and the SSL tab.
+// Simplified Chinese text of the Domain and SSL tab.
 func init() {
 	for k, v := range map[string]string{
-		"tab.ssl":             "SSL",
+		"tab.ssl":             "域名和 SSL",
 		"dm.title":            "域名",
 		"dm.sub":              "每个网站只有一个域名。",
 		"dm.domain":           "域名",

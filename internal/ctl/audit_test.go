@@ -99,11 +99,11 @@ func TestNotesRunNothingAndOnlyKnownEventsAreTaken(t *testing.T) {
 func TestReadingTheLogIsChecked(t *testing.T) {
 	r := Request{Op: "audit.list", Site: "blog", AuditIP: "1.1.", AuditKind: "database", From: "2026-11-01", To: "2026-11-20", Limit: 50, Offset: 100}
 	got, err := r.Argv()
-	if err != nil || strings.Join(got, " ") != "audit list -json -site=blog -ip=1.1. -kind=database -from=2026-11-01 -to=2026-11-20 -limit=50 -offset=100" {
+	if err != nil || strings.Join(got, " ") != "audit list -json -site=blog -sites= -ip=1.1. -kind=database -from=2026-11-01 -to=2026-11-20 -limit=50 -offset=100" {
 		t.Fatalf("%q %v", got, err)
 	}
 	for _, bad := range []Request{
-		{Op: "audit.list", Site: "-x"}, {Op: "audit.list", AuditIP: "1.1.1.1 -db=/tmp/x"}, {Op: "audit.list", AuditKind: "x"},
+		{Op: "audit.list", Site: "-x"}, {Op: "audit.list", AuditSites: []string{"-x"}}, {Op: "audit.list", AuditIP: "1.1.1.1 -db=/tmp/x"}, {Op: "audit.list", AuditKind: "x"},
 		{Op: "audit.list", From: "yesterday"}, {Op: "audit.list", Limit: 5000}, {Op: "audit.list", Offset: -1},
 	} {
 		if _, err := bad.Argv(); err == nil {

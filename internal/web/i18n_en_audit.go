@@ -16,6 +16,7 @@ func init() {
 		"audit.f.from":        "From",
 		"audit.f.to":          "To",
 		"audit.f.all":         "All",
+		"audit.f.assigned":    "All assigned sites",
 		"audit.f.show":        "Filter",
 		"audit.csv":           "Export CSV",
 		"audit.count":         "%d entries match the filter",

@@ -1,5 +1,4 @@
-{{/* The activity log: the filter, one page of entries and the links to the other pages. It is the page of all websites and the
-     Activity tab of one; on the tab the website is fixed and not part of the filter. */}}
+{{/* The activity log: filters, one page of entries and navigation links. */}}
 {{define "activityrows"}}
 {{$v := .Audit}}
 {{if $v.Error}}<div role="alert" class="alert-error mb-4"><span>{{$v.Error}}</span></div>{{end}}
@@ -9,14 +8,14 @@
     {{if not .Site.Name}}<div class="lg:col-span-1">
       <label for="au-site" class="label">{{T "audit.f.site"}}</label>
       <select id="au-site" name="site" class="field">
-        <option value="">{{T "audit.f.all"}}</option>
+        <option value="">{{if .Owner}}{{T "audit.f.all"}}{{else}}{{T "audit.f.assigned"}}{{end}}</option>
         {{range .Sites}}<option value="{{.Name}}"{{if eq .Name $v.Filter.Site}} selected{{end}}>{{.Name}}</option>{{end}}
       </select>
     </div>{{end}}
     <div>
       <label for="au-kind" class="label">{{T "audit.f.kind"}}</label>
       <select id="au-kind" name="kind" class="field">
-        <option value="">{{T "audit.f.all"}}</option>
+        <option value="">{{if .Owner}}{{T "audit.f.all"}}{{else}}{{T "audit.f.assigned"}}{{end}}</option>
         {{range $v.Kinds}}<option value="{{.}}"{{if eq . $v.Filter.Kind}} selected{{end}}>{{T (printf "audit.kind.%s" .)}}</option>{{end}}
       </select>
     </div>

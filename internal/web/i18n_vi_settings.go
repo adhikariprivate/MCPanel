@@ -7,6 +7,8 @@ func init() {
 		"user.signedin":      "Đang đăng nhập với",
 		"user.settings":      "Cài đặt",
 		"page.settings":      "Cài đặt",
+		"page.users":         "Người dùng và quyền truy cập website",
+		"page.siteaccess":    "Quyền truy cập website",
 		"set.title":          "Cài đặt tài khoản",
 		"set.sub":            "Mật khẩu và xác thực hai bước của tài khoản quản trị.",
 		"set.pw.title":       "Đổi mật khẩu",

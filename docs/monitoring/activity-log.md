@@ -8,7 +8,7 @@ title: Activity log
 
 The **Activity** page records what was done through the panel: sign-ins, websites created or removed, files changed, databases, SSL, backups, firewall and security changes. Each entry shows the time, the IP address, the website and whether it succeeded. Newest entries come first.
 
-Each website also has an **Activity** tab with only the entries for that website.
+The **Activity** page is available from the main sidebar. Use its site filter to narrow the log. Delegated users see only sites assigned to them and their events.
 
 ## Filters
 

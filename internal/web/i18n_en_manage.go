@@ -16,7 +16,7 @@ func init() {
 		"ps.btn.on":    "Enable acceleration",
 		"ps.btn.off":   "Disable acceleration",
 		"ps.note":      "Optimized files are cached. The first request may be slower; subsequent requests are faster.",
-		"ps.custom":    "This website uses a custom nginx configuration in the vHost tab. Add pagespeed directives there or restore the default configuration.",
+		"ps.custom":    "This website uses a custom nginx configuration in Advanced. Add pagespeed directives there or restore the default configuration.",
 		"act.speed":    "Change acceleration settings for website %s",
 	} {
 		en[k] = v

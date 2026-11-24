@@ -22,7 +22,7 @@ func init() {
 		"vh.fail":          "配置未保存",
 		"vh.err.check":     "配置无效：%s。",
 		"vh.err.nginx":     "无法应用。已保留正在运行的配置，nginx 的错误信息见下方结果。",
-		"vh.err.custom":    "网站正在使用自定义 nginx 配置，此操作不可用。请先在 vHost 选项卡中恢复默认配置。",
+		"vh.err.custom":    "网站正在使用自定义 nginx 配置，此操作不可用。请先在高级选项中恢复默认配置。",
 	} {
 		zh[k] = v
 	}

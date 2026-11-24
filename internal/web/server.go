@@ -3,6 +3,7 @@
 package web
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -72,8 +73,10 @@ type Server struct {
 	CreateAccount func(webauth.Account) error
 	SetupKeyFile  string
 	// accountMu makes reading the account, checking a code against it and saving the used step one step, so a code works once.
-	accountMu sync.Mutex
-	twofa     twoFactor
+	accountMu  sync.Mutex
+	accessMu   sync.Mutex
+	AccessFile string // panel-owned delegated users and per-site grants; empty disables delegated access
+	twofa      twoFactor
 	// PanelDomainFile is the nginx file of the panel's name on port 443. When it exists and a request came to that plain address, the
 	// database browser is opened under /pma/ of the name and not on its own port.
 	PanelDomainFile string
@@ -101,6 +104,7 @@ func (s *Server) Handler() http.Handler {
 		s.render(w, 200, view{Page: "login"})
 	})
 	mux.HandleFunc("POST /login", s.login)
+	s.accessPages(mux)
 	s.settingsPages(mux)
 	mux.HandleFunc("POST /logout", s.auth(s.logout))
 	mux.HandleFunc("GET /{$}", s.auth(s.sitesPage))
@@ -249,8 +253,194 @@ func (s *Server) auth(h func(http.ResponseWriter, *http.Request, webauth.Session
 			http.Error(w, "invalid form token; go back, reload the page and try again", http.StatusForbidden)
 			return
 		}
+		if !s.authorizeRequest(w, r, ss) {
+			return
+		}
 		h(w, r, ss)
 	}
+}
+
+func (s *Server) isOwner(user string) bool {
+	a, err := s.Account()
+	return err == nil && a.User != "" && user == a.User
+}
+
+func (s *Server) delegatedAccess() (webauth.DelegatedAccess, error) {
+	if s.AccessFile == "" {
+		return webauth.NewDelegatedAccess(), nil
+	}
+	s.accessMu.Lock()
+	defer s.accessMu.Unlock()
+	return webauth.LoadDelegatedAccess(s.AccessFile)
+}
+
+// authorizeRequest is the server-side permission boundary for every authenticated route. Unknown and instance-wide
+// routes are owner-only. Site routes require an explicit capability mapping, an assignment, and an explicit allow.
+func (s *Server) authorizeRequest(w http.ResponseWriter, r *http.Request, ss webauth.Session) bool {
+	if s.isOwner(ss.User) {
+		return true
+	}
+	capability, site, ownerOnly := requestCapability(r)
+	if capability == "session.logout" || capability == "session.result" {
+		return true
+	}
+	access, err := s.delegatedAccess()
+	if err != nil {
+		http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
+		return false
+	}
+	if capability == "sites.list" {
+		rows, err := s.loadSiteRows()
+		if err != nil {
+			http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
+			return false
+		}
+		for _, row := range rows {
+			if access.Allows(ss.User, row.AccessID, "site.view") {
+				return true
+			}
+		}
+		return s.denyAccess(w, r, ss, capability, site)
+	}
+	if ownerOnly || capability == "" || (site == "" && capability != "activity.view") {
+		return s.denyAccess(w, r, ss, capability, site)
+	}
+	rows, err := s.loadSiteRows()
+	if err != nil {
+		http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
+		return false
+	}
+	if site == "" && capability == "activity.view" {
+		for _, row := range rows {
+			if row.AccessID != "" && access.Allows(ss.User, row.AccessID, "site.view") {
+				return true
+			}
+		}
+		return s.denyAccess(w, r, ss, capability, site)
+	}
+	for _, row := range rows {
+		if row.Name == site && row.AccessID != "" && (access.Allows(ss.User, row.AccessID, capability) || (capability == "site.domain" && (access.Allows(ss.User, row.AccessID, "site.settings") || access.Allows(ss.User, row.AccessID, "ssl.view"))) || (capability == "site.advanced" && (access.Allows(ss.User, row.AccessID, "site.settings") || access.Allows(ss.User, row.AccessID, "vhost.view") || access.Allows(ss.User, row.AccessID, "vhost.manage")))) {
+			return true
+		}
+	}
+	return s.denyAccess(w, r, ss, capability, site)
+}
+
+func (s *Server) denyAccess(w http.ResponseWriter, r *http.Request, ss webauth.Session, capability, site string) bool {
+	path := strings.Trim(r.URL.Path, "/")
+	sensitive := capability == "terminal.open" || capability == "ssh.manage" || capability == "files.delete" || capability == "backup.restore" ||
+		path == "sites/remove" || path == "databases/remove" || path == "databases/passwd" || path == "backups/restore"
+	if r.Method != http.MethodGet || sensitive {
+		s.note(r, "access.denied", site, fmt.Sprintf("by=%s capability=%s path=%s", ss.User, capability, path), true)
+	}
+	http.Error(w, "not authorized", http.StatusForbidden)
+	return false
+}
+
+func requestCapability(r *http.Request) (capability, site string, ownerOnly bool) {
+	p := strings.Trim(r.URL.Path, "/")
+	if p == "logout" {
+		return "session.logout", "", false
+	}
+	if p == "result" {
+		return "session.result", "", false
+	}
+	if p == "" {
+		return "sites.list", "", false
+	}
+	if p == "activity" || p == "activity.csv" {
+		return "activity.view", "", false
+	}
+	if p == "sites/new" || p == "sites/remove" {
+		return "", "", true
+	}
+	parts := strings.Split(p, "/")
+	if len(parts) < 2 || parts[0] != "sites" || parts[1] == "" {
+		return "", "", true
+	}
+	site = r.PathValue("name")
+	if site == "" {
+		site = parts[1]
+	}
+	if len(parts) == 2 {
+		if r.Method == http.MethodGet {
+			return "site.view", site, false
+		}
+		return "", "", true
+	}
+	suffix := strings.Join(parts[2:], "/")
+	if r.Method == http.MethodGet {
+		switch suffix {
+		case "files", "files/download", "files/rename", "files/edit":
+			return "files.read", site, false
+		case "terminal", "terminal/ws":
+			return "terminal.open", site, false
+		case "ssh", "ssh/reset", "ssh/disable":
+			return "site.view", site, false
+		case "ssl":
+			return "ssl.view", site, false
+		case "domain":
+			return "site.domain", site, false
+		case "sftp":
+			return "site.view", site, false
+		case "advanced":
+			return "site.advanced", site, false
+		case "cron":
+			return "cron.view", site, false
+		case "logs":
+			return "logs.view", site, false
+		case "databases":
+			return "database.view", site, false
+		case "backups":
+			return "backup.view", site, false
+		case "email", "email/cf":
+			return "email.view", site, false
+		case "wordpress", "wp/status":
+			return "wordpress.view", site, false
+		case "cloud/backups":
+			return "cloud.view", site, false
+		case "ssh/enable":
+			return "", "", true
+		}
+		return "", "", true
+	}
+	if r.Method != http.MethodPost {
+		return "", "", true
+	}
+	switch suffix {
+	case "files/upload", "files/mkdir", "files/newfile", "files/rename", "files/zip", "files/unzip", "files/paste", "files/save":
+		return "files.write", site, false
+	case "files/delete", "files/confirm-delete":
+		return "files.delete", site, false
+	case "files/chmod":
+		return "files.permissions", site, false
+	case "ssh/enable", "ssh/reset", "ssh/disable", "ssh/panelkey":
+		return "ssh.manage", site, false
+	case "ssl/letsencrypt", "ssl/custom", "ssl/csr", "ssl/off", "ssl/redirect":
+		return "ssl.manage", site, false
+	case "cron":
+		return "cron.manage", site, false
+	case "domain", "settings", "speed", "webmail":
+		return "site.settings", site, false
+	case "mise-task":
+		return "site.settings", site, false
+	case "vhost", "vhost/reset":
+		return "vhost.manage", site, false
+	case "email/domain/add", "email/domain/delete", "email/box/add", "email/box/passwd", "email/box/quota", "email/box/delete", "email/alias/set", "email/alias/delete", "email/cf":
+		return "email.manage", site, false
+	case "wp/run":
+		return "wordpress.manage", site, false
+	case "app/install":
+		return "app.manage", site, false
+	case "cloud/connect", "cloud/configure", "cloud/finish", "cloud/enable", "cloud/sync", "cloud/disconnect", "cloud/fetch":
+		return "cloud.manage", site, false
+	}
+	if len(parts) == 5 && parts[2] == "cron" && (parts[4] == "toggle" || parts[4] == "delete") {
+		if id, err := strconv.ParseInt(parts[3], 10, 64); err == nil && id > 0 {
+			return "cron.manage", site, false
+		}
+	}
+	return "", "", true
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -271,7 +461,12 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	good := false
 	if err == nil && len(user) <= 64 && len(pw) <= 256 {
 		var busy error
-		if good, busy = acct.CheckLimited(user, pw); busy != nil {
+		if user == acct.User {
+			good, busy = acct.CheckLimited(user, pw)
+		} else if access, accessErr := s.delegatedAccess(); accessErr == nil {
+			good, busy = access.CheckLimited(user, pw)
+		}
+		if busy != nil {
 			locked(2 * time.Second)
 			return
 		}
@@ -283,13 +478,13 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		s.render(w, http.StatusUnauthorized, view{Page: "login", Error: T("login.wrong")})
 		return
 	}
-	if acct.TOTP != "" { // the password is right; the code of the app is still to come
+	if acct.User == user && acct.TOTP != "" { // the password is right; the code of the app is still to come
 		s.render(w, http.StatusOK, view{Page: "login", Need2FA: true, Pending: s.twofa.newLogin(acct.User)})
 		return
 	}
-	s.note(r, "login.ok", "", "user="+acct.User, false)
+	s.note(r, "login.ok", "", "user="+auditUser(user, user), false)
 	s.Throttle.Reset(key)
-	s.startSession(w, r, acct.User)
+	s.startSession(w, r, user)
 }
 
 // notFound answers an address the panel does not have with a page of its own. It is the same page for a signed-in person and for a
@@ -319,6 +514,8 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, ss webauth.Sessi
 
 type view struct {
 	Page, User, CSRF, Error, Title, Nav, Kind   string
+	Owner                                       bool
+	ShowActivity                                bool
 	SetupLocked                                 bool // the setup page was opened without the key of the setup link
 	Sites                                       []siteRow
 	Kinds                                       []string
@@ -339,10 +536,12 @@ type view struct {
 	Parent                                      string
 	Site                                        siteRow
 	Tab                                         string
+	TabAccess                                   map[string]bool
 	SSHEnabled                                  bool
 	KeyStatus                                   string
 	SSHHost                                     string
 	ServerIP                                    string // shown in the header of a site
+	EmailEnabled                                bool
 	Dom                                         *domainView
 	SSL                                         *sslView
 	VH                                          *vhostView
@@ -373,6 +572,13 @@ type view struct {
 	Result                                      *result
 	Confirm                                     *confirm
 	Foot                                        *footerView
+	AccessUsers                                 []accessUserRow
+	AccessSites                                 []accessSiteView
+	AccessSite                                  string
+	AccessUsername                              string
+	AccessEnabled                               bool
+	AccessEditing                               bool
+	AccessPeople                                []accessPersonView
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, v view) {

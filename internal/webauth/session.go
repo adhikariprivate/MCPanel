@@ -112,6 +112,18 @@ func (s *Sessions) DeleteExcept(token string) {
 	}
 }
 
+// DeleteUser ends every active session for user. Permission reductions and account disablement call this after
+// persisting the change; request authorization also reloads grants so a missed session cannot retain access.
+func (s *Sessions) DeleteUser(user string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k, x := range s.m {
+		if x.User == user {
+			delete(s.m, k)
+		}
+	}
+}
+
 // CheckCSRF reports whether got is the CSRF token of the session that token names.
 func (s *Sessions) CheckCSRF(token, got string) bool {
 	x, ok := s.Get(token)

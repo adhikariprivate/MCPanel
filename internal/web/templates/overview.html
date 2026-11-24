@@ -25,41 +25,8 @@
   </div>
 </section>
 
-{{with .Dom}}
-<form method="post" action="/sites/{{$.Site.Name}}/domain" class="card mt-4 p-6" autocomplete="off">
-  <input type="hidden" name="csrf" value="{{$.CSRF}}">
-  <h2 class="h-section">{{T "dm.title"}}</h2>
-  <p class="mt-1 text-sm text-muted-foreground">{{T "dm.sub"}}</p>
-  <div class="mt-4 grid gap-x-10 gap-y-6 lg:grid-cols-2">
-  <div>
-    <label for="d-domain" class="label">{{T "dm.domain"}}</label>
-    <input id="d-domain" name="domain" class="field font-mono" value="{{.Domain}}" maxlength="253" spellcheck="false" autocapitalize="none" required>
-    <p class="hint">{{T "dm.domain.hint"}}</p>
-  </div>
-  <fieldset>
-    <legend class="text-sm font-semibold">{{T "dm.www.title"}}</legend>
-    <p class="hint mt-1">{{T "dm.www.hint"}}</p>
-    <div class="mt-3 grid gap-2">
-      <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
-        <input type="radio" name="www" value="" class="mt-1 accent-primary"{{if eq .WWW ""}} checked{{end}}>
-        <span><span class="block text-sm font-medium">{{T "dm.www.off"}}</span><span class="hint mt-0">{{T "dm.www.off.d"}}</span></span>
-      </label>
-      <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
-        <input type="radio" name="www" value="bare" class="mt-1 accent-primary"{{if eq .WWW "bare"}} checked{{end}}>
-        <span><span class="block font-mono text-[13px] font-medium">{{T "dm.www.bare" .Bare}}</span><span class="hint mt-0">{{T "dm.www.bare.d" .With .Bare}}</span></span>
-      </label>
-      <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
-        <input type="radio" name="www" value="www" class="mt-1 accent-primary"{{if eq .WWW "www"}} checked{{end}}>
-        <span><span class="block font-mono text-[13px] font-medium">{{T "dm.www.www" .With}}</span><span class="hint mt-0">{{T "dm.www.www.d" .Bare .With}}</span></span>
-      </label>
-    </div>
-  </fieldset>
-  </div>
-  {{if .TLS}}<p class="alert-warn mt-5">{{T "dm.warn.ssl"}}</p>{{end}}
-  <div class="mt-6 flex items-center gap-3"><button class="btn-primary">{{T "dm.save"}}</button><a class="btn-secondary" href="/sites/{{$.Site.Name}}">{{T "dm.reset"}}</a></div>
-</form>
-{{end}}
-
+{{if index .TabAccess "site.settings"}}
+{{if eq $o.Kind "mise"}}{{template "miseTaskCard" .}}{{else}}
 <form method="post" action="/sites/{{.Site.Name}}/settings" class="card mt-4 p-6" autocomplete="off">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
   <h2 class="h-section">{{T "ov.settings"}}</h2>
@@ -196,21 +163,6 @@
   </fieldset>
   {{end}}
 
-  {{if eq $o.Kind "mise"}}
-  <fieldset class="mt-8">
-    <legend class="text-sm font-semibold">{{T "ov.mise.title"}}</legend>
-    <p class="hint mt-2">{{T "ov.mise.hint"}}</p>
-    {{if $o.MiseError}}<p class="alert-warn mt-3">{{T "ov.mise.error" $o.MiseError}}</p>{{else}}
-    <label for="s-mise-task" class="label mt-3">{{T "ov.mise.task"}}</label>
-    <select id="s-mise-task" name="mise_task" class="field max-w-xl">
-      <option value="">{{T "ov.mise.stopped"}}</option>
-      {{range $o.MiseTasks}}<option value="{{.Name}}"{{if eq .Name $o.MiseTask}} selected{{end}}>{{.Name}}{{if .Description}} — {{.Description}}{{end}}</option>{{end}}
-    </select>
-    <p class="hint">{{T "ov.mise.port" $o.Port}}</p>
-    {{end}}
-  </fieldset>
-  {{end}}
-
   {{if eq $o.Kind "proxy"}}
   <fieldset class="mt-8">
     <legend class="text-sm font-semibold">{{T "ov.proxy.title"}}</legend>
@@ -222,11 +174,47 @@
 
   <div class="mt-8 flex items-center gap-3"><button class="btn-primary">{{T "ov.save"}}</button><a class="btn-secondary" href="/sites/{{.Site.Name}}">{{T "ov.reset"}}</a></div>
 </form>
+{{end}}
+{{end}}
 
 {{end}}
 
+{{define "miseTaskCard"}}
+{{$o := .Over}}
+<form method="post" action="/sites/{{.Site.Name}}/mise-task" class="card mt-4 p-6" autocomplete="off" data-mise-task-form data-active="{{$o.MiseTask}}" data-active-label="{{T "ov.mise.active"}}" data-stopped-label="{{T "ov.mise.stopped.state"}}" data-pending-label="{{T "ov.mise.pending"}}" data-clean-label="{{T "ov.mise.clean"}}" data-command-prefix="mise run " data-stopped-command="{{T "ov.mise.preview.stopped"}}">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div><h2 class="h-section">{{T "ov.mise.title"}}</h2><p class="mt-1 text-sm text-muted-foreground">{{T "ov.mise.hint"}}</p></div>
+    <span data-mise-state class="{{if $o.MiseTask}}badge-teal{{else}}badge-gray{{end}}" role="status" aria-live="polite">{{if $o.MiseTask}}{{T "ov.mise.active"}}{{else}}{{T "ov.mise.stopped.state"}}{{end}}</span>
+  </div>
+  {{if $o.MiseError}}<p class="alert-warn mt-4">{{T "ov.mise.error" $o.MiseError}}</p>{{end}}
+  <div class="mt-5 grid gap-4 sm:grid-cols-2">
+    <div>
+      <label for="s-mise-task" class="label">{{T "ov.mise.task"}}</label>
+      <select id="s-mise-task" name="mise_task" class="field" data-mise-task-select>
+        <option value=""{{if eq $o.MiseTask ""}} selected{{end}}>{{T "ov.mise.stopped"}}</option>
+        {{if $o.MiseTaskMissing}}<option value="{{$o.MiseTask}}" selected disabled>{{$o.MiseTask}} — {{T "ov.mise.missing"}}</option>{{end}}
+        {{range $o.MiseTasks}}<option value="{{.Name}}"{{if eq .Name $o.MiseTask}} selected{{end}}>{{.Name}}{{if .Description}} — {{.Description}}{{end}}</option>{{end}}
+      </select>
+    </div>
+    <div><span class="label">{{T "ov.mise.account"}}</span><p class="field flex items-center bg-muted font-mono" aria-label="{{T "ov.mise.account"}}">{{.Site.User}}</p></div>
+  </div>
+  <div class="mt-4 rounded-lg border border-border bg-muted/40 p-4">
+    <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{{T "ov.mise.command"}}</p>
+    <code data-mise-command class="mt-2 block break-all font-mono text-sm">{{if $o.MiseTask}}mise run {{$o.MiseTask}}{{else}}{{T "ov.mise.preview.stopped"}}{{end}}</code>
+    <p class="hint mt-2">{{T "ov.mise.port" $o.Port}}</p>
+  </div>
+  <div class="mt-5 flex flex-wrap items-center gap-3">
+    <button class="btn-secondary" type="reset" data-mise-discard disabled>{{T "ov.mise.discard"}}</button>
+    <button class="btn-primary" type="submit" data-mise-save disabled>{{T "ov.mise.save"}}</button>
+    <span data-mise-unsaved class="hint" aria-live="polite">{{T "ov.mise.clean"}}</span>
+  </div>
+</form>
+<script src="{{asset "mise.js"}}" defer></script>
+{{end}}
+
 {{define "speedcard"}}
-<form method="post" action="/sites/{{.Site.Name}}/speed" class="card mt-4 p-6">
+{{if index .TabAccess "site.settings"}}<form method="post" action="/sites/{{.Site.Name}}/speed" class="card mt-4 p-6">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0">
@@ -246,10 +234,10 @@
   <p class="hint">{{T "ps.note"}}</p>
   {{end}}
 </form>
-{{end}}
+{{end}}{{end}}
 
 {{define "webmailcard"}}
-<form method="post" action="/sites/{{.Site.Name}}/webmail" class="card mt-4 p-6">
+{{if index .TabAccess "site.settings"}}<form method="post" action="/sites/{{.Site.Name}}/webmail" class="card mt-4 p-6">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0">
@@ -267,7 +255,7 @@
   <p class="hint">{{T "wm.note"}}</p>
   {{end}}
 </form>
-{{end}}
+{{end}}{{end}}
 
 {{define "appcard"}}
 {{if eq .Site.Kind "php"}}
@@ -287,10 +275,10 @@
     {{else if eq .Site.App "phpbb"}}<div><dt class="text-muted-foreground">{{T "app.cfg.label"}}</dt><dd class="mt-0.5 font-mono text-[13px] font-medium">config.php</dd></div>{{end}}
   </dl>
   {{if and (eq .Site.App "phpbb") (not .Site.AppReady)}}<div class="alert-warn mt-4 text-sm">{{T "app.phpbb.wait"}} <a class="font-medium underline" href="{{if .Site.TLS}}https{{else}}http{{end}}://{{index .Site.Hostnames 0}}/install/" target="_blank" rel="noopener">/install/</a></div>{{end}}
-  {{if eq .Site.App "wordpress"}}<div class="mt-4"><a class="btn-secondary" href="/sites/{{.Site.Name}}/wordpress">{{T "app.manage"}}</a></div>{{end}}
+  {{if and (eq .Site.App "wordpress") (index .TabAccess "wordpress")}}<div class="mt-4"><a class="btn-secondary" href="/sites/{{.Site.Name}}/wordpress">{{T "app.manage"}}</a></div>{{end}}
 </section>
 {{else}}
-<form method="post" action="/sites/{{.Site.Name}}/app/install" class="card mt-4 p-6" autocomplete="off">
+{{if index .TabAccess "app.manage"}}<form method="post" action="/sites/{{.Site.Name}}/app/install" class="card mt-4 p-6" autocomplete="off">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
   <h2 class="h-section">{{T "app.card.title"}}</h2>
   <p class="mt-1 text-sm text-muted-foreground">{{T "app.card.sub"}}</p>
@@ -313,7 +301,7 @@
   <div class="mt-5"><button class="btn-primary">{{T "app.card.btn"}}</button></div>
   <p class="hint">{{T "app.note"}}</p>
 </form>
-{{end}}
+{{end}}{{end}}
 {{end}}
 {{end}}
 
@@ -338,7 +326,7 @@
     <div><dt class="text-muted-foreground">{{T "ssh.user"}}</dt><dd class="mt-0.5 font-mono text-[13px] font-medium">{{.Site.User}}</dd></div>
     {{end}}
   </dl>
-  <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+  {{if index .TabAccess "ssh.manage"}}<div class="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-5">
     {{if .SSHEnabled}}
     <a class="btn-secondary" href="/sites/{{.Site.Name}}/ssh/reset">{{T "ssh.reset"}}</a>
     {{if eq .KeyStatus "broken"}}<form method="post" action="/sites/{{.Site.Name}}/ssh/panelkey"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-secondary">{{T "ssh.restore"}}</button></form>{{end}}
@@ -346,7 +334,49 @@
     {{else}}
     <form method="post" action="/sites/{{.Site.Name}}/ssh/enable"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-primary">{{T "ssh.enable"}}</button></form>
     {{end}}
-  </div>
+  </div>{{end}}
   <p class="alert-warn mt-5">{{if .SSHEnabled}}{{T "ssh.note"}}{{else}}{{T "ssh.off.note"}}{{end}}</p>
 </section>
+{{end}}
+
+{{define "domaincard"}}
+{{$dom := .Dom}}
+{{with $dom}}
+{{if index $.TabAccess "site.settings"}}
+<form method="post" action="/sites/{{$.Site.Name}}/domain" class="card mt-4 p-6" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{$.CSRF}}">
+  <h2 class="h-section">{{T "dm.title"}}</h2>
+  <p class="mt-1 text-sm text-muted-foreground">{{T "dm.sub"}}</p>
+  <div class="mt-4 grid gap-x-10 gap-y-6 lg:grid-cols-2">
+  <div>
+    <label for="d-domain" class="label">{{T "dm.domain"}}</label>
+    <input id="d-domain" name="domain" class="field font-mono" value="{{.Domain}}" maxlength="253" spellcheck="false" autocapitalize="none" required>
+    <p class="hint">{{T "dm.domain.hint"}}</p>
+  </div>
+  <fieldset>
+    <legend class="text-sm font-semibold">{{T "dm.www.title"}}</legend>
+    <p class="hint mt-1">{{T "dm.www.hint"}}</p>
+    <div class="mt-3 grid gap-2">
+      <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+        <input type="radio" name="www" value="" class="mt-1 accent-primary"{{if eq .WWW ""}} checked{{end}}>
+        <span><span class="block text-sm font-medium">{{T "dm.www.off"}}</span><span class="hint mt-0">{{T "dm.www.off.d"}}</span></span>
+      </label>
+      <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+        <input type="radio" name="www" value="bare" class="mt-1 accent-primary"{{if eq .WWW "bare"}} checked{{end}}>
+        <span><span class="block font-mono text-[13px] font-medium">{{T "dm.www.bare" .Bare}}</span><span class="hint mt-0">{{T "dm.www.bare.d" .With .Bare}}</span></span>
+      </label>
+      <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+        <input type="radio" name="www" value="www" class="mt-1 accent-primary"{{if eq .WWW "www"}} checked{{end}}>
+        <span><span class="block font-mono text-[13px] font-medium">{{T "dm.www.www" .With}}</span><span class="hint mt-0">{{T "dm.www.www.d" .Bare .With}}</span></span>
+      </label>
+    </div>
+  </fieldset>
+  </div>
+  {{if .TLS}}<p class="alert-warn mt-5">{{T "dm.warn.ssl"}}</p>{{end}}
+  <div class="mt-6 flex items-center gap-3"><button class="btn-primary">{{T "dm.save"}}</button><a class="btn-secondary" href="/sites/{{$.Site.Name}}">{{T "dm.reset"}}</a></div>
+</form>
+{{end}}
+
+
+{{end}}
 {{end}}

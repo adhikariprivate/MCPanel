@@ -1,0 +1,160 @@
+{{define "content"}}
+<div class="mb-6">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="h-page">Users and site access</h1>
+      <p class="mt-1 max-w-3xl text-sm text-muted-foreground">Create panel users, assign them to websites, and decide exactly what each person can do on each site.</p>
+    </div>
+    <span class="badge-gray">{{len .AccessUsers}} delegated user(s)</span>
+  </div>
+</div>
+
+<div class="grid items-start gap-6 xl:grid-cols-3">
+  <section class="card p-5 sm:p-6 xl:col-span-2" aria-labelledby="user-form-heading">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 id="user-form-heading" class="h-section">{{if .AccessEditing}}Edit {{.AccessUsername}}{{else}}Add a site user{{end}}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">Site users only see the websites and actions you allow. Instance settings, services, firewall, and site deletion remain administrator-only.</p>
+      </div>
+      {{if .AccessEditing}}<span class="badge-gray">{{if .AccessEnabled}}Enabled{{else}}Disabled{{end}}</span>{{end}}
+    </div>
+
+    <form method="post" action="/users/save" class="mt-6 space-y-7" autocomplete="off">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+
+      <section aria-label="Account details">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            {{if .AccessEditing}}
+            <label class="label">Username</label><p class="mt-2 rounded-md border border-border bg-muted px-3 py-2.5 font-mono text-sm">{{.AccessUsername}}</p>
+            <input type="hidden" name="username" value="{{.AccessUsername}}">
+            {{else}}
+            <label for="access-username" class="label">Username</label>
+            <input id="access-username" class="field" name="username" pattern="[a-z][a-z0-9_-]{2,31}" required autocomplete="off" spellcheck="false">
+            <p class="hint">3–32 lowercase letters, numbers, underscores, or hyphens.</p>
+            {{end}}
+          </div>
+          <div>
+            <label for="access-password" class="label">{{if .AccessEditing}}Set a new password{{else}}Initial password{{end}}</label>
+            <input id="access-password" class="field" name="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" {{if not .AccessEditing}}required{{end}}>
+            <p class="hint">{{if .AccessEditing}}Leave blank to keep the current password.{{else}}At least 12 characters; stored as a one-way hash.{{end}}</p>
+          </div>
+          {{if not .AccessEditing}}
+          <div class="md:col-span-2">
+            <label for="access-preset" class="label">Starting permission preset</label>
+            <select id="access-preset" class="field" name="preset">
+              <option value="">Custom permissions</option>
+              <option value="read-only">Read only</option>
+              <option value="developer">Developer</option>
+              <option value="site-manager">Site manager</option>
+            </select>
+            <p class="hint">Choose a starting set, then adjust any permission below. Presets never include terminal or SSH access.</p>
+          </div>
+          {{else}}
+          <div class="flex items-center md:col-span-2">
+            <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-sm font-medium">
+              <input type="checkbox" name="enabled" class="size-4 accent-primary" {{if .AccessEnabled}}checked{{end}}>
+              Account enabled
+            </label>
+            <span class="ml-3 text-xs text-muted-foreground">Saving access changes signs this user out of existing sessions.</span>
+          </div>
+          {{end}}
+        </div>
+      </section>
+
+      <section aria-labelledby="site-permissions-heading">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-border pb-3">
+          <div>
+            <h3 id="site-permissions-heading" class="text-base font-semibold">Website assignments and permissions</h3>
+            <p class="mt-1 text-xs text-muted-foreground">Assignment grants overview access. Every other permission is set separately.</p>
+          </div>
+          <span class="text-xs text-muted-foreground">Allow · Deny · Inherit</span>
+        </div>
+
+        {{if .AccessSites}}
+        <div class="space-y-4">
+          {{range .AccessSites}}
+          {{$siteID := .ID}}
+          <fieldset class="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
+            <legend class="sr-only">{{.Name}} site access</legend>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <label class="flex min-w-0 cursor-pointer items-center gap-3">
+                <input type="checkbox" name="site:{{$siteID}}" class="size-4 shrink-0 accent-primary" {{if .Assigned}}checked{{end}}>
+                <span class="min-w-0">
+                  <span class="block break-all font-semibold">{{.Name}}</span>
+                  <span class="mt-0.5 block text-xs text-muted-foreground">{{if .Assigned}}Assigned site{{else}}Not assigned{{end}} · overview access is included</span>
+                </span>
+              </label>
+              {{if .Assigned}}<span class="badge-teal">Assigned</span>{{else}}<span class="badge-gray">Not assigned</span>{{end}}
+            </div>
+
+            <div class="mt-5 space-y-5">
+              {{range .Groups}}
+              <section class="border-t border-border pt-4">
+                <h4 class="mb-3 text-sm font-semibold">{{.Name}}</h4>
+                <div class="grid gap-3 md:grid-cols-2">
+                  {{range .Capabilities}}
+                  <div class="min-w-0 rounded-lg border border-border/70 bg-muted/40 p-3">
+                    <label for="grant-{{$siteID}}-{{.Key}}" class="block text-sm font-medium">{{.Label}}</label>
+                    <code class="mt-0.5 block truncate text-[11px] text-muted-foreground">{{.Key}}</code>
+                    <select id="grant-{{$siteID}}-{{.Key}}" class="field grant-select mt-2" data-capability="{{.Key}}" name="grant:{{$siteID}}:{{.Key}}">
+                      <option value="" {{if eq .Effect ""}}selected{{end}}>{{if $.AccessEditing}}Inherit · deny{{else}}Inherit · preset or deny{{end}}</option>
+                      <option value="allow" {{if eq .Effect "allow"}}selected{{end}}>Allow</option>
+                      <option value="deny" {{if eq .Effect "deny"}}selected{{end}}>Deny</option>
+                    </select>
+                  </div>
+                  {{end}}
+                </div>
+              </section>
+              {{end}}
+            </div>
+          </fieldset>
+          {{end}}
+        </div>
+        {{else}}
+        <div class="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
+          <p class="font-medium">No websites yet</p>
+          <p class="mt-1 text-sm text-muted-foreground">Create a website first, then return here to assign access.</p>
+        </div>
+        {{end}}
+      </section>
+
+      <div class="flex flex-wrap items-center gap-3 border-t border-border pt-5">
+        <button class="btn-primary" type="submit">{{if .AccessEditing}}Save user and permissions{{else}}Create user and permissions{{end}}</button>
+        {{if .AccessEditing}}<a class="btn-secondary" href="/users">Cancel</a>{{end}}
+        <span class="text-xs text-muted-foreground">Changes take effect immediately and revoke existing sessions.</span>
+      </div>
+    </form>
+  </section>
+
+  <aside class="card p-5 sm:p-6" aria-labelledby="users-list-heading">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="users-list-heading" class="h-section">Site users</h2>
+      <span class="badge-gray">{{len .AccessUsers}}</span>
+    </div>
+    <p class="mt-1 text-sm text-muted-foreground">Manage existing accounts and their assigned websites.</p>
+    {{if .AccessUsers}}
+    <ul class="mt-4 divide-y divide-border">
+      {{range .AccessUsers}}
+      <li class="flex items-center justify-between gap-3 py-4">
+        <div class="min-w-0">
+          <p class="break-all font-mono text-sm font-semibold">{{.Name}}</p>
+          <p class="mt-1 text-xs text-muted-foreground">{{if .Enabled}}<span class="text-success">Enabled</span>{{else}}<span class="text-destructive">Disabled</span>{{end}} · {{.SiteCount}} site(s)</p>
+        </div>
+        <a class="btn-secondary shrink-0" href="/users?user={{.Name}}">Edit</a>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <div class="mt-5 rounded-lg border border-dashed border-border p-5 text-center">
+      <p class="text-sm font-medium">No site users yet</p>
+      <p class="mt-1 text-xs text-muted-foreground">Create a separate account for each person who needs website access.</p>
+    </div>
+    {{end}}
+  </aside>
+</div>
+
+{{if not .AccessEditing}}
+<script src="{{asset "useraccess.js"}}" defer></script>
+{{end}}
+{{end}}

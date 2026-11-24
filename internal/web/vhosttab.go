@@ -41,7 +41,7 @@ func (s *Server) vhostAction(w http.ResponseWriter, r *http.Request, ss webauth.
 		http.Error(w, msg, status)
 		return
 	}
-	back := siteTab(row.Name, "vhost")
+	back := siteTab(row.Name, "advanced")
 	req, problem := build(row)
 	if problem != "" {
 		s.refuseTo(w, ss, back, T("vh.fail"), problem)

@@ -37,6 +37,7 @@ type Entry struct {
 type Filter struct {
 	Site, IP, Kind, From, To string
 	Limit, Offset            int
+	Sites                    []string // optional allowed-site scope; ignored when Site is set
 }
 
 // Page is a part of the log, newest first, and how many entries the filter matches in all.
@@ -53,6 +54,7 @@ var Kinds = []string{"auth", "site", "files", "terminal", "database", "ssl", "cr
 var Events = map[string]bool{
 	"login.ok": true, "login.fail": true, "login.2fa_fail": true, "logout": true,
 	"account.setup": true, "account.password": true, "account.password_fail": true, "account.2fa_on": true, "account.2fa_off": true,
+	"account.user_create": true, "account.user_update": true, "access.denied": true,
 	"terminal.open": true, "terminal.close": true,
 	"files.upload": true, "files.mkdir": true, "files.newfile": true, "files.rename": true, "files.delete": true, "files.zip": true,
 	"files.unzip": true, "files.chmod": true, "files.move": true, "files.copy": true, "files.save": true,
@@ -61,7 +63,7 @@ var Events = map[string]bool{
 // Category is the group of an operation or an event.
 func Category(op string) string {
 	switch {
-	case strings.HasPrefix(op, "login.") || op == "logout" || strings.HasPrefix(op, "account."):
+	case strings.HasPrefix(op, "login.") || op == "logout" || strings.HasPrefix(op, "account.") || strings.HasPrefix(op, "access."):
 		return "auth"
 	case strings.HasPrefix(op, "files."):
 		return "files"

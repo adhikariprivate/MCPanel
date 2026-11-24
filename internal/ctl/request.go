@@ -129,23 +129,24 @@ type Request struct {
 	// helper writes it to the log with the operation. audit.note is an event only the web side sees (Event, one of audit.Events, with a
 	// Note and whether it Failed). audit.list reads the log: Site, AuditIP, AuditKind, From and To choose, Limit and Offset page.
 	// The Telegram alerts. Token (notify.hub) and Code (notify.agent, a pairing code) reach mpn on standard input only.
-	Lang      string        `json:"lang,omitempty"`
-	Token     string        `json:"token,omitempty"`
-	Code      string        `json:"code,omitempty"`
-	ChatID    int64         `json:"chat_id,omitempty"`
-	NodeID    int64         `json:"node_id,omitempty"`
-	HubURL    string        `json:"hub_url,omitempty"`
-	Rules     *notify.Rules `json:"rules,omitempty"`
-	Actor     string        `json:"actor,omitempty"`
-	Event     string        `json:"event,omitempty"`
-	Note      string        `json:"note,omitempty"`
-	Failed    bool          `json:"failed,omitempty"`
-	AuditIP   string        `json:"audit_ip,omitempty"`
-	AuditKind string        `json:"audit_kind,omitempty"`
-	From      string        `json:"from,omitempty"`
-	To        string        `json:"to,omitempty"`
-	Limit     int           `json:"limit,omitempty"`
-	Offset    int           `json:"offset,omitempty"`
+	Lang       string        `json:"lang,omitempty"`
+	Token      string        `json:"token,omitempty"`
+	Code       string        `json:"code,omitempty"`
+	ChatID     int64         `json:"chat_id,omitempty"`
+	NodeID     int64         `json:"node_id,omitempty"`
+	HubURL     string        `json:"hub_url,omitempty"`
+	Rules      *notify.Rules `json:"rules,omitempty"`
+	Actor      string        `json:"actor,omitempty"`
+	Event      string        `json:"event,omitempty"`
+	Note       string        `json:"note,omitempty"`
+	Failed     bool          `json:"failed,omitempty"`
+	AuditIP    string        `json:"audit_ip,omitempty"`
+	AuditKind  string        `json:"audit_kind,omitempty"`
+	AuditSites []string      `json:"audit_sites,omitempty"`
+	From       string        `json:"from,omitempty"`
+	To         string        `json:"to,omitempty"`
+	Limit      int           `json:"limit,omitempty"`
+	Offset     int           `json:"offset,omitempty"`
 }
 
 // Stdin returns what the request sends to mpn on standard input: the password of site.access, the certificate and key of

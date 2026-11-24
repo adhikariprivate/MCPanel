@@ -32,10 +32,13 @@ func TestTheSitePageShowsTheSiteAndItsTabs(t *testing.T) {
 	h, f, c, _ := setupWith(t, sitePageAnswers(), nil)
 	body := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
 	for _, want := range []string{"blog.example.com", "www.blog.example.com", "php 8.4", "/home/blog/htdocs", `href="/sites/blog/files"`,
-		`href="/sites/blog/databases"`, `href="/sites/blog/backups"`, `href="/sites/remove?site=blog"`, `aria-current="page"`} {
+		`href="/sites/blog/databases"`, `href="/sites/blog/backups"`, `href="/sites/blog/advanced"`, `aria-current="page"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q in:\n%s", want, body)
 		}
+	}
+	if strings.Contains(body, `href="/sites/blog/activity"`) || strings.Contains(body, `href="/sites/blog/vhost"`) {
+		t.Error("Activity and vHost are available outside the per-site tab bar")
 	}
 	for _, p := range []string{"/sites/nope", "/sites/-x", "/sites/UPPER"} {
 		if w := do(h, "GET", p, nil, cookie(c)); w.Code != 404 {
@@ -49,6 +52,21 @@ func TestTheSitePageShowsTheSiteAndItsTabs(t *testing.T) {
 		if strings.ContainsAny(r.Site, " /") {
 			t.Errorf("a bad name reached the helper: %+v", r)
 		}
+	}
+}
+
+func TestSiteTabsFollowGlobalEmailStateAndSeparateAdvancedActions(t *testing.T) {
+	h, _, c, _ := setupWith(t, sitePageAnswers(), nil)
+	overview := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
+	if strings.Contains(overview, `href="/sites/blog/email"`) || strings.Contains(overview, `action="/sites/blog/webmail"`) {
+		t.Fatal("email and webmail controls are hidden when global email is off")
+	}
+	if strings.Contains(overview, `action="/sites/blog/domain"`) || strings.Contains(overview, `action="/sites/blog/speed"`) || strings.Contains(overview, `href="/sites/remove?site=blog"`) {
+		t.Fatal("domain, acceleration, and deletion controls are outside Overview")
+	}
+	advanced := do(h, "GET", "/sites/blog/advanced", nil, cookie(c)).Body.String()
+	if !strings.Contains(advanced, `action="/sites/blog/speed"`) || !strings.Contains(advanced, `href="/sites/remove?site=blog"`) {
+		t.Fatal("Advanced contains acceleration and site deletion")
 	}
 }
 
@@ -84,7 +102,7 @@ func TestTheSSHTabShowsTheStateAndTheRightButtons(t *testing.T) {
 	} {
 		c := c
 		h, _, ck, _ := setupWith(t, sitePageAnswers(), func(s *Server) { s.PasswdFile = passwdWith(t, c.shell); s.LoginCheck = c.check })
-		body := do(h, "GET", "/sites/blog", nil, cookie(ck)).Body.String()
+		body := do(h, "GET", "/sites/blog/sftp", nil, cookie(ck)).Body.String()
 		for _, w := range c.want {
 			if !strings.Contains(body, w) {
 				t.Errorf("%s: missing %q", name, w)

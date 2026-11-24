@@ -4,6 +4,18 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ## [Unreleased]
 
+## [1.2.8] - 2026-11-24
+
+### Changed
+
+- The mise task chooser now shows the active or pending selection, site account, and `mise run <task>` command preview. Its Discard and Save & reload service controls update only the supervised task.
+- The Activity sidebar link is visible to delegated users with overview access to at least one assigned site; Monitoring and other Observe/System links remain instance-administrator-only.
+
+### Added
+
+- Website controls are organized into Domain, SFTP, and Advanced tabs. Advanced contains vHost configuration, acceleration and site deletion. Activity is available from the main sidebar; delegated users are limited to their assigned sites. Email and Webmail controls are hidden while instance email is disabled.
+- Instance administrators can create delegated panel users, assign them to websites, and manage per-site permissions with Read only, Developer, or Site manager starting presets. The permission editor groups labeled controls by site area. Access is checked on each request; unsupported and instance-wide routes remain administrator-only, and denied high-risk requests are recorded. See [Users and site access](users-and-access.md).
+
 ## [1.2.7] - 2026-11-24
 
 ### Added

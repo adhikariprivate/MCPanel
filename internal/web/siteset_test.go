@@ -102,7 +102,7 @@ func TestTheOverviewStillOffersTheActionsWhenTheInformationCannotBeRead(t *testi
 		}
 		return sitePageAnswers()(r)
 	}, nil)
-	body := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
+	body := do(h, "GET", "/sites/blog/advanced", nil, cookie(c)).Body.String()
 	for _, want := range []string{"boom", `href="/sites/remove?site=blog"`, "blog.example.com"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)

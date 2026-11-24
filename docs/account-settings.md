@@ -8,6 +8,8 @@ title: Account settings
 
 Open the account menu at the bottom of the left sidebar and choose **Settings**. The same menu contains the language selector, theme switch and sign-out control. This page manages the admin account’s password and two-factor authentication.
 
+The instance administrator can also create delegated panel users in [Users and site access](users-and-access.md). Delegated users have separate passwords and site-specific permissions.
+
 ## Changing the password
 
 Enter the **Current password**, then the **New password** twice and click **Change password**. The new password must differ from the current one and be between the minimum length shown on the page and 256 characters. After the change, other browsers signed in with the old password are signed out.

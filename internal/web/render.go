@@ -16,7 +16,7 @@ import (
 //go:embed templates/*.html
 var templateFS embed.FS
 
-//go:embed assets/logo.svg assets/app.css assets/app.js assets/theme.js assets/terminal.js assets/fileeditor.js assets/filemanager.js assets/monitor.js assets/editor assets/fonts assets/vendor/xterm.js assets/vendor/xterm.css assets/vendor/addon-fit.js
+//go:embed assets/logo.svg assets/app.css assets/app.js assets/theme.js assets/useraccess.js assets/mise.js assets/terminal.js assets/fileeditor.js assets/filemanager.js assets/monitor.js assets/editor assets/fonts assets/vendor/xterm.js assets/vendor/xterm.css assets/vendor/addon-fit.js
 var assetFS embed.FS
 
 // page is a page drawn from the files in templates/: a shell (the frame around the page) and the page's own content.
@@ -29,7 +29,7 @@ type page struct {
 var pages = map[string]page{}
 
 func init() {
-	for name, shell := range map[string]string{"login": "auth", "setup": "auth", "notfound": "auth", "sites": "base", "result": "base", "confirm": "base", "sitenew": "base", "site": "base", "fileedit": "base", "filerename": "base", "pmaopen": "base", "firewall": "base", "security": "base", "email": "base", "cloudlist": "base", "monitor": "base", "services": "base", "settings": "base", "update": "base", "emailcf": "base", "activity": "base", "notify": "base"} {
+	for name, shell := range map[string]string{"login": "auth", "setup": "auth", "notfound": "auth", "sites": "base", "result": "base", "confirm": "base", "sitenew": "base", "site": "base", "fileedit": "base", "filerename": "base", "pmaopen": "base", "firewall": "base", "security": "base", "email": "base", "cloudlist": "base", "monitor": "base", "services": "base", "settings": "base", "update": "base", "emailcf": "base", "activity": "base", "notify": "base", "users": "base", "siteaccess": "base"} {
 		t := template.Must(template.New(name).Funcs(template.FuncMap{"T": T, "stamp": stampText, "asset": assetURL, "join": strings.Join, "ports": svcport.Join, "portServices": func() []string { return svcport.Services }, "siteMenu": siteMenu, "dict": dict, "lang": func() string { return defaultLanguage }, "langInfo": func() language { return languageOf(defaultLanguage) }, "languages": func() []language { return languages }, "runtime": func(row siteRow) string { return row.Runtime() }}).
 			ParseFS(templateFS, append([]string{"templates/" + shell + ".html", "templates/" + name + ".html", "templates/language.html", "templates/footer.html"}, extraTemplates[name]...)...))
 		pages[name] = page{t, shell}
@@ -69,10 +69,12 @@ var assetFiles = map[string]struct{ path, ctype string }{
 	"jbmono-vi.woff2":        {"assets/fonts/jbmono-vi.woff2", "font/woff2"},
 	"app.js":                 {"assets/app.js", "text/javascript; charset=utf-8"},
 	"theme.js":               {"assets/theme.js", "text/javascript; charset=utf-8"},
+	"useraccess.js":          {"assets/useraccess.js", "text/javascript; charset=utf-8"},
 	"terminal.js":            {"assets/terminal.js", "text/javascript; charset=utf-8"},
 	"fileeditor.js":          {"assets/fileeditor.js", "text/javascript; charset=utf-8"},
 	"filemanager.js":         {"assets/filemanager.js", "text/javascript; charset=utf-8"},
 	"monitor.js":             {"assets/monitor.js", "text/javascript; charset=utf-8"},
+	"mise.js":                {"assets/mise.js", "text/javascript; charset=utf-8"},
 	"xterm.js":               {"assets/vendor/xterm.js", "text/javascript; charset=utf-8"},
 	"xterm.css":              {"assets/vendor/xterm.css", "text/css; charset=utf-8"},
 	"addon-fit.js":           {"assets/vendor/addon-fit.js", "text/javascript; charset=utf-8"},

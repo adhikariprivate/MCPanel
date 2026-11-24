@@ -50,6 +50,7 @@ nav:
   - Services: services.md
   - Security: security.md
   - Account settings: account-settings.md
+  - Users and site access: users-and-access.md
 markdown_extensions:
   - admonition
   - attr_list

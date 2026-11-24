@@ -24,6 +24,12 @@ func phpSite(name string, hosts ...string) site.Site {
 	return site.Site{Name: name, Kind: site.PHP, User: name, Root: "/home/" + name + "/htdocs", Hostnames: hosts, PHPVersion: "8.4"}
 }
 
+func withoutSiteIdentity(st site.Site) site.Site {
+	st.ID = 0
+	st.AccessID = ""
+	return st
+}
+
 func TestRoundTripAllKinds(t *testing.T) {
 	s, _ := open(t)
 	want := []site.Site{
@@ -38,11 +44,20 @@ func TestRoundTripAllKinds(t *testing.T) {
 		}
 	}
 	got, err := s.ListSites()
-	if err != nil || !reflect.DeepEqual(got, want) {
+	gotWithoutIdentity := make([]site.Site, len(got))
+	seenAccessIDs := map[string]bool{}
+	for i, st := range got {
+		gotWithoutIdentity[i] = withoutSiteIdentity(st)
+		if st.ID <= 0 || st.AccessID == "" || seenAccessIDs[st.AccessID] {
+			t.Errorf("site identity is missing or duplicated: %+v", st)
+		}
+		seenAccessIDs[st.AccessID] = true
+	}
+	if err != nil || !reflect.DeepEqual(gotWithoutIdentity, want) {
 		t.Fatalf("err=%v\ngot  %+v\nwant %+v", err, got, want)
 	}
 	one, err := s.GetSite("blog")
-	if err != nil || !reflect.DeepEqual(one, want[1]) {
+	if err != nil || !reflect.DeepEqual(withoutSiteIdentity(one), want[1]) {
 		t.Fatalf("err=%v got %+v", err, one)
 	}
 }

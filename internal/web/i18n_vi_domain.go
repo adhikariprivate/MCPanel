@@ -1,9 +1,9 @@
 package web
 
-// Vietnamese text of the domain card (on the overview) and the SSL tab.
+// Vietnamese text of the Domain and SSL tab.
 func init() {
 	for k, v := range map[string]string{
-		"tab.ssl":             "SSL",
+		"tab.ssl":             "Tên miền và SSL",
 		"dm.title":            "Tên miền",
 		"dm.sub":              "Mỗi website có một tên miền.",
 		"dm.domain":           "Tên miền",

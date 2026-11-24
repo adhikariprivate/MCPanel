@@ -10,7 +10,7 @@ import (
 )
 
 func TestOnlyThePanelsOwnPagesAreAcceptedAsWhereToGoBack(t *testing.T) {
-	for _, ok := range []string{"/", "/sites/new", "/firewall", "/security", "/sites/blog", "/sites/blog/ssh", "/sites/blog/databases",
+	for _, ok := range []string{"/", "/sites/new", "/firewall", "/security", "/sites/blog", "/sites/blog/sftp", "/sites/blog/domain", "/sites/blog/advanced", "/sites/blog/databases",
 		"/sites/blog/backups", "/sites/blog/files", "/sites/blog/terminal", "/sites/my-blog-2/databases"} {
 		if got := safeBack(ok, "/default"); got != ok {
 			t.Errorf("%q should be accepted, got %q", ok, got)
@@ -70,10 +70,10 @@ func TestAResultGoesBackToThePageItWasStartedFrom(t *testing.T) {
 		{"backup restored", "/backups/restore", url.Values{"site": {"blog"}, "backup": {"20261104-031500"}, "files": {"on"}, "confirm": {"blog"}, "back": {"/sites/blog/backups"}}, "/sites/blog/backups"},
 		{"site applied from the list", "/sites/apply", url.Values{"site": {"blog"}}, "/"},
 		{"site applied from its own page", "/sites/apply", url.Values{"site": {"blog"}, "back": {"/sites/blog"}}, "/sites/blog"},
-		{"login turned on", "/sites/blog/ssh/enable", url.Values{}, "/sites/blog"},
-		{"login reset", "/sites/blog/ssh/reset", url.Values{"confirm": {"blog"}}, "/sites/blog"},
-		{"login turned off", "/sites/blog/ssh/disable", url.Values{"confirm": {"blog"}}, "/sites/blog"},
-		{"panel key put back", "/sites/blog/ssh/panelkey", url.Values{}, "/sites/blog"},
+		{"login turned on", "/sites/blog/ssh/enable", url.Values{}, "/sites/blog/sftp"},
+		{"login reset", "/sites/blog/ssh/reset", url.Values{"confirm": {"blog"}}, "/sites/blog/sftp"},
+		{"login turned off", "/sites/blog/ssh/disable", url.Values{"confirm": {"blog"}}, "/sites/blog/sftp"},
+		{"panel key put back", "/sites/blog/ssh/panelkey", url.Values{}, "/sites/blog/sftp"},
 	} {
 		if got := backOf(t, post(tc.path, tc.form)); got != tc.want {
 			t.Errorf("%s: the button goes to %q, want %q", tc.name, got, tc.want)

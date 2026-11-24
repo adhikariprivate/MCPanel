@@ -7,10 +7,10 @@
     <input type="hidden" name="path" value="{{if .Dir}}{{.Dir}}/{{end}}{{.FileName}}">
     <div>
       <label for="newname" class="label">{{T "fm.rename.new"}}</label>
-      <input id="newname" name="newname" class="field font-mono" value="{{.FileName}}" autocomplete="off" required maxlength="255" autofocus>
+      <input id="newname" name="newname" class="field font-mono" value="{{.FileName}}" autocomplete="off" required maxlength="255" autofocus {{if not (index .TabAccess "files.write")}}readonly{{end}}>
     </div>
     <div class="flex items-center gap-3">
-      <button class="btn-primary">{{T "fm.rename.btn"}}</button>
+      {{if index .TabAccess "files.write"}}<button class="btn-primary">{{T "fm.rename.btn"}}</button>{{end}}
       <a class="btn-secondary" href="/sites/{{.Site.Name}}/files{{if .Dir}}?path={{.Dir}}{{end}}">{{T "c.cancel"}}</a>
     </div>
   </form>

@@ -33,6 +33,12 @@ func (s *Store) ListAudit(f audit.Filter, loc *time.Location) (audit.Page, error
 	var args []any
 	if f.Site != "" {
 		where, args = append(where, "site = ?"), append(args, f.Site)
+	} else if len(f.Sites) > 0 {
+		marks := strings.TrimRight(strings.Repeat("?,", len(f.Sites)), ",")
+		where = append(where, "site IN ("+marks+")")
+		for _, name := range f.Sites {
+			args = append(args, name)
+		}
 	}
 	if f.IP != "" {
 		// The start of the address. The characters of an address are never wildcards of LIKE.
