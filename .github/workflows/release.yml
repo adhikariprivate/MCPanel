@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Tag to build and release, for example v1.2.4
+        required: true
+        type: string
   push:
     tags:
       - 'v*'
@@ -12,10 +17,14 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.release_tag || github.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -46,7 +55,7 @@ jobs:
       - name: Build
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_TAG#v}"
           mkdir -p release
           # mpn is built without rclone so that it starts fast (the panel runs it several times per page); mpn-cloud is the same
           # program with rclone, and mpn hands the commands that talk to off-site storage over to it.
@@ -69,7 +78,7 @@ jobs:
           MPN_RELEASE_KEY: ${{ secrets.MPN_RELEASE_KEY }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_TAG#v}"
           [ -n "$MPN_RELEASE_KEY" ] || { echo "::error::the secret MPN_RELEASE_KEY is missing"; exit 1; }
           curl -fsSL -o /tmp/minisign.tar.gz https://github.com/jedisct1/minisign/releases/download/0.12/minisign-0.12-linux.tar.gz
           echo "9a599b48ba6eb7b1e80f12f36b94ceca7c00b7a5173c95c3efc88d9822957e73  /tmp/minisign.tar.gz" | sha256sum -c -
@@ -87,7 +96,7 @@ jobs:
       - name: Release notes
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_TAG#v}"
           awk -v v="$VERSION" '/^## \[/{p = index($0, "## [" v "]") == 1; next} p' docs/changelog.md > release-notes.md
           [ -s release-notes.md ] || { echo "::error::docs/changelog.md has no section for $VERSION"; exit 1; }
           cat release-notes.md
@@ -95,7 +104,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: MCPN ${{ github.ref_name }}
+          name: MCPN ${{ github.event.inputs.release_tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
           files: release/*
           body_path: release-notes.md
           generate_release_notes: true
