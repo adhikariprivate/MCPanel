@@ -94,7 +94,8 @@ type Options struct {
 	Target        osinfo.Target
 	Profile       tune.Profile
 	CurrentSwapMB int
-	Engine        string   // "mariadb", "mysql", or "" to skip the database
+	Engine        string   // "mariadb", "mysql", "postgresql", or "" to skip the database
+	PostgreSQL    bool     // a PostgreSQL server is already installed, so PHP gets its pgsql driver
 	DBSeries      string   // series of the chosen engine, such as "11.8" or "8.4"; empty means the engine's default
 	PHPVersions   []string // for example "8.4"; each gets php-fpm and a shared opcache file, and its service is left stopped
 	NodeVersions  []string // major versions such as "22", installed under /opt/node
@@ -194,7 +195,7 @@ func Build(o Options) (Plan, error) {
 		}
 		plan = append(plan, s)
 	}
-	if o.PMA {
+	if o.PMA && o.Engine != "postgresql" {
 		s, err := pmaStep(o)
 		if err != nil {
 			return nil, err
@@ -259,6 +260,9 @@ func phpStep(o Options) (Step, error) {
 			return Step{}, fmt.Errorf("php version %q is not offered", v)
 		}
 		exts := []string{"fpm", "cli", "mysql", "mbstring", "xml", "curl", "zip", "gd"}
+		if o.PostgreSQL || o.Engine == "postgresql" {
+			exts = append(exts, "pgsql")
+		}
 		if v < "8.0" {
 			exts = append(exts, "opcache") // built in from 8.0 on
 		}
@@ -336,6 +340,26 @@ func hasPHPBefore74(versions []string) bool {
 	return false
 }
 
+// postgresqlDriverActions adds the PHP pgsql/PDO_pgsql package to installed runtimes when PostgreSQL is added.
+// The custom EL PHP 7.0–7.3 builds have no separately packaged pgsql module; those runtimes are not supported for PostgreSQL.
+func postgresqlDriverActions(o Options) []Action {
+	var acts []Action
+	for _, v := range o.PHPVersions {
+		if distro.OwnPHP(v) {
+			continue
+		}
+		pkgs := distro.PHPPackages(v, []string{"pgsql"})
+		if len(pkgs) == 0 {
+			continue
+		}
+		acts = append(acts,
+			Run(distro.InstallCommand(pkgs...)...),
+			Run("systemctl", "try-restart", distro.PHPService(v)+".service"),
+		)
+	}
+	return acts
+}
+
 // database adds the repo, installs the server and writes the tuned config. The config file paths
 // are the usual ones for Debian and Ubuntu packages and have not been checked on a real install yet.
 func database(o Options) (Step, error) {
@@ -346,6 +370,27 @@ func database(o Options) (Step, error) {
 	if o.Target.EL() {
 		return elDatabaseStep(o, series)
 	}
+	if o.Engine == "postgresql" {
+		if !o.Target.HasSeries("postgresql", series) {
+			return Step{}, fmt.Errorf("PostgreSQL %s is not offered on %s %s; choose one of: %s", series, o.Target.ID, o.Target.Version, strings.Join(o.Target.Series("postgresql"), ", "))
+		}
+		src, err := aptsrc.PostgreSQL(o.Target, series)
+		if err != nil {
+			return Step{}, err
+		}
+		keyScript := `set -eu
+t=$(mktemp); trap 'rm -f "$t"' EXIT
+curl -fsSL --retry 3 --proto '=https' '` + src.KeyURL + `' -o "$t"
+got=$(gpg --batch --with-colons --show-keys "$t" | awk -F: '$1=="fpr"{print $10}' | sort -u)
+[ "$got" = '` + src.KeyFingerprint + `' ] || { echo "PostgreSQL signing key fingerprint mismatch: $got" >&2; exit 1; }
+install -m 0644 "$t" ` + src.KeyFile
+		acts := []Action{
+			Run("sh", "-c", keyScript),
+			WriteFile(src.Path(), src.Content, 0o644), aptUpdate(), aptInstall("postgresql-"+series, "postgresql-contrib-"+series),
+		}
+		acts = append(acts, postgresqlDriverActions(o)...)
+		return Step{"database postgresql", acts}, nil
+	}
 	var src aptsrc.Source
 	var err error
 	switch o.Engine {
@@ -353,6 +398,8 @@ func database(o Options) (Step, error) {
 		src, err = aptsrc.MariaDB(o.Target, series)
 	case "mysql":
 		src, err = aptsrc.MySQL(o.Target, series)
+	case "postgresql":
+		return Step{}, fmt.Errorf("PostgreSQL was already handled above")
 	default:
 		return Step{}, fmt.Errorf("unknown engine %q (want mariadb or mysql)", o.Engine)
 	}

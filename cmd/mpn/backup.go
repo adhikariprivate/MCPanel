@@ -159,18 +159,24 @@ func backupCreate(args []string) {
 			continue
 		}
 		var names []string
+		engines := map[string]string{}
+		needsMySQL := false
 		for _, d := range dbs {
 			names = append(names, d.Name)
+			engines[d.Name] = d.Engine
+			if d.Engine != "postgresql" {
+				needsMySQL = true
+			}
 		}
 		dump := "/usr/bin/mysqldump" // only shown in a dry run
-		if *apply && len(names) > 0 {
+		if *apply && needsMySQL {
 			requireLinuxRoot()
 			if dump, err = dbadmin.DetectDump(); err != nil {
 				report(s, err)
 				continue
 			}
 		}
-		plan, err := backup.CreatePlan(s, stamp, names, dump)
+		plan, err := backup.CreatePlanWithEngines(s, stamp, names, dump, engines)
 		if err != nil {
 			report(s, err)
 			continue
@@ -298,13 +304,25 @@ func backupRestore(args []string) {
 			fail(fmt.Errorf("database %q belongs to site %q, not %q", d, rec.Site, s.Name))
 		}
 	}
+	currentEngines := map[string]string{}
+	for _, d := range dbs {
+		if rec, e := st.GetDatabase(d); e == nil {
+			currentEngines[d] = rec.Engine
+		}
+	}
+	needsMySQL := false
+	for _, d := range dbs {
+		if m.Engine(d) != "postgresql" {
+			needsMySQL = true
+		}
+	}
 	client := "/usr/bin/mysql" // only shown in a dry run
-	if *apply && len(dbs) > 0 {
+	if *apply && needsMySQL {
 		requireLinuxRoot()
 		client, err = dbadmin.Detect()
 		fail(err)
 	}
-	plan, err := backup.RestorePlan(s, m, *files, dbs, client)
+	plan, err := backup.RestorePlanWithEngines(s, m, *files, dbs, client, currentEngines)
 	fail(err)
 	if !*apply {
 		fmt.Print(plan)

@@ -12,6 +12,7 @@ const noDatabaseStatus = `[
  {"key":"nginx","label":"nginx","group":"service","installed":true,"unit":"nginx.service","state":"active","active":true,"actions":["start","restart","reload"]},
  {"key":"mariadb","label":"MariaDB","group":"database","installable":true,"series":["10.11","11.4","11.8","12.3"],"default_series":"11.8"},
  {"key":"mysql","label":"MySQL","group":"database","installable":true,"series":["8.0","8.4"],"default_series":"8.4"}
+ ,{"key":"postgresql","label":"PostgreSQL","group":"database","installable":true,"series":["16","17","18","19"],"default_series":"18"}
 ]`
 
 func TestTheServicesPageOffersTheVersionsOfEachDatabaseServer(t *testing.T) {
@@ -28,6 +29,20 @@ func TestTheServicesPageOffersTheVersionsOfEachDatabaseServer(t *testing.T) {
 	if strings.Contains(page, `<option value="9.`) {
 		t.Error("a version the release does not offer is shown")
 	}
+}
+
+func TestPostgreSQLSeriesSelectionReachesHelper(t *testing.T) {
+	h, f, c, csrf := setupWith(t, byOp(map[string]string{"services.status": noDatabaseStatus, "services.install": "ok"}), nil)
+	w := do(h, "POST", "/services/postgresql/install", url.Values{"csrf": {csrf}, "series": {"18"}}, cookie(c))
+	if w.Code != 303 {
+		t.Fatalf("install with PostgreSQL series: %d", w.Code)
+	}
+	for _, q := range f.reqs {
+		if q.Op == "services.install" && q.SvcKey == "postgresql" && q.DBSeries == "18" {
+			return
+		}
+	}
+	t.Fatalf("PostgreSQL series did not reach helper: %+v", f.reqs)
 }
 
 func TestTheChosenVersionReachesTheHelperAndAWrongOneDoesNot(t *testing.T) {

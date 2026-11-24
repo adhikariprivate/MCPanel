@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 
 	"mpn/internal/dbadmin"
+	"mpn/internal/store"
 )
 
 func runDB(args []string) {
@@ -42,7 +43,34 @@ func dbUsage() {
 }
 
 // dbAdmin returns the admin for the database server on this machine. Callers use it only after -apply was given.
-func dbAdmin() dbadmin.Admin {
+type databaseAdmin interface {
+	InUse(string) (bool, error)
+	Create(string, string) error
+	SetPassword(string, string) error
+	Drop(string) error
+}
+
+func dropDatabaseRecords(dbs []store.Database, drop func(engine, name string) error, removeRecord func(name string) error) error {
+	for _, d := range dbs {
+		if err := drop(d.Engine, d.Name); err != nil {
+			return err
+		}
+		if err := removeRecord(d.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func dbAdmin(engine string) databaseAdmin {
+	if engine == "postgresql" {
+		requireLinuxRoot()
+		return dbadmin.Postgres{Runner: dbadmin.PSQLRunner{}}
+	}
+	return mysqlAdmin()
+}
+
+func mysqlAdmin() dbadmin.Admin {
 	requireLinuxRoot()
 	client, err := dbadmin.Detect()
 	fail(err)
@@ -54,8 +82,21 @@ func dbAdd(args []string) {
 	db := fs.String("db", defaultDB, "mpn database path")
 	siteName := fs.String("site", "", "site the database belongs to")
 	name := fs.String("name", "", "database and user name (default: the site name with - turned into _)")
+	engine := fs.String("engine", "mysql", "database engine: mysql or postgresql")
 	apply := fs.Bool("apply", false, "create it on the database server (Linux, root); otherwise only describe it")
 	_ = fs.Parse(args)
+	if *engine != "mysql" && *engine != "postgresql" {
+		fail(fmt.Errorf("engine must be mysql or postgresql"))
+	}
+	if *apply {
+		installed := unitOf("database") != ""
+		if *engine == "postgresql" {
+			installed = unitOf("postgresql-service") != ""
+		}
+		if !installed {
+			fail(fmt.Errorf("%s is not installed; install it from Services first", *engine))
+		}
+	}
 	st := openStore(*db)
 	defer st.Close()
 	if _, err := st.GetSite(*siteName); err != nil {
@@ -81,16 +122,16 @@ func dbAdd(args []string) {
 		fail(fmt.Errorf("the name %q is among the names of the site %q; choose another one for %q", *name, other, *siteName))
 	}
 	if !*apply {
-		fmt.Printf("would create database %q and user %q for site %q, with all privileges on that database only and a generated password\n(dry run: add -apply to do it)\n", *name, *name, *siteName)
+		fmt.Printf("would create %s database %q and user %q for site %q, with privileges on that database only and a generated password\n(dry run: add -apply to do it)\n", *engine, *name, *name, *siteName)
 		return
 	}
-	adm := dbAdmin()
+	adm := dbAdmin(*engine)
 	pw, err := dbadmin.NewPassword()
 	fail(err)
 	// The record of a database can outlive the database: somebody dropped it with the mysql command or phpMyAdmin. The
 	// record would then refuse the name for good. When the server has neither a database nor a user of that name, and the
 	// record is this site's own, it is stale and goes.
-	if old, gerr := st.GetDatabase(*name); gerr == nil && old.Site == *siteName {
+	if old, gerr := st.GetDatabase(*name); gerr == nil && old.Site == *siteName && old.Engine == *engine {
 		used, uerr := adm.InUse(*name)
 		fail(uerr)
 		if !used {
@@ -98,7 +139,7 @@ func dbAdd(args []string) {
 			fmt.Printf("note: the record of %q was left from a database that no longer exists on the server; it was replaced\n", *name)
 		}
 	}
-	fail(st.AddDatabase(*siteName, *name)) // first, so a name that is taken is refused before the server is touched
+	fail(st.AddDatabaseEngine(*siteName, *name, *engine)) // first, so a name that is taken is refused before the server is touched
 	if err := adm.Create(*name, pw); err != nil {
 		_ = st.DeleteDatabase(*name)
 		fail(err)
@@ -120,15 +161,15 @@ func dbList(args []string) {
 	if *asJSON {
 		rows := []dbRow{}
 		for _, d := range list {
-			rows = append(rows, dbRow{Name: d.Name, Site: d.Site})
+			rows = append(rows, dbRow{Name: d.Name, Site: d.Site, Engine: d.Engine})
 		}
 		printJSON(rows)
 		return
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "DATABASE\tSITE")
+	fmt.Fprintln(w, "DATABASE\tENGINE\tSITE")
 	for _, d := range list {
-		fmt.Fprintf(w, "%s\t%s\n", d.Name, d.Site)
+		fmt.Fprintf(w, "%s\t%s\t%s\n", d.Name, d.Engine, d.Site)
 	}
 	fail(w.Flush())
 }
@@ -148,7 +189,7 @@ func dbPasswd(args []string) {
 		fmt.Printf("would give user %q (site %q) a new password; the old one stops working at once\n(dry run: add -apply to do it)\n", d.Name, d.Site)
 		return
 	}
-	adm := dbAdmin()
+	adm := dbAdmin(d.Engine)
 	var pw string
 	if *stdin {
 		line, rerr := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -184,7 +225,7 @@ func dbRemove(args []string) {
 		fmt.Printf("would DELETE database %q with all its data, and its user (site %q); this cannot be undone\n(dry run: add -apply to do it)\n", d.Name, d.Site)
 		return
 	}
-	adm := dbAdmin()
+	adm := dbAdmin(d.Engine)
 	fail(adm.Drop(d.Name))
 	fail(st.DeleteDatabase(d.Name))
 	fmt.Printf("database %q and its user were deleted\n", d.Name)

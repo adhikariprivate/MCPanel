@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -99,6 +100,16 @@ func TestTheSiteTabShowsTheFixedStartOfTheName(t *testing.T) {
 	}
 }
 
+func TestDatabaseEngineSelectorUsesInstalledEnginesAndLabelsRows(t *testing.T) {
+	h, _, c, _ := setupWith(t, sitePageAnswers(), nil)
+	body := do(h, "GET", "/sites/blog/databases", nil, cookie(c), cookie(&http.Cookie{Name: "mpn_language", Value: "en"})).Body.String()
+	for _, want := range []string{`value="mysql"`, `value="postgresql"`, `>PostgreSQL</option>`, `>Engine</th>`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %q in:\n%s", want, body)
+		}
+	}
+}
+
 func TestAddingADatabaseShowsThePasswordOnce(t *testing.T) {
 	h, f, c, tok := setup(t, okAnswer("database created\n  password: S3cretPw"))
 	w := followed(h, do(h, "POST", "/databases/add", url.Values{"csrf": {tok}, "site": {"blog"}, "name": {"blog_shop"}}, cookie(c)), c)
@@ -112,6 +123,14 @@ func TestAddingADatabaseShowsThePasswordOnce(t *testing.T) {
 	h2, _, c2, _ := setup(t, byOp(map[string]string{"db.list": `[{"name":"blog_shop","site":"blog"}]`, "site.list": blogList}))
 	if strings.Contains(do(h2, "GET", "/sites/blog/databases", nil, cookie(c2)).Body.String(), "S3cretPw") {
 		t.Error("the list page must never show a password")
+	}
+}
+
+func TestAddingAPostgresDatabasePassesTheSelectedEngine(t *testing.T) {
+	h, f, c, tok := setup(t, okAnswer("database created"))
+	_ = followed(h, do(h, "POST", "/databases/add", url.Values{"csrf": {tok}, "site": {"blog"}, "name": {"shop"}, "engine": {"postgresql"}}, cookie(c)), c)
+	if len(f.reqs) != 1 || f.reqs[0].Op != "db.add" || f.reqs[0].Engine != "postgresql" {
+		t.Fatalf("request did not retain the selected engine: %+v", f.reqs)
 	}
 }
 

@@ -43,13 +43,14 @@ func Dir(name, stamp string) string { return SiteDir(name) + "/" + stamp }
 // the lines above it with the key of this server (KeyFile). A backup that comes back from off-site storage is used only when its
 // MAC is right, so whoever can write to the storage cannot hand the server a backup of their own.
 type Manifest struct {
-	Site   string
-	Stamp  string
-	Files  bool
-	Htdocs bool
-	DBs    []string
-	Sums   map[string]string // file name to SHA-256, in hex
-	Signed bool              // the mac line was there and is right for this server's key (set by ParseManifest)
+	Site    string
+	Stamp   string
+	Files   bool
+	Htdocs  bool
+	DBs     []string
+	Engines map[string]string // absent entries are MySQL-family for manifests made before engine tracking
+	Sums    map[string]string // file name to SHA-256, in hex
+	Signed  bool              // the mac line was there and is right for this server's key (set by ParseManifest)
 }
 
 const header = "mpn backup 1"
@@ -66,6 +67,9 @@ func (m Manifest) body() string {
 	}
 	for _, d := range m.DBs {
 		fmt.Fprintf(&b, "db=%s\n", d)
+		if m.Engines[d] == "postgresql" {
+			fmt.Fprintf(&b, "db_engine=%s:postgresql\n", d)
+		}
 	}
 	names := make([]string, 0, len(m.Sums))
 	for n := range m.Sums {
@@ -142,6 +146,15 @@ func ParseManifest(text string, key ...[]byte) (Manifest, error) {
 				return Manifest{}, fmt.Errorf("manifest has an invalid database name %q", v)
 			}
 			m.DBs = append(m.DBs, v)
+		case "db_engine":
+			db, engine, ok := strings.Cut(v, ":")
+			if !ok || !dbadmin.ValidName(db) || engine != "postgresql" || !contains(m.DBs, db) {
+				return Manifest{}, fmt.Errorf("manifest has an invalid database engine line %q", v)
+			}
+			if m.Engines == nil {
+				m.Engines = map[string]string{}
+			}
+			m.Engines[db] = engine
 		case "sum":
 			n, h, ok := strings.Cut(v, ":")
 			if !ok || !sumRe.MatchString(h) || (n != "files.tar.gz" && !(strings.HasSuffix(n, ".sql.gz") && dbadmin.ValidName(strings.TrimSuffix(n, ".sql.gz")))) {
@@ -161,6 +174,14 @@ func ParseManifest(text string, key ...[]byte) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("manifest lacks a site or a stamp")
 	}
 	return m, nil
+}
+
+// Engine returns the recorded engine, defaulting legacy manifests to MySQL-family.
+func (m Manifest) Engine(db string) string {
+	if m.Engines[db] == "postgresql" {
+		return "postgresql"
+	}
+	return "mysql"
 }
 
 var sumRe = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -208,17 +229,33 @@ func checkDBs(siteName string, dbs []string) error {
 // tar's exit status 1 means only that a file changed while it was read, which is normal on a live site. An empty or
 // cut-off archive (for instance when runuser itself fails, which also exits 1) is caught by gzip -t.
 func CreatePlan(s site.Site, stamp string, dbs []string, dump string) (installer.Plan, error) {
+	return CreatePlanWithEngines(s, stamp, dbs, dump, nil)
+}
+
+// CreatePlanWithEngines saves databases with their own engine. An empty engine entry is legacy MySQL-family.
+func CreatePlanWithEngines(s site.Site, stamp string, dbs []string, dump string, engines map[string]string) (installer.Plan, error) {
 	if err := s.Validate(); err != nil {
 		return nil, err
 	}
 	if !ValidStamp(stamp) {
 		return nil, fmt.Errorf("invalid backup stamp %q", stamp)
 	}
-	if len(dbs) > 0 && !site.SafePath(dump) {
+	needsMySQL := false
+	for _, d := range dbs {
+		if engines[d] != "postgresql" {
+			needsMySQL = true
+		}
+	}
+	if needsMySQL && !site.SafePath(dump) {
 		return nil, fmt.Errorf("invalid dump program %q", dump)
 	}
 	if err := checkDBs(s.Name, dbs); err != nil {
 		return nil, err
+	}
+	for _, d := range dbs {
+		if e := engines[d]; e != "" && e != "mysql" && e != "postgresql" {
+			return nil, fmt.Errorf("unsupported database engine %q for %q", e, d)
+		}
 	}
 	dir := Dir(s.Name, stamp)
 	files := dir + "/files.tar.gz"
@@ -233,12 +270,17 @@ func CreatePlan(s site.Site, stamp string, dbs []string, dump string) (installer
 	}
 	for _, d := range dbs {
 		sql := fmt.Sprintf("%s/%s.sql", dir, d)
+		if engines[d] == "postgresql" {
+			plan = append(plan, installer.Step{Name: "database " + d, Actions: []installer.Action{installer.Run("sh", "-c", fmt.Sprintf(
+				`umask 077; runuser -u postgres -- pg_dump --clean --if-exists --no-owner --no-acl %[1]s > %[2]s || { rm -f %[2]s; echo 'dump of %[1]s failed' >&2; exit 1; }; gzip -f %[2]s`, d, sql))}})
+			continue
+		}
 		plan = append(plan, installer.Step{Name: "database " + d, Actions: []installer.Action{installer.Run("sh", "-c", fmt.Sprintf(
 			`umask 077; %[1]s --single-transaction --routines --events --triggers --default-character-set=utf8mb4 %[2]s > %[3]s || { rm -f %[3]s; echo 'dump of %[2]s failed' >&2; exit 1; }; gzip -f %[3]s`,
 			dump, d, sql))}})
 	}
 	_, below := s.RootSub()
-	m := Manifest{Site: s.Name, Stamp: stamp, Files: true, Htdocs: below && s.Root != site.HtdocsOf(s.User), DBs: dbs}
+	m := Manifest{Site: s.Name, Stamp: stamp, Files: true, Htdocs: below && s.Root != site.HtdocsOf(s.User), DBs: dbs, Engines: engines}
 	// The MANIFEST is written by "mpn backup seal", which reads the files to sum them and signs the result with KeyFile; it is the
 	// last step, so a backup cut off before it has no MANIFEST and counts as unfinished.
 	args := []string{"backup", "seal", "-dir", dir, "-site", s.Name, "-stamp", stamp}
@@ -341,6 +383,11 @@ func restoreRoot(s site.Site, m Manifest) string {
 // that exist now but are not in the backup stay. Each dump drops and re-creates its own tables; the database itself
 // must already exist, and tables created since the backup stay. client is the path of the mariadb or mysql program.
 func RestorePlan(s site.Site, m Manifest, files bool, dbs []string, client string) (installer.Plan, error) {
+	return RestorePlanWithEngines(s, m, files, dbs, client, nil)
+}
+
+// RestorePlanWithEngines restores each dump with the database client recorded in its manifest.
+func RestorePlanWithEngines(s site.Site, m Manifest, files bool, dbs []string, client string, currentEngines map[string]string) (installer.Plan, error) {
 	if err := s.Validate(); err != nil {
 		return nil, err
 	}
@@ -356,7 +403,13 @@ func RestorePlan(s site.Site, m Manifest, files bool, dbs []string, client strin
 	if _, below := s.RootSub(); files && m.Htdocs && !below {
 		return nil, fmt.Errorf("backup %s holds the folder htdocs, but the web root of site %q is now outside it (%s)", m.Stamp, s.Name, s.Root)
 	}
-	if len(dbs) > 0 && !site.SafePath(client) {
+	needsMySQL := false
+	for _, d := range dbs {
+		if m.Engine(d) != "postgresql" {
+			needsMySQL = true
+		}
+	}
+	if needsMySQL && !site.SafePath(client) {
 		return nil, fmt.Errorf("invalid database client %q", client)
 	}
 	if err := checkDBs(s.Name, dbs); err != nil {
@@ -377,6 +430,14 @@ func RestorePlan(s site.Site, m Manifest, files bool, dbs []string, client strin
 	}
 	for _, d := range dbs {
 		f := fmt.Sprintf("%s/%s.sql.gz", dir, d)
+		if m.Engine(d) != currentEngine(currentEngines, d) {
+			return nil, fmt.Errorf("database %q uses %s, but its backup uses %s", d, currentEngine(currentEngines, d), m.Engine(d))
+		}
+		if m.Engine(d) == "postgresql" {
+			plan = append(plan, installer.Step{Name: "database " + d, Actions: []installer.Action{installer.Run("sh", "-c", fmt.Sprintf(
+				`gzip -t %[1]s && gzip -dc %[1]s | runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 --role=%[2]s -d %[2]s`, f, d))}})
+			continue
+		}
 		plan = append(plan, installer.Step{Name: "database " + d, Actions: []installer.Action{installer.Run("sh", "-c", fmt.Sprintf(
 			`gzip -t %[2]s && gzip -dc %[2]s | %[1]s --default-character-set=utf8mb4 %[3]s`, client, f, d))}})
 	}
@@ -384,6 +445,13 @@ func RestorePlan(s site.Site, m Manifest, files bool, dbs []string, client strin
 		return nil, fmt.Errorf("nothing to restore: choose the files, a database, or both")
 	}
 	return plan, nil
+}
+
+func currentEngine(engines map[string]string, db string) string {
+	if engines[db] == "postgresql" {
+		return "postgresql"
+	}
+	return "mysql"
 }
 
 // Expired returns the stamps to delete so that only the newest keep remain. Names that are not stamps are ignored.

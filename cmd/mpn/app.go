@@ -96,7 +96,7 @@ func appInstall(args []string) {
 	var adm *dbadmin.Admin
 	if recipe.NeedsDB() {
 		if *apply {
-			a := dbAdmin()
+			a := mysqlAdmin()
 			adm = &a
 		}
 		p.DBName, err = appDBName(st, s.Name, adm)

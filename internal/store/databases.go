@@ -8,14 +8,23 @@ import (
 // Database is a database that mpn created for a site. The password is not kept anywhere: the database server holds
 // its hash, and a forgotten password is replaced, not recovered.
 type Database struct {
-	Name string
-	Site string
+	Name   string
+	Site   string
+	Engine string
 }
 
 // AddDatabase records a database as belonging to a site.
 func (s *Store) AddDatabase(site, name string) error {
-	res, err := s.db.Exec(`INSERT INTO databases (name, site_id, created_at) SELECT ?, id, ? FROM sites WHERE name = ?`,
-		name, time.Now().Unix(), site)
+	return s.AddDatabaseEngine(site, name, "mysql")
+}
+
+// AddDatabaseEngine records a database and the engine that owns it. Existing rows migrate to mysql.
+func (s *Store) AddDatabaseEngine(site, name, engine string) error {
+	if engine != "mysql" && engine != "postgresql" {
+		return fmt.Errorf("unsupported database engine %q", engine)
+	}
+	res, err := s.db.Exec(`INSERT INTO databases (name, site_id, created_at, engine) SELECT ?, id, ?, ? FROM sites WHERE name = ?`,
+		name, time.Now().Unix(), engine, site)
 	if err != nil {
 		return wrap(err)
 	}
@@ -27,9 +36,9 @@ func (s *Store) AddDatabase(site, name string) error {
 
 // ListDatabases returns the databases of one site, or of all sites when site is empty, ordered by name.
 func (s *Store) ListDatabases(site string) ([]Database, error) {
-	q, args := `SELECT d.name, s.name FROM databases d JOIN sites s ON s.id = d.site_id ORDER BY d.name`, []any{}
+	q, args := `SELECT d.name, s.name, d.engine FROM databases d JOIN sites s ON s.id = d.site_id ORDER BY d.name`, []any{}
 	if site != "" {
-		q, args = `SELECT d.name, s.name FROM databases d JOIN sites s ON s.id = d.site_id WHERE s.name = ? ORDER BY d.name`, []any{site}
+		q, args = `SELECT d.name, s.name, d.engine FROM databases d JOIN sites s ON s.id = d.site_id WHERE s.name = ? ORDER BY d.name`, []any{site}
 	}
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
@@ -39,7 +48,7 @@ func (s *Store) ListDatabases(site string) ([]Database, error) {
 	var out []Database
 	for rows.Next() {
 		var d Database
-		if err := rows.Scan(&d.Name, &d.Site); err != nil {
+		if err := rows.Scan(&d.Name, &d.Site, &d.Engine); err != nil {
 			return nil, err
 		}
 		out = append(out, d)
@@ -49,7 +58,7 @@ func (s *Store) ListDatabases(site string) ([]Database, error) {
 
 func (s *Store) GetDatabase(name string) (Database, error) {
 	var d Database
-	err := s.db.QueryRow(`SELECT d.name, s.name FROM databases d JOIN sites s ON s.id = d.site_id WHERE d.name = ?`, name).Scan(&d.Name, &d.Site)
+	err := s.db.QueryRow(`SELECT d.name, s.name, d.engine FROM databases d JOIN sites s ON s.id = d.site_id WHERE d.name = ?`, name).Scan(&d.Name, &d.Site, &d.Engine)
 	if err != nil {
 		return Database{}, fmt.Errorf("database %q: %w", name, ErrNotFound)
 	}

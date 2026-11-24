@@ -19,7 +19,7 @@ func TestDatabasesBelongToSites(t *testing.T) {
 		}
 	}
 	got, err := s.ListDatabases("blog")
-	if err != nil || !reflect.DeepEqual(got, []Database{{"blog", "blog"}, {"blog_stats", "blog"}}) {
+	if err != nil || !reflect.DeepEqual(got, []Database{{"blog", "blog", "mysql"}, {"blog_stats", "blog", "mysql"}}) {
 		t.Errorf("blog: %+v err=%v", got, err)
 	}
 	all, _ := s.ListDatabases("")
@@ -34,6 +34,20 @@ func TestDatabasesBelongToSites(t *testing.T) {
 	}
 	if _, err := s.GetDatabase("missing"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("get missing: %v", err)
+	}
+}
+
+func TestDatabaseEngineIsStored(t *testing.T) {
+	s, _ := open(t)
+	if err := s.AddSite(phpSite("blog", "blog.example.com")); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AddDatabaseEngine("blog", "blog_pg", "postgresql"); err != nil {
+		t.Fatal(err)
+	}
+	d, err := s.GetDatabase("blog_pg")
+	if err != nil || d.Engine != "postgresql" {
+		t.Fatalf("database = %+v, %v", d, err)
 	}
 }
 

@@ -327,6 +327,7 @@ type view struct {
 	Nonce                                       string
 	Dir, FileName, EditPath, EditText, FileKind string
 	DBBase                                      string    // the start every database name of the site has
+	DBEngines                                   []string  // engines installed on this machine
 	PMA                                         bool      // the database browser is installed: show its button
 	Over                                        *overview // the overview tab of a site: its state and its settings
 	PMALink, PMAName                            string    // where the interstitial page leads, and the database it opens

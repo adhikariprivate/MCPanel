@@ -7,7 +7,7 @@ import (
 
 func TestDefaultsAreOfferedOnEveryRelease(t *testing.T) {
 	for _, tg := range Supported() {
-		for _, engine := range []string{"mariadb", "mysql"} {
+		for _, engine := range []string{"mariadb", "mysql", "postgresql"} {
 			if !tg.HasSeries(engine, DefaultSeries(engine)) {
 				t.Errorf("%s %s: default %s %s is not offered", tg.ID, tg.Version, engine, DefaultSeries(engine))
 			}
@@ -43,6 +43,8 @@ func TestSeriesFollowTheRepositories(t *testing.T) {
 		{u22, "mariadb", "12.3", false},
 		{u22, "mysql", "8.0", true},
 		{deb13, "mysql", "8.4", true},
+		{deb13, "postgresql", "19", true},
+		{u26, "postgresql", "18", true},
 	}
 	for _, c := range cases {
 		if got := c.t.HasSeries(c.engine, c.series); got != c.want {

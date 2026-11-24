@@ -179,6 +179,7 @@ INSERT INTO sites_new (id,name,kind,system_user,root_dir,php_version,app_port,no
 SELECT id,name,kind,system_user,root_dir,php_version,app_port,node_version,py_version,entry,upstream,created_at,tls,php_ini,mem_mb,www,allow_http,ssl_mode,vhost,speed,webmail,app,app_ready FROM sites;
 DROP TABLE sites;
 ALTER TABLE sites_new RENAME TO sites;`,
+	`ALTER TABLE databases ADD COLUMN engine TEXT NOT NULL DEFAULT 'mysql';`,
 }
 
 // noForeignKeys, at the start of a migration, runs it with foreign key enforcement off and checks them again afterwards.

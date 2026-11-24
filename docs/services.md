@@ -11,10 +11,10 @@ The **Services** page lists what MCPN manages on the server. Installed component
 ## Service groups
 
 * **Background services**: the web server, security and mail server programs. The mail suite and fail2ban are installed from their own pages.
-* **Database server**: each machine uses one kind, MariaDB or MySQL. Pick a version before installing. Available versions depend on the operating system. Once one exists, the other kind cannot be installed here.
+* **Database servers**: choose MariaDB or MySQL as the MySQL-family server; those two cannot be installed together. PostgreSQL can be installed alongside it. Pick a version before installing. Available versions depend on the operating system; MCPN currently offers PostgreSQL 16, 17, 18 and 19, with 18 recommended. When you add a database to a website, choose one of the engines installed on the machine.
 * **PHP versions**: install more when a website needs them. A version runs only when a website uses it, so a freshly installed version shows as stopped.
 * **Node.js versions**: installed into `/opt/node`. A Node website picks its version at creation or in its settings.
-* **Tools**: phpMyAdmin, opened from the button in each website’s [Databases](websites/databases.md) tab. From 1.2.0, installing MariaDB or MySQL also installs phpMyAdmin.
+* **Tools**: phpMyAdmin, opened from the button in each MariaDB/MySQL database’s [Databases](websites/databases.md) tab. PostgreSQL databases do not use phpMyAdmin. From 1.2.0, installing MariaDB or MySQL also installs phpMyAdmin.
 
 ## States and actions
 
@@ -34,6 +34,6 @@ From 1.3.0, a PHP version, a Node.js version, phpMyAdmin and fail2ban have a **R
 
 * A PHP or Node.js version that a website runs on shows **In use** instead. Hover over it to see which websites; give them another version first.
 * PHP 8.3 stays in use while phpMyAdmin is installed, because phpMyAdmin runs on it.
-* MariaDB, MySQL and the mail programs cannot be removed here, because their databases and mailboxes would go with them.
+* MariaDB, MySQL, PostgreSQL and the mail programs cannot be removed here, because their databases and mailboxes would go with them.
 
 Each removal is recorded as Important in the [activity log](monitoring/activity-log.md).

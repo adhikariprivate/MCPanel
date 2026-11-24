@@ -50,6 +50,7 @@ type Def struct {
 var Defs = []Def{
 	{Key: "nginx", Label: "nginx", Group: GroupService, Units: []string{"nginx.service"}, Actions: []string{Start, Restart, Reload}},
 	{Key: "database", Label: "MariaDB / MySQL", Group: GroupDatabase, Units: []string{"mariadb.service", "mysql.service", "mysqld.service"}, Actions: []string{Start, Stop, Restart}},
+	{Key: "postgresql-service", Label: "PostgreSQL", Group: GroupDatabase, Units: []string{"postgresql.service", "postgresql-19.service", "postgresql-18.service", "postgresql-17.service", "postgresql-16.service"}, Actions: []string{Start, Stop, Restart}},
 	{Key: "fail2ban", Label: "fail2ban", Group: GroupService, Units: []string{"fail2ban.service"}, Actions: []string{Start, Stop, Restart, Reload}, Link: "/security", Absent: true},
 	{Key: "postfix", Label: "Postfix", Group: GroupService, Units: []string{"postfix.service"}, Actions: []string{Start, Stop, Restart, Reload}, Link: "/email", Absent: true},
 	{Key: "dovecot", Label: "Dovecot", Group: GroupService, Units: []string{"dovecot.service"}, Actions: []string{Start, Stop, Restart, Reload}, Link: "/email"},
@@ -107,7 +108,7 @@ func ValidAction(key, action string) error {
 // ValidInstall reports whether key is something the panel can install: the database browser, a PHP or Node.js version, or a database
 // server.
 func ValidInstall(key string) error {
-	if key == PhpMyAdmin || key == "mariadb" || key == "mysql" {
+	if key == PhpMyAdmin || key == "mariadb" || key == "mysql" || key == "postgresql" {
 		return nil
 	}
 	if _, ok := phpVersion(key); ok {
@@ -174,18 +175,18 @@ type Item struct {
 	Removable bool     `json:"removable,omitempty"`
 	UsedBy    []string `json:"used_by,omitempty"`
 	// Series are the versions of a database server this machine's release can install, oldest first, and DefaultSeries the one chosen when
-	// none is asked for. Only the rows that install MariaDB or MySQL have them.
+	// none is asked for.
 	Series        []string `json:"series,omitempty"`
 	DefaultSeries string   `json:"default_series,omitempty"`
 }
 
-var seriesRe = regexp.MustCompile(`^[0-9]{1,2}\.[0-9]{1,2}$`)
+var seriesRe = regexp.MustCompile(`^[0-9]{1,2}(\.[0-9]{1,2})?$`)
 
-// ValidSeries reports whether s has the shape of a database version such as "11.8". Whether this release offers it is decided where the
+// ValidSeries reports whether s has the shape of a database version such as "11.8" or PostgreSQL major "18". Whether this release offers it is decided where the
 // plan is made, which knows the release.
 func ValidSeries(s string) error {
 	if !seriesRe.MatchString(s) {
-		return fmt.Errorf("database version %q must look like 11.8", s)
+		return fmt.Errorf("database version %q must look like 11.8 or 18", s)
 	}
 	return nil
 }
@@ -196,7 +197,7 @@ type Probe struct {
 	Node     []string // the installed Node.js major versions
 	Exists   func(path string) bool
 	ReadFile func(path string) (string, error)
-	Series   func(engine string) []string // the versions of "mariadb" or "mysql" this release offers; nil leaves the choice out
+	Series   func(engine string) []string // the versions of each database engine this release offers; nil leaves the choice out
 	Sites    []site.Site                  // the websites, for what keeps a version in use
 }
 
@@ -217,6 +218,8 @@ func (p Probe) unit(key string) (id, state string) {
 func Status(p Probe) []Item {
 	var out []Item
 	dbID := ""
+	mysqlDBInstalled := false
+	postgresqlInstalled := false
 	for _, d := range Defs {
 		id, st := p.unit(d.Key)
 		switch {
@@ -224,16 +227,19 @@ func Status(p Probe) []Item {
 			label := d.Label
 			if d.Key == "database" {
 				dbID = id
+				mysqlDBInstalled = true
 				if l := map[string]string{"mariadb.service": "MariaDB", "mysql.service": "MySQL", "mysqld.service": "MySQL"}[id]; l != "" {
 					label = l // the server that is there, not both names
 				}
+			} else if d.Key == "postgresql-service" {
+				postgresqlInstalled = true
 			}
 			out = append(out, Item{Key: d.Key, Label: label, Group: d.Group, Installed: true, Unit: id, State: st, Active: st == "active", Actions: d.Actions, Link: d.Link})
 		case d.Absent:
 			out = append(out, Item{Key: d.Key, Label: d.Label, Group: d.Group, Link: d.Link})
 		}
 	}
-	if dbID == "" { // the only time a database server is offered: with one on the machine there is nothing to choose
+	if dbID == "" { // MariaDB and MySQL cannot coexist; PostgreSQL is an independent choice.
 		for _, e := range []struct{ key, label string }{{"mariadb", "MariaDB"}, {"mysql", "MySQL"}} {
 			it := Item{Key: e.key, Label: e.label, Group: GroupDatabase, Installable: true}
 			if p.Series != nil {
@@ -241,6 +247,13 @@ func Status(p Probe) []Item {
 			}
 			out = append(out, it)
 		}
+	}
+	if id, _ := p.unit("postgresql-service"); id == "" {
+		it := Item{Key: "postgresql", Label: "PostgreSQL", Group: GroupDatabase, Installable: true}
+		if p.Series != nil {
+			it.Series, it.DefaultSeries = p.Series("postgresql"), osinfo.DefaultSeries("postgresql")
+		}
+		out = append(out, it)
 	}
 	for _, v := range slices.Backward(site.PHPVersions) {
 		it := Item{Key: PHPKey(v), Label: "PHP-FPM " + v, Group: GroupPHP}
@@ -272,8 +285,12 @@ func Status(p Probe) []Item {
 		}
 	} else if !p.Exists(panelConf) {
 		pma.Needs = "panel"
-	} else if dbID == "" {
-		pma.Needs = "database"
+	} else if !mysqlDBInstalled {
+		if postgresqlInstalled {
+			pma.Needs = "mysql-database"
+		} else {
+			pma.Needs = "database"
+		}
 	} else {
 		pma.Installable = true
 	}

@@ -77,3 +77,6 @@ func (t Target) MariaDBRepo(series string) string {
 	return "https://mirror.mariadb.org/repo/" + series + "/" + t.ID
 }
 func (t Target) MySQLRepo() string { return "https://repo.mysql.com/apt/" + t.ID }
+
+// PostgreSQLRepo is the PGDG apt repository for Debian and Ubuntu.
+func (t Target) PostgreSQLRepo() string { return "https://apt.postgresql.org/pub/repos/apt" }

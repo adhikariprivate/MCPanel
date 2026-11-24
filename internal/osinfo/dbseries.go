@@ -2,8 +2,9 @@ package osinfo
 
 import "slices"
 
-// Database series offered on each release. The lists follow what CloudPanel's install.sh installs on the same
-// releases, limited to what the vendors' own apt repositories publish for the release (checked 2026-11-03):
+// Database series offered on each release. The MariaDB and MySQL lists follow what their vendors publish for the release
+// (checked 2026-11-03). PostgreSQL uses PGDG repositories, which publish PostgreSQL 16 through 19 for the supported Debian,
+// Ubuntu and RHEL-family releases (checked 2026-11-24):
 //   - MariaDB 10.6 exists only for Ubuntu 22.04; 10.11 and 11.4 are not published for Debian 13 or Ubuntu 26.04.
 //   - The Oracle repository has no MySQL 8.0 for Debian 13 or Ubuntu 26.04. CloudPanel gets its "MySQL 8.0" from
 //     Percona Server through its own repository, which mpn does not use.
@@ -23,6 +24,15 @@ var (
 		"ubuntu-22.04": {"8.0", "8.4"},
 		"ubuntu-24.04": {"8.0", "8.4"},
 		"ubuntu-26.04": {"8.4"},
+	}
+	postgresqlSeries = map[string][]string{
+		"debian-12":    {"16", "17", "18", "19"},
+		"debian-13":    {"16", "17", "18", "19"},
+		"ubuntu-22.04": {"16", "17", "18", "19"},
+		"ubuntu-24.04": {"16", "17", "18", "19"},
+		"ubuntu-26.04": {"16", "17", "18", "19"},
+		"el9":          {"16", "17", "18", "19"},
+		"el10":         {"16", "17", "18", "19"},
 	}
 )
 
@@ -50,6 +60,8 @@ func (t Target) Series(engine string) []string {
 		return slices.Clone(mariadbSeries[t.key()])
 	case "mysql":
 		return slices.Clone(mysqlSeries[t.key()])
+	case "postgresql":
+		return slices.Clone(postgresqlSeries[t.key()])
 	}
 	return nil
 }
@@ -65,6 +77,8 @@ func DefaultSeries(engine string) string {
 		return "11.8"
 	case "mysql":
 		return "8.4"
+	case "postgresql":
+		return "18"
 	}
 	return ""
 }

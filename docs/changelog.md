@@ -4,6 +4,12 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-11-24
+
+### Added
+
+- PostgreSQL can be installed alongside MariaDB or MySQL. Choose the engine for each database added to a website; PostgreSQL databases use pg_dump/psql backups and do not appear in phpMyAdmin.
+
 ## [1.2.6] - 2026-11-24
 
 ### Changed

@@ -11,7 +11,7 @@ import (
 )
 
 // dbRow is one line of `mpn db list -json`.
-type dbRow struct{ Name, Site string }
+type dbRow struct{ Name, Site, Engine string }
 
 func (s *Server) list(req ctl.Request, dst any) string {
 	return s.listText(T, req, dst)
@@ -51,7 +51,15 @@ func (s *Server) addDB(w http.ResponseWriter, r *http.Request, ss webauth.Sessio
 		s.show(w, http.StatusBadRequest, ss, view{Page: "result", Result: &result{Title: T("act.db.add", site), Error: problem, Back: back}})
 		return
 	}
-	res := s.runText(r, T, T("act.db.add", site), ctl.Request{Op: "db.add", Site: site, Name: name})
+	engine := r.PostFormValue("engine")
+	if engine == "" {
+		engine = "mysql"
+	}
+	if engine != "mysql" && engine != "postgresql" {
+		s.show(w, http.StatusBadRequest, ss, view{Page: "result", Result: &result{Title: T("act.db.add", site), Error: "Choose MariaDB/MySQL or PostgreSQL.", Back: back}})
+		return
+	}
+	res := s.runText(r, T, T("act.db.add", site), ctl.Request{Op: "db.add", Site: site, Name: name, Engine: engine})
 	res.Back = back
 	if !res.OK && (strings.Contains(res.Output, "already taken") || strings.Contains(res.Output, "already exists on the server")) {
 		shown := name

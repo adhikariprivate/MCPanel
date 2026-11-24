@@ -95,6 +95,42 @@ func TestCreatePlanOrderAndSafety(t *testing.T) {
 	}
 }
 
+func TestMixedEngineBackupAndRestorePlans(t *testing.T) {
+	stamp := "20261104-031500"
+	engines := map[string]string{"demo": "mysql", "demo_pg": "postgresql"}
+	p, err := CreatePlanWithEngines(demo(), stamp, []string{"demo", "demo_pg"}, "/usr/bin/mariadb-dump", engines)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := text(p)
+	if !strings.Contains(out, "mariadb-dump --single-transaction") || !strings.Contains(out, "pg_dump --clean --if-exists") {
+		t.Fatalf("mixed dump plan is incomplete:\n%s", out)
+	}
+	m := Manifest{Site: "demo", Stamp: stamp, Files: true, DBs: []string{"demo", "demo_pg"}, Engines: engines}
+	parsed, err := ParseManifest(m.String())
+	if err != nil || parsed.Engine("demo_pg") != "postgresql" || parsed.Engine("demo") != "mysql" {
+		t.Fatalf("engine manifest = %+v, %v", parsed, err)
+	}
+	rp, err := RestorePlanWithEngines(demo(), parsed, false, parsed.DBs, "/usr/bin/mysql", engines)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rout := text(rp)
+	if !strings.Contains(rout, "/usr/bin/mysql --default-character-set=utf8mb4 demo") || !strings.Contains(rout, "psql -X -v ON_ERROR_STOP=1 --role=demo_pg -d demo_pg") {
+		t.Fatalf("mixed restore plan is incomplete:\n%s", rout)
+	}
+	if _, err := RestorePlanWithEngines(demo(), parsed, false, parsed.DBs, "/usr/bin/mysql", map[string]string{"demo": "mysql", "demo_pg": "mysql"}); err == nil {
+		t.Fatal("restore with a different database engine was accepted")
+	}
+}
+
+func TestLegacyManifestDatabasesDefaultToMySQLFamily(t *testing.T) {
+	m, err := ParseManifest("mpn backup 1\nsite=demo\nstamp=20261104-031500\ndb=demo\n")
+	if err != nil || m.Engine("demo") != "mysql" {
+		t.Fatalf("legacy engine = %q, %v", m.Engine("demo"), err)
+	}
+}
+
 func TestCreatePlanRejects(t *testing.T) {
 	cases := map[string]func() error{
 		"bad stamp": func() error { _, e := CreatePlan(demo(), "../etc", nil, ""); return e },

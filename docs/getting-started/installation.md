@@ -29,7 +29,7 @@ The installer will:
 
 Installation takes a few minutes depending on network speed.
 
-The installer does **not** install PHP, Node.js or a database. Pick what your websites need on the [Services](../services.md) page after signing in: PHP 7.0 to 8.5, Node.js 18 to 24, MariaDB or MySQL, phpMyAdmin.
+The installer does **not** install PHP, Node.js or a database. Pick what your websites need on the [Services](../services.md) page after signing in: PHP 7.0 to 8.5, Node.js 18 to 24, one of MariaDB or MySQL, PostgreSQL, and phpMyAdmin for MariaDB/MySQL.
 
 ### Options
 
@@ -60,7 +60,7 @@ On these systems MCPN does a few things differently from Debian and Ubuntu:
 
 * Nginx 1.30.7 comes from the nginx.org repository and is locked with `dnf versionlock`, so `dnf upgrade` leaves it alone.
 * PHP 7.4 and newer come from the Remi repository (it needs EPEL, which the installer turns on). PHP 7.0 to 7.3 and the ModSecurity module are built by the project and checked by SHA-256.
-* MariaDB comes from rpm.mariadb.org and MySQL from repo.mysql.com. Version 10 has MySQL 8.4 only, because repo.mysql.com does not publish MySQL 8.0 for it.
+* MariaDB comes from rpm.mariadb.org and MySQL from repo.mysql.com. Version 10 has MySQL 8.4 only, because repo.mysql.com does not publish MySQL 8.0 for it. PostgreSQL comes from the PostgreSQL Yum Repository.
 * **SELinux stays on.** The panel labels the website folders, the logs, the PHP-FPM sockets and its own ports, so there is no need to turn SELinux off.
 * **firewalld is turned off.** The panel manages the firewall with nftables on the [Firewall](../firewall.md) page.
 * PHP 7.0 to 7.3 on version 10 have no `intl` extension.

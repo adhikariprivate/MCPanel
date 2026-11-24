@@ -32,7 +32,7 @@ Options: `MPN_VERSION=1.2.4` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 - **Websites:** PHP 7.0 to 8.5 (one PHP-FPM pool per site), Node.js 18 to 24, Python, compiled binary web services (such as Go or Rust), static sites and reverse proxies. Each site has its own system account, domain, SSH/SFTP, file manager, web terminal, cron, logs and an editable vHost (checked with `nginx -t` before it is loaded).
 - **App installer:** WordPress, Laravel, CodeIgniter 4, CakePHP, Yii 2, plus a WordPress manager (updates, plugins, themes).
 - **SSL:** Let's Encrypt with a DNS check first and automatic renewal, custom certificates, CSR generation. The panel has its own certificate as well.
-- **Databases:** MariaDB or MySQL, one user per database, phpMyAdmin that signs in with a temporary account.
+- **Databases:** choose MariaDB or MySQL plus PostgreSQL on Services. Each website database can use either installed engine and gets a dedicated user/role. phpMyAdmin opens MariaDB and MySQL databases.
 - **Email** (off by default): Postfix, Dovecot, OpenDKIM. Domains, mailboxes and aliases are managed inside each website, with ready MX/SPF/DKIM/DMARC records that can be added straight to Cloudflare. The [mpn-mail](https://github.com/adhikariprivate/mcpn-mail) web mail exits when nobody uses it.
 - **Backups:** nightly, 7 kept, restore from the interface, copied off-site through rclone to Google Drive, S3 (Cloudflare R2, AWS, Wasabi), Backblaze B2, SFTP, WebDAV or FTP. Each MANIFEST is signed with the machine's own key.
 - **Security:** an nftables firewall that cannot lock out SSH or the panel port, ModSecurity with OWASP CRS, fail2ban, two-factor sign-in (TOTP), visitors' real addresses behind Cloudflare.

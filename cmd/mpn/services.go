@@ -91,6 +91,8 @@ func alreadyInstalled(key string) bool {
 	switch {
 	case key == "mariadb" || key == "mysql":
 		return unitOf("database") != ""
+	case key == "postgresql":
+		return unitOf("postgresql-service") != ""
 	case versioned && kind == services.GroupPHP:
 		return unitOf(key) != ""
 	case versioned && kind == services.GroupNode:
@@ -125,10 +127,12 @@ func installPlan(key, series string) (installer.Plan, error) {
 		if db := unitOf("database"); v < "7.4" && (db == "mysql.service" || db == "mysqld.service") {
 			return nil, fmt.Errorf("PHP %s cannot sign in to MySQL 8 unless the server was set up for it when it was installed", v)
 		}
-		return installer.PHPPlan(installer.Options{Target: t, Profile: hostProfile(), PHPVersions: []string{v}})
+		return installer.PHPPlan(installer.Options{Target: t, Profile: hostProfile(), PHPVersions: []string{v}, PostgreSQL: unitOf("postgresql-service") != ""})
 	}
 	switch key {
 	case "mariadb", "mysql":
+		return installer.DatabasePlan(installer.Options{Target: t, Profile: hostProfile(), Engine: key, DBSeries: series, PHPVersions: site.InstalledPHP()})
+	case "postgresql":
 		return installer.DatabasePlan(installer.Options{Target: t, Profile: hostProfile(), Engine: key, DBSeries: series, PHPVersions: site.InstalledPHP()})
 	case services.PhpMyAdmin:
 		l := lockedPorts()
@@ -188,7 +192,7 @@ func runServices(args []string) {
 	fs := flag.NewFlagSet("services "+sub, flag.ExitOnError)
 	asJSON := fs.Bool("json", false, "status: print JSON")
 	key := fs.String("key", "", "the service")
-	series := fs.String("series", "", "install of mariadb or mysql: the version, such as 11.8 or 8.4; empty means the default")
+	series := fs.String("series", "", "install of mariadb, mysql or postgresql: for example 11.8, 8.4 or 18; empty means the default")
 	action := fs.String("action", "", "control: start, stop, restart or reload")
 	apply := fs.Bool("apply", false, "change this machine (Linux, root); otherwise only check")
 	_ = fs.Parse(args[1:])
@@ -223,8 +227,8 @@ func runServices(args []string) {
 		}
 		if *series != "" {
 			fail(services.ValidSeries(*series))
-			if *key != "mariadb" && *key != "mysql" {
-				fail(fmt.Errorf("-series applies only to mariadb and mysql"))
+			if *key != "mariadb" && *key != "mysql" && *key != "postgresql" {
+				fail(fmt.Errorf("-series applies only to mariadb, mysql and postgresql"))
 			}
 		}
 		plan, err := installPlan(*key, *series)

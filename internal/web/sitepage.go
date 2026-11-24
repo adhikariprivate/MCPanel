@@ -7,6 +7,7 @@ import (
 	"mpn/internal/apps"
 	"mpn/internal/ctl"
 	"mpn/internal/dbadmin"
+	"mpn/internal/services"
 	"mpn/internal/site"
 	"mpn/internal/webauth"
 )
@@ -139,6 +140,22 @@ func (s *Server) siteTab(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 		v.DBBase = dbadmin.BaseName(row.Name)
 		v.PMA = s.pmaOn()
 		v.Error = s.listText(T, ctl.Request{Op: "db.list", Site: row.Name}, &v.DBs)
+		for i := range v.DBs {
+			if v.DBs[i].Engine == "" {
+				v.DBs[i].Engine = "mysql"
+			}
+		}
+		var installed []services.Item
+		if s.listText(T, ctl.Request{Op: "services.status"}, &installed) == "" {
+			for _, item := range installed {
+				if item.Installed && item.Key == "database" {
+					v.DBEngines = append(v.DBEngines, "mysql")
+				}
+				if item.Installed && item.Key == "postgresql-service" {
+					v.DBEngines = append(v.DBEngines, "postgresql")
+				}
+			}
+		}
 	case "backups":
 		v.Error = s.listText(T, ctl.Request{Op: "backup.list", Site: row.Name}, &v.Backups)
 		v.Cloud = s.loadCloudText(T, row.Name)

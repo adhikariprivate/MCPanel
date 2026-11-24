@@ -26,8 +26,9 @@ type siteRow struct {
 }
 
 type dbRow struct {
-	Name string `json:"name"`
-	Site string `json:"site"`
+	Name   string `json:"name"`
+	Site   string `json:"site"`
+	Engine string `json:"engine"`
 }
 
 type backupRow struct {

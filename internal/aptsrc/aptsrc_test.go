@@ -61,3 +61,14 @@ func TestMySQLSeries(t *testing.T) {
 		t.Error("the Oracle repository has no MySQL 8.0 for Debian 13")
 	}
 }
+
+func TestPostgreSQLSourceAndPinnedKey(t *testing.T) {
+	s, err := PostgreSQL(noble, "18")
+	want := "Types: deb\nURIs: https://apt.postgresql.org/pub/repos/apt\nSuites: noble-pgdg\nComponents: main\nSigned-By: /usr/share/keyrings/postgresql.asc\n"
+	if err != nil || s.Content != want || s.KeyFingerprint != "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8" {
+		t.Errorf("source=%+v err=%v", s, err)
+	}
+	if s, err := PostgreSQL(noble, "15"); err == nil || len(s.Content) != 0 {
+		t.Errorf("unsupported PostgreSQL series should be rejected: %+v err=%v", s, err)
+	}
+}

@@ -1,4 +1,4 @@
-// Package aptsrc builds apt repository definitions (deb822 format) for PHP, MariaDB and MySQL.
+// Package aptsrc builds apt repository definitions (deb822 format) for PHP and database vendors.
 package aptsrc
 
 import (
@@ -10,10 +10,11 @@ import (
 
 // Source is one third-party apt repository together with the key that signs it.
 type Source struct {
-	Name    string // file name without extension
-	KeyURL  string
-	KeyFile string // where the downloaded key is stored
-	Content string // deb822 text for Path()
+	Name           string // file name without extension
+	KeyURL         string
+	KeyFile        string // where the downloaded key is stored
+	KeyFingerprint string // pinned signer fingerprint; empty only for legacy sources not yet pinned
+	Content        string // deb822 text for Path()
 }
 
 func (s Source) Path() string { return "/etc/apt/sources.list.d/" + s.Name + ".sources" }
@@ -21,7 +22,7 @@ func (s Source) Path() string { return "/etc/apt/sources.list.d/" + s.Name + ".s
 func build(name, keyURL, keyFile, uri, suite string, components ...string) Source {
 	c := fmt.Sprintf("Types: deb\nURIs: %s\nSuites: %s\nComponents: %s\nSigned-By: %s\n",
 		uri, suite, strings.Join(components, " "), keyFile)
-	return Source{name, keyURL, keyFile, c}
+	return Source{Name: name, KeyURL: keyURL, KeyFile: keyFile, Content: c}
 }
 
 // PHP returns the Sury repository. Its key is a binary keyring, so the file keeps the .gpg extension.
@@ -44,7 +45,7 @@ func checkSeries(t osinfo.Target, engine, series string) error {
 	if t.HasSeries(engine, series) {
 		return nil
 	}
-	name := map[string]string{"mariadb": "MariaDB", "mysql": "MySQL"}[engine]
+	name := map[string]string{"mariadb": "MariaDB", "mysql": "MySQL", "postgresql": "PostgreSQL"}[engine]
 	return fmt.Errorf("%s %s is not offered on %s %s; choose one of: %s",
 		name, series, t.ID, t.Version, strings.Join(t.Series(engine), ", "))
 }
@@ -60,4 +61,15 @@ func MySQL(t osinfo.Target, series string) (Source, error) {
 	}
 	return build("mysql", "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025", "/usr/share/keyrings/mysql.asc",
 		t.MySQLRepo(), t.Codename, mysqlComponent[series]), nil
+}
+
+// PostgreSQL returns the PGDG repository for one supported major version.
+func PostgreSQL(t osinfo.Target, series string) (Source, error) {
+	if err := checkSeries(t, "postgresql", series); err != nil {
+		return Source{}, err
+	}
+	s := build("postgresql", "https://www.postgresql.org/media/keys/ACCC4CF8.asc", "/usr/share/keyrings/postgresql.asc",
+		t.PostgreSQLRepo(), t.Codename+"-pgdg", "main")
+	s.KeyFingerprint = "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"
+	return s, nil
 }

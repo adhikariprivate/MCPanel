@@ -9,7 +9,7 @@ MCPN (`mpn`) is a web server admin panel written in Go, shipped as a single bina
 ## What MCPN manages
 
 * **Websites**: PHP, Node.js, Python, static, reverse proxy — each type has its own settings tab.
-* **Databases**: MariaDB or MySQL, each database with its own dedicated user.
+* **Databases**: MariaDB or MySQL, and PostgreSQL; choose an installed engine for each website database, which gets its own dedicated user or role.
 * **Email**: Postfix + Dovecot + OpenDKIM, with per-domain webmail.
 * **SSL**: Let’s Encrypt with automatic renewal, or your own certificate.
 * **Backups**: nightly automatic backups, latest 7 kept, copied off-site to Google Drive, S3, Backblaze B2, SFTP, WebDAV or FTP.
@@ -21,7 +21,7 @@ MCPN (`mpn`) is a web server admin panel written in Go, shipped as a single bina
 
 MCPN is for people who run one or a few small VPS machines themselves and want to host websites, databases and email on them without typing commands for every task. The panel handles the everyday work: creating websites, issuing SSL certificates, backups, opening firewall ports and reading logs.
 
-MCPN is designed to use little memory. The panel itself needs neither MySQL nor PHP. Installation requires a VPS with at least 1 GB of RAM. Actual memory needs depend on the websites and services you run.
+MCPN is designed to use little memory. The panel itself needs no website database server or PHP. Installation requires a VPS with at least 1 GB of RAM. Actual memory needs depend on the websites and services you run.
 
 ## Architecture overview
 

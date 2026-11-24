@@ -84,8 +84,8 @@ func (s *Server) serviceAct(w http.ResponseWriter, r *http.Request, ss webauth.S
 	case action == "install" && services.ValidInstall(key) == nil:
 		req, title = ctl.Request{Op: "services.install", SvcKey: key}, T("act.svc.install", key)
 		if series := r.PostFormValue("series"); series != "" {
-			// Only a database server has a version to choose. The helper checks the shape again and the plan checks the release offers it.
-			if (key != "mariadb" && key != "mysql") || services.ValidSeries(series) != nil {
+			// Database servers have a version to choose. The helper checks the shape again and the plan checks the release offers it.
+			if (key != "mariadb" && key != "mysql" && key != "postgresql") || services.ValidSeries(series) != nil {
 				s.refuseTo(w, ss, "/services", T("err.nothing"), T("svc.err.series"))
 				return
 			}

@@ -42,11 +42,7 @@ func siteRemove(args []string) {
 	}
 	runApply(plan)
 	if len(dbNames) > 0 {
-		adm := dbAdmin()
-		for _, n := range dbNames {
-			fail(adm.Drop(n))
-			fail(st.DeleteDatabase(n))
-		}
+		fail(dropDatabaseRecords(dbs, func(engine, name string) error { return dbAdmin(engine).Drop(name) }, st.DeleteDatabase))
 	}
 	fail(st.DeleteSite(*name))
 	fmt.Printf("site %q removed\n", *name)

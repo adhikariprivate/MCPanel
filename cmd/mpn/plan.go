@@ -18,8 +18,8 @@ func runPlan(args []string) {
 	ram := fs.Int("ram", 1024, "total RAM in MB")
 	cpus := fs.Int("cpus", 1, "CPU count")
 	swap := fs.Int("swap", 0, "current swap in MB")
-	engine := fs.String("engine", "mariadb", "mariadb, mysql or none")
-	series := fs.String("series", "", "database series, such as 11.8 for MariaDB or 8.4 for MySQL; empty means the engine's default")
+	engine := fs.String("engine", "mariadb", "mariadb, mysql, postgresql or none")
+	series := fs.String("series", "", "database series, such as 11.8 for MariaDB, 8.4 for MySQL or 18 for PostgreSQL; empty means the engine's default")
 	phpList := fs.String("php", "", "comma-separated PHP versions to install, such as 7.4,8.4")
 	nodeList := fs.String("node", "", "comma-separated Node.js major versions to install, such as 22,24")
 	panel := fs.Bool("panel", false, "also install the web panel (HTTPS on -panel-port, behind nginx)")
@@ -45,7 +45,7 @@ func runPlan(args []string) {
 		Target: t, Profile: tune.New(tune.Input{RAMMB: *ram, CPUs: *cpus}),
 		CurrentSwapMB: *swap, Engine: eng, DBSeries: *series,
 		PHPVersions: splitList(*phpList), NodeVersions: splitList(*nodeList), SelfPath: selfPath(),
-		Panel: *panel, PanelPort: *panelPort, PanelHosts: panelHosts, PMA: *pma && *panel && eng != "",
+		Panel: *panel, PanelPort: *panelPort, PanelHosts: panelHosts, PMA: *pma && *panel && eng != "" && eng != "postgresql",
 	})
 	fail(err)
 	if *apply {

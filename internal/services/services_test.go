@@ -23,10 +23,10 @@ func probe(units map[string]string, files map[string]string, node ...string) Pro
 func TestADatabaseServerOffersTheVersionsOfThisRelease(t *testing.T) {
 	p := probe(map[string]string{"nginx.service": "active"}, nil)
 	p.Series = func(engine string) []string {
-		return map[string][]string{"mariadb": {"10.11", "11.8"}, "mysql": {"8.0", "8.4"}}[engine]
+		return map[string][]string{"mariadb": {"10.11", "11.8"}, "mysql": {"8.0", "8.4"}, "postgresql": {"16", "17", "18", "19"}}[engine]
 	}
 	items := Status(p)
-	for engine, want := range map[string]string{"mariadb": "11.8", "mysql": "8.4"} {
+	for engine, want := range map[string]string{"mariadb": "11.8", "mysql": "8.4", "postgresql": "18"} {
 		it, ok := byKey(items, engine)
 		if !ok || len(it.Series) == 0 || it.DefaultSeries != want {
 			t.Errorf("%s: %+v, want a list with default %s", engine, it, want)
@@ -43,12 +43,12 @@ func TestADatabaseServerOffersTheVersionsOfThisRelease(t *testing.T) {
 }
 
 func TestOnlyTheShapeOfAVersionIsAccepted(t *testing.T) {
-	for _, s := range []string{"11.8", "8.4", "10.11", "12.3"} {
+	for _, s := range []string{"11.8", "8.4", "10.11", "12.3", "18"} {
 		if err := ValidSeries(s); err != nil {
 			t.Errorf("%s: %v", s, err)
 		}
 	}
-	for _, s := range []string{"", "11", "11.8.1", "latest", "11.8; id", "-1.2", "11.8\n", "../8.4"} {
+	for _, s := range []string{"", "111", "11.8.1", "latest", "11.8; id", "-1.2", "11.8\n", "../8.4"} {
 		if ValidSeries(s) == nil {
 			t.Errorf("%q must be refused", s)
 		}
@@ -65,7 +65,7 @@ func byKey(items []Item, key string) (Item, bool) {
 }
 
 func TestOnlyTheListedServicesAndActionsAreAccepted(t *testing.T) {
-	good := [][2]string{{"nginx", Reload}, {"nginx", Restart}, {"database", Stop}, {"php-8.4", Reload}, {"fail2ban", Reload}, {"dovecot", Restart}}
+	good := [][2]string{{"nginx", Reload}, {"nginx", Restart}, {"database", Stop}, {"postgresql-service", Stop}, {"php-8.4", Reload}, {"fail2ban", Reload}, {"dovecot", Restart}}
 	for _, g := range good {
 		if err := ValidAction(g[0], g[1]); err != nil {
 			t.Errorf("%v: %v", g, err)
@@ -89,7 +89,7 @@ func TestOnlyTheListedServicesAndActionsAreAccepted(t *testing.T) {
 }
 
 func TestOnlyWhatTheInstallerSupportsCanBeInstalled(t *testing.T) {
-	for _, k := range []string{PhpMyAdmin, "mariadb", "mysql", "php-7.0", "php-8.5", "node-18", "node-24"} {
+	for _, k := range []string{PhpMyAdmin, "mariadb", "mysql", "postgresql", "php-7.0", "php-8.5", "node-18", "node-24"} {
 		if err := ValidInstall(k); err != nil {
 			t.Errorf("%s: %v", k, err)
 		}
@@ -179,6 +179,42 @@ func TestADatabaseServerIsOfferedOnlyWhenThereIsNone(t *testing.T) {
 		if it, ok := byKey(none, k); !ok || !it.Installable {
 			t.Errorf("%s: %+v", k, it)
 		}
+	}
+}
+
+func TestPostgreSQLCanBeInstalledAlongsideMySQLFamily(t *testing.T) {
+	p := probe(map[string]string{"mariadb.service": "active"}, nil)
+	p.Series = func(engine string) []string {
+		if engine == "postgresql" {
+			return []string{"16", "17", "18", "19"}
+		}
+		return nil
+	}
+	items := Status(p)
+	if _, ok := byKey(items, "mariadb"); ok {
+		t.Fatal("an installed MySQL-family server must hide the alternative")
+	}
+	pg, ok := byKey(items, "postgresql")
+	if !ok || !pg.Installable || pg.DefaultSeries != "18" || len(pg.Series) != 4 {
+		t.Fatalf("PostgreSQL should still be offered with its version choices: %+v", pg)
+	}
+	if err := ValidInstall("postgresql"); err != nil {
+		t.Fatalf("PostgreSQL installation should be accepted: %v", err)
+	}
+}
+
+func TestInstalledPostgreSQLIsManagedAndDoesNotEnablePhpMyAdmin(t *testing.T) {
+	p := probe(map[string]string{"postgresql-18.service": "active"}, map[string]string{panelConf: ""})
+	items := Status(p)
+	pg, ok := byKey(items, "postgresql-service")
+	if !ok || !pg.Installed || !pg.Active || pg.Unit != "postgresql-18.service" {
+		t.Fatalf("versioned PostgreSQL unit should be managed: %+v", pg)
+	}
+	if installable, ok := byKey(items, "postgresql"); ok && installable.Installable {
+		t.Fatalf("installed PostgreSQL must not still be offered for install: %+v", installable)
+	}
+	if pma, _ := byKey(items, PhpMyAdmin); pma.Installable || pma.Needs != "mysql-database" {
+		t.Fatalf("phpMyAdmin needs a MySQL-family engine: %+v", pma)
 	}
 }
 

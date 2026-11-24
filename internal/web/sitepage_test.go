@@ -17,7 +17,9 @@ const blogList = `[{"name":"blog","kind":"php","user":"blog","hostnames":["blog.
 
 func sitePageAnswers() func(ctl.Request) (ctl.Response, error) {
 	return byOp(map[string]string{"site.list": blogList, "site.access": "login set", "site.panelkey": "key put back",
-		"db.list": `[{"name":"blog","site":"blog"}]`, "backup.list": `[{"site":"blog","backup":"20261104-031500","state":"ok","files":true,"databases":["blog"],"size_mb":1.5}]`})
+		"db.list":         `[{"name":"blog","site":"blog"}]`,
+		"services.status": `[{"key":"database","installed":true},{"key":"postgresql-service","installed":true}]`,
+		"backup.list":     `[{"site":"blog","backup":"20261104-031500","state":"ok","files":true,"databases":["blog"],"size_mb":1.5}]`})
 }
 
 func passwdWith(t *testing.T, shell string) string {

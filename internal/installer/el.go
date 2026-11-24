@@ -25,8 +25,9 @@ const (
 
 	// Fingerprints of the signing keys of the RPM repositories, read on 2026-11-13. A key that does not hold its fingerprint is
 	// refused, and dnf then checks every package of the repository against the key.
-	mariadbSigningFPR = "177F4010FE56CA3336300305F1656F24C74CD1D8"
-	mysqlSigningFPR   = "BCA43417C3B485DD128EC6D4B7B3B788A8D3785C"
+	mariadbSigningFPR  = "177F4010FE56CA3336300305F1656F24C74CD1D8"
+	mysqlSigningFPR    = "BCA43417C3B485DD128EC6D4B7B3B788A8D3785C"
+	postgresSigningFPR = "D4BF08AE67A0B4C7A1DBCCD240BCA2B408B40D20"
 )
 
 // elSums are the SHA-256 of the files of the el-r2 release of mpn-packages, by file name.
@@ -342,6 +343,9 @@ func elPHPStep(o Options) (Step, error) {
 			return Step{}, fmt.Errorf("php version %q is not offered", v)
 		}
 		exts := []string{"fpm", "cli", "mysql", "mbstring", "xml", "curl", "zip", "gd", "opcache"}
+		if o.PostgreSQL || o.Engine == "postgresql" {
+			exts = append(exts, "pgsql")
+		}
 		pa, err := elPHPActions(o.Target, v, exts)
 		if err != nil {
 			return Step{}, err
@@ -357,6 +361,23 @@ func elPHPStep(o Options) (Step, error) {
 
 // elDatabaseStep installs the database server from its vendor's repository and writes the tuned config.
 func elDatabaseStep(o Options, series string) (Step, error) {
+	if o.Engine == "postgresql" {
+		if !o.Target.HasSeries("postgresql", series) {
+			return Step{}, fmt.Errorf("PostgreSQL %s is not offered on %s %s; choose one of: %s", series, o.Target.ID, o.Target.Version, strings.Join(o.Target.Series("postgresql"), ", "))
+		}
+		version := strings.ReplaceAll(series, ".", "")
+		repo := fmt.Sprintf("# Written by mpn.\n[pgdg%s]\nname=PostgreSQL %s for RHEL $releasever - $basearch\nbaseurl=https://download.postgresql.org/pub/repos/yum/%s/redhat/rhel-$releasever-$basearch\nenabled=1\ngpgcheck=1\ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-PGDG\n", version, series, series)
+		acts := []Action{
+			Run("sh", "-c", keyScript("https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL", postgresSigningFPR, "/etc/pki/rpm-gpg/RPM-GPG-KEY-PGDG")),
+			WriteFile("/etc/yum.repos.d/pgdg.repo", repo, 0o644),
+			Run("sh", "-c", "dnf -y -q module disable postgresql 2>/dev/null || true"),
+			Run(distro.InstallCommand("postgresql"+version+"-server", "postgresql"+version+"-contrib")...),
+			Run("sh", "-c", fmt.Sprintf("if [ ! -s /var/lib/pgsql/%s/data/PG_VERSION ]; then /usr/pgsql-%s/bin/postgresql-%s-setup initdb; fi", series, series, series)),
+			Run("systemctl", "enable", "--now", "postgresql-"+series),
+		}
+		acts = append(acts, postgresqlDriverActions(o)...)
+		return Step{"database postgresql", acts}, nil
+	}
 	if o.Engine != "mariadb" && o.Engine != "mysql" {
 		return Step{}, fmt.Errorf("unknown engine %q (want mariadb or mysql)", o.Engine)
 	}

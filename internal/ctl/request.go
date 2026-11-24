@@ -33,6 +33,7 @@ type Request struct {
 	Op        string   `json:"op"`
 	Site      string   `json:"site,omitempty"`
 	Name      string   `json:"name,omitempty"` // a database name
+	Engine    string   `json:"engine,omitempty"`
 	Kind      string   `json:"kind,omitempty"`
 	User      string   `json:"user,omitempty"`
 	Hosts     []string `json:"hosts,omitempty"`
@@ -118,7 +119,7 @@ type Request struct {
 	// services.control and services.install: a service of the fixed list in internal/services, and what to do to it.
 	SvcKey    string `json:"svc_key,omitempty"`
 	SvcAction string `json:"svc_action,omitempty"`
-	// services.install of mariadb or mysql: the version to install, such as "11.8"; empty means the default of the engine.
+	// services.install of a database server: the version to install, such as "11.8" or PostgreSQL "18"; empty means the default.
 	DBSeries string `json:"db_series,omitempty"`
 	// panel.update: the release to install, such as "1.2.1"; empty means the latest.
 	Version string `json:"version,omitempty"`
@@ -330,7 +331,7 @@ func (r Request) Argv() ([]string, error) {
 		}
 		args := []string{"services", "install", "-key=" + r.SvcKey, "-apply"}
 		if r.DBSeries != "" {
-			if r.SvcKey != "mariadb" && r.SvcKey != "mysql" {
+			if r.SvcKey != "mariadb" && r.SvcKey != "mysql" && r.SvcKey != "postgresql" {
 				return nil, fmt.Errorf("only a database server has a version to choose")
 			}
 			if err := services.ValidSeries(r.DBSeries); err != nil {
@@ -590,6 +591,12 @@ func (r Request) Argv() ([]string, error) {
 			return nil, err
 		}
 		a := []string{"db", "add", "-site", r.Site}
+		if r.Engine != "" {
+			if r.Engine != "mysql" && r.Engine != "postgresql" {
+				return nil, fmt.Errorf("unsupported database engine %q", r.Engine)
+			}
+			a = append(a, "-engine", r.Engine)
+		}
 		if r.Name != "" {
 			if err := ownedDB(r.Name, r.Site); err != nil {
 				return nil, err

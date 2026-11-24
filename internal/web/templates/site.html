@@ -33,11 +33,12 @@
 {{if .DBs}}
 <div class="table-wrap">
   <table class="tbl">
-    <thead><tr><th>{{T "db.col.name"}}</th><th></th></tr></thead>
+    <thead><tr><th>{{T "db.col.name"}}</th><th>{{T "db.col.engine"}}</th><th></th></tr></thead>
     <tbody>
     {{range .DBs}}<tr>
       <td class="font-mono text-[13px] font-medium">{{.Name}}</td>
-      <td><div class="flex items-center justify-end gap-4">{{if $.PMA}}<form method="post" action="/databases/pma" target="_blank" class="inline"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="name" value="{{.Name}}"><button class="btn-sm">{{T "pma.open"}}</button></form>{{end}}<a class="btn-sm" href="/databases/passwd?name={{.Name}}&amp;back=/sites/{{$.Site.Name}}/databases">{{T "db.passwd"}}</a><a class="link-danger text-sm" href="/databases/remove?name={{.Name}}&amp;back=/sites/{{$.Site.Name}}/databases">{{T "db.remove"}}</a></div></td>
+      <td>{{if eq .Engine "postgresql"}}{{T "db.engine.postgresql"}}{{else}}{{T "db.engine.mysql"}}{{end}}</td>
+      <td><div class="flex items-center justify-end gap-4">{{if and $.PMA (ne .Engine "postgresql")}}<form method="post" action="/databases/pma" target="_blank" class="inline"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="name" value="{{.Name}}"><button class="btn-sm">{{T "pma.open"}}</button></form>{{end}}<a class="btn-sm" href="/databases/passwd?name={{.Name}}&amp;back=/sites/{{$.Site.Name}}/databases">{{T "db.passwd"}}</a><a class="link-danger text-sm" href="/databases/remove?name={{.Name}}&amp;back=/sites/{{$.Site.Name}}/databases">{{T "db.remove"}}</a></div></td>
     </tr>{{end}}
     </tbody>
   </table>
@@ -48,12 +49,16 @@
   <form method="post" action="/databases/add" class="mt-4 max-w-2xl">
     <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="site" value="{{.Site.Name}}"><input type="hidden" name="back" value="/sites/{{.Site.Name}}/databases">
     <label for="d-name" class="label">{{T "db.name"}}</label>
+    <label for="d-engine" class="label mt-3">{{T "db.engine"}}</label>
+    <select id="d-engine" name="engine" class="field">
+      {{range .DBEngines}}<option value="{{.}}">{{if eq . "postgresql"}}{{T "db.engine.postgresql"}}{{else}}{{T "db.engine.mysql"}}{{end}}</option>{{else}}<option value="">{{T "db.engine.none"}}</option>{{end}}
+    </select>
     <div class="mt-1 flex flex-col gap-2 sm:flex-row">
       <div class="flex min-w-0 flex-1">
         <span class="inline-flex shrink-0 items-center rounded-l-lg border border-r-0 border-input bg-muted px-3 font-mono text-sm text-muted-foreground">{{.DBBase}}_</span>
         <input id="d-name" name="name" class="field !mt-0 min-w-0 rounded-l-none font-mono" maxlength="32" placeholder="{{T "db.name.ph"}}" autocomplete="off" spellcheck="false">
       </div>
-      <button class="btn-primary shrink-0">{{T "db.add"}}</button>
+      <button class="btn-primary shrink-0" {{if not .DBEngines}}disabled{{end}}>{{T "db.add"}}</button>
     </div>
     <p class="hint">{{T "db.name.hint2" .DBBase}}</p>
   </form>

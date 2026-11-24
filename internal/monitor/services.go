@@ -23,6 +23,11 @@ var Watched = []struct{ Unit, Label string }{
 	{"mariadb.service", "MariaDB"},
 	{"mysql.service", "MySQL"},
 	{"mysqld.service", "MySQL"}, // the name of the MySQL unit on the RHEL family
+	{"postgresql.service", "PostgreSQL"},
+	{"postgresql-19.service", "PostgreSQL"},
+	{"postgresql-18.service", "PostgreSQL"},
+	{"postgresql-17.service", "PostgreSQL"},
+	{"postgresql-16.service", "PostgreSQL"},
 	{"cron.service", "cron"},
 	{"crond.service", "cron"}, // the name on the RHEL family
 	{"ssh.service", "SSH"},

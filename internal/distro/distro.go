@@ -190,6 +190,9 @@ func PHPPackages(v string, exts []string) []string {
 
 // DBConfFile is where mpn writes its tuning of the database server.
 func DBConfFile(engine string) string {
+	if engine == "postgresql" {
+		return ""
+	}
 	if IsEL() {
 		return "/etc/my.cnf.d/99-mpn.cnf"
 	}
@@ -201,6 +204,9 @@ func DBConfFile(engine string) string {
 
 // DBService is the systemd unit of the database server.
 func DBService(engine string) string {
+	if engine == "postgresql" {
+		return "postgresql"
+	}
 	if engine == "mysql" {
 		if IsEL() {
 			return "mysqld"
@@ -212,6 +218,9 @@ func DBService(engine string) string {
 
 // DBPackage is the server package of an engine.
 func DBPackage(engine string) string {
+	if engine == "postgresql" {
+		return "postgresql"
+	}
 	if engine == "mysql" {
 		return "mysql-community-server"
 	}

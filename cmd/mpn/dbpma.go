@@ -28,11 +28,14 @@ func dbPma(args []string) {
 	defer st.Close()
 	d, err := st.GetDatabase(*name) // only a database the panel manages can be opened
 	fail(err)
+	if d.Engine == "postgresql" {
+		fail(fmt.Errorf("phpMyAdmin supports MariaDB and MySQL databases only"))
+	}
 	if !*apply {
 		fmt.Printf("would make a temporary user for database %q (all privileges on that database only, valid for %s)\n(dry run: add -apply to do it)\n", d.Name, dbadmin.TempTTL)
 		return
 	}
-	adm := dbAdmin()
+	adm := mysqlAdmin()
 	_, _ = adm.CleanTemp(time.Now()) // every visit also sweeps the visits that ended without a logout
 	u, err := adm.CreateTemp(d.Name, time.Now())
 	fail(err)
@@ -51,7 +54,7 @@ func dbPmaDrop(args []string) {
 		fmt.Printf("would drop the temporary user %q\n(dry run: add -apply to do it)\n", *user)
 		return
 	}
-	fail(dbAdmin().DropTemp(*user))
+	fail(mysqlAdmin().DropTemp(*user))
 	fmt.Printf("temporary user %q dropped\n", *user)
 }
 
@@ -68,7 +71,7 @@ func dbPmaClean(args []string) {
 	if *all {
 		now = now.Add(24 * time.Hour) // longer than any temporary user lives
 	}
-	dropped, err := dbAdmin().CleanTemp(now)
+	dropped, err := mysqlAdmin().CleanTemp(now)
 	for _, n := range dropped {
 		fmt.Printf("dropped %s\n", n)
 	}
