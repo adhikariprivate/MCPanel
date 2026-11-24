@@ -19,7 +19,7 @@ Log in to the VPS as root and run:
 curl -fsSL https://raw.githubusercontent.com/adhikariprivate/MCPanel/main/scripts/installer/install.sh | sh
 ```
 
-The installer checks the operating system, downloads `mpn` from the latest GitHub release and compares its SHA-256 with `SHA256SUMS`. It then installs nginx 1.30.7 with the PageSpeed module, and the panel on port 2610 with a self-signed certificate. The ModSecurity module is installed only when you turn on the web application firewall in the Security tab. The installer does **not** install PHP, Node.js or a database: you choose those later on the panel's Services page.
+The installer checks the operating system, downloads `mpn` from the latest GitHub release and compares its SHA-256 with `SHA256SUMS`. It then installs nginx 1.30.7 with the PageSpeed module, and the panel on port 2610 with a self-signed certificate. The ModSecurity module is installed only when you turn on the web application firewall in the Security tab. The installer does **not** install PHP or a database: you choose those later on the panel's Services page. MCPN no longer manages Node.js or Python site runtimes.
 
 When it finishes, open the setup link it prints (`https://<IP>:2610/setup?t=…`) to create the administrator account. The link carries a one-time key and works until the account exists; `mpn web setup-link` prints it again.
 
@@ -29,7 +29,7 @@ Options: `MPN_VERSION=1.2.4` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 
 ## Features
 
-- **Websites:** PHP 7.0 to 8.5 (one PHP-FPM pool per site), Node.js 18 to 24, Python, compiled binary web services (such as Go or Rust), static sites and reverse proxies. Each site has its own system account, domain, SSH/SFTP, file manager, web terminal, cron, logs and an editable vHost (checked with `nginx -t` before it is loaded).
+- **Websites:** PHP 7.0 to 8.5 (one PHP-FPM pool per site), compiled binary web services (such as Go or Rust), mise apps, static sites and reverse proxies. Each site has its own system account, domain, SSH/SFTP, file manager, web terminal, cron, logs and an editable vHost (checked with `nginx -t` before it is loaded).
 - **App installer:** WordPress, Laravel, CodeIgniter 4, CakePHP, Yii 2, plus a WordPress manager (updates, plugins, themes).
 - **SSL:** Let's Encrypt with a DNS check first and automatic renewal, custom certificates, CSR generation. The panel has its own certificate as well.
 - **Databases:** choose MariaDB or MySQL plus PostgreSQL on Services. Each website database can use either installed engine and gets a dedicated user/role. phpMyAdmin opens MariaDB and MySQL databases.
@@ -43,12 +43,11 @@ Options: `MPN_VERSION=1.2.4` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 ## How it works
 
 - `mpn web` serves the interface as a user without root rights. It listens on the Unix socket `/run/mpn-web/web.sock`, which systemd keeps and only nginx and phpMyAdmin may open, and sits behind nginx with TLS.
-- Node.js and Python apps listen on a Unix socket of their own (`/run/mpn-app/<site>/app.sock`, path in `SOCKET` and `PORT`) that only nginx can reach. On the RHEL family they listen on a port of `127.0.0.1`.
 - Binary apps run from outside the public document root under the site's own account, get a private loopback TCP port in `PORT`, and are supervised by their own systemd service.
 - `mpn root` is a helper running as root. It listens on a Unix socket and accepts only a fixed list of operations. Every value is checked again before it becomes a command-line argument, and no shell is involved.
 - Passwords, private keys and certificates travel over standard input, never in arguments, logs or the database.
 - Every change to the machine is a plan of steps. By default it is only shown, and it runs with `-apply`. If `nginx -t` or a step fails, the old files are restored.
-- nginx is pinned at 1.30.7 on every operating system (from nginx.org, held with `apt-mark hold` or `dnf versionlock`), so `apt upgrade` or `dnf upgrade` does not break the modules built for that version ([mpn-packages](https://github.com/adhikariprivate/mcpn-packages)). Every download is compared with a SHA-256 written in the source, and Node.js releases must also carry a valid signature of a Node.js releaser.
+- nginx is pinned at 1.30.7 on every operating system (from nginx.org, held with `apt-mark hold` or `dnf versionlock`), so `apt upgrade` or `dnf upgrade` does not break the modules built for that version ([mpn-packages](https://github.com/adhikariprivate/mcpn-packages)). Every download is compared with a SHA-256 written in the source.
 - The panel's data is in SQLite, `/var/lib/mpn/mpn.db`, mode 0600.
 
 ## Companion repositories

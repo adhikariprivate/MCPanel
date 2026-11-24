@@ -12,7 +12,7 @@ import (
 )
 
 // siteLogCmd prints the end of one log of a website as JSON, for the Logs tab. It only reads. The nginx logs are the files in the
-// site's log folder; the log of a Node or Python site's own program is its service's journal.
+// site's log folder.
 func siteLogCmd(args []string) {
 	fs := flag.NewFlagSet("site log", flag.ExitOnError)
 	db := fs.String("db", defaultDB, "database path")
@@ -35,8 +35,8 @@ func siteLogCmd(args []string) {
 	var text string
 	switch *kind {
 	case sitelog.App:
-		if s.Kind != site.Node && s.Kind != site.Python && s.Kind != site.Binary && s.Kind != site.Mise {
-			fail(fmt.Errorf("site %q is %s: only a node or python site has a program of its own", s.Name, s.Kind))
+		if s.Kind != site.Binary && s.Kind != site.Mise {
+			fail(fmt.Errorf("site %q is %s: only an application site has a program of its own", s.Name, s.Kind))
 		}
 		res.Path = unit.Name(s)
 		res.Exists = true

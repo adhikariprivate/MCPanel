@@ -45,8 +45,6 @@ func (r Request) AuditDetail() string {
 		add("hosts", strings.Join(r.Hosts, ","))
 	}
 	add("php", r.PHP)
-	add("node", r.Node)
-	add("python", r.Python)
 	add("domain", r.Domain)
 	add("www", r.WWW)
 	add("backup", r.Backup)

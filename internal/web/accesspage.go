@@ -101,7 +101,7 @@ func (s *Server) usersPage(w http.ResponseWriter, r *http.Request, ss webauth.Se
 
 var accessCapabilities = []string{
 	"site.settings", "vhost.view", "vhost.manage", "files.read", "files.write", "files.delete", "files.permissions",
-	"ssl.view", "ssl.manage", "cron.view", "cron.manage", "logs.view", "database.view", "backup.view",
+	"ssl.view", "ssl.manage", "cron.view", "cron.manage", "background.view", "background.manage", "logs.view", "database.view", "backup.view",
 	"email.view", "email.manage", "terminal.open", "ssh.manage", "wordpress.view", "wordpress.manage", "cloud.view", "cloud.manage", "app.manage",
 }
 
@@ -112,7 +112,7 @@ var accessCapabilityGroupKeys = []struct {
 	{"Website", []string{"site.settings", "vhost.view", "vhost.manage"}},
 	{"Files", []string{"files.read", "files.write", "files.delete", "files.permissions"}},
 	{"Security and access", []string{"ssl.view", "ssl.manage", "terminal.open", "ssh.manage"}},
-	{"Scheduled work and logs", []string{"cron.view", "cron.manage", "logs.view"}},
+	{"Scheduled work and logs", []string{"cron.view", "cron.manage", "background.view", "background.manage", "logs.view"}},
 	{"Data", []string{"database.view", "backup.view"}},
 	{"Email", []string{"email.view", "email.manage"}},
 	{"Applications and cloud backups", []string{"wordpress.view", "wordpress.manage", "app.manage", "cloud.view", "cloud.manage"}},
@@ -122,7 +122,7 @@ var accessCapabilityLabels = map[string]string{
 	"site.settings": "Change site settings", "vhost.view": "View vHost", "vhost.manage": "Edit vHost",
 	"files.read": "Browse and download files", "files.write": "Create and edit files", "files.delete": "Delete files", "files.permissions": "Change file permissions",
 	"ssl.view": "View SSL certificates", "ssl.manage": "Manage SSL certificates", "terminal.open": "Open web terminal", "ssh.manage": "Manage SSH and SFTP",
-	"cron.view": "View scheduled jobs", "cron.manage": "Manage scheduled jobs", "logs.view": "View site logs",
+	"cron.view": "View scheduled jobs", "cron.manage": "Manage scheduled jobs", "background.view": "View background services", "background.manage": "Manage background services", "logs.view": "View site logs",
 	"database.view": "List databases", "backup.view": "List backups", "email.view": "View site email", "email.manage": "Manage site email",
 	"wordpress.view": "View WordPress", "wordpress.manage": "Manage WordPress", "app.manage": "Install or change the application",
 	"cloud.view": "View cloud backups", "cloud.manage": "Manage cloud backups",
@@ -145,11 +145,11 @@ func accessPermissionGroups(grants map[string]string) []accessCapabilityGroupVie
 func accessPreset(name string) []string {
 	switch name {
 	case "read-only":
-		return []string{"files.read", "vhost.view", "ssl.view", "cron.view", "logs.view", "database.view", "backup.view", "email.view", "wordpress.view", "cloud.view"}
+		return []string{"files.read", "vhost.view", "ssl.view", "cron.view", "background.view", "logs.view", "database.view", "backup.view", "email.view", "wordpress.view", "cloud.view"}
 	case "developer":
-		return []string{"site.settings", "files.read", "files.write", "vhost.view", "ssl.view", "cron.view", "cron.manage", "logs.view", "database.view", "backup.view", "email.view", "wordpress.view"}
+		return []string{"site.settings", "files.read", "files.write", "vhost.view", "ssl.view", "cron.view", "cron.manage", "background.view", "background.manage", "logs.view", "database.view", "backup.view", "email.view", "wordpress.view"}
 	case "site-manager":
-		return []string{"site.settings", "vhost.view", "vhost.manage", "files.read", "files.write", "files.delete", "files.permissions", "ssl.view", "ssl.manage", "cron.view", "cron.manage", "logs.view", "database.view", "backup.view", "email.view", "email.manage", "wordpress.view", "wordpress.manage", "cloud.view", "cloud.manage", "app.manage"}
+		return []string{"site.settings", "vhost.view", "vhost.manage", "files.read", "files.write", "files.delete", "files.permissions", "ssl.view", "ssl.manage", "cron.view", "cron.manage", "background.view", "background.manage", "logs.view", "database.view", "backup.view", "email.view", "email.manage", "wordpress.view", "wordpress.manage", "cloud.view", "cloud.manage", "app.manage"}
 	default:
 		return nil
 	}

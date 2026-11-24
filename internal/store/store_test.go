@@ -33,7 +33,7 @@ func withoutSiteIdentity(st site.Site) site.Site {
 func TestRoundTripAllKinds(t *testing.T) {
 	s, _ := open(t)
 	want := []site.Site{
-		{Name: "api", Kind: site.Node, User: "api", Root: "/home/api/app", Hostnames: []string{"api.example.com"}, NodePort: 20000, NodeVersion: "22", Entry: "server.js"},
+		{Name: "api", Kind: site.Binary, User: "api", Root: "/home/api/app", Hostnames: []string{"api.example.com"}, AppPort: 20000, Entry: "bin/server"},
 		phpSite("blog", "blog.example.com", "www.blog.example.com"),
 		{Name: "docs", Kind: site.Static, User: "docs", Root: "/home/docs/public", Hostnames: []string{"docs.example.com"}},
 		{Name: "edge", Kind: site.Proxy, User: "edge", Root: "/home/edge/x", Hostnames: []string{"edge.example.com"}, Upstream: "https://10.0.0.5:8443"},
@@ -90,23 +90,23 @@ func TestInvalidSiteIsNotStored(t *testing.T) {
 	}
 }
 
-func TestAllocNodePort(t *testing.T) {
+func TestAllocAppPort(t *testing.T) {
 	s, _ := open(t)
-	node := func(name string, port int) site.Site {
-		return site.Site{Name: name, Kind: site.Node, User: name, Root: "/home/" + name + "/app", Hostnames: []string{name + ".example.com"}, NodePort: port, NodeVersion: "22", Entry: "server.js"}
+	app := func(name string, port int) site.Site {
+		return site.Site{Name: name, Kind: site.Binary, User: name, Root: "/home/" + name + "/app", Hostnames: []string{name + ".example.com"}, AppPort: port, Entry: "bin/server"}
 	}
 	for i, port := range []int{20000, 20001, 20003} {
-		if err := s.AddSite(node("n"+string(rune('a'+i)), port)); err != nil {
+		if err := s.AddSite(app("n"+string(rune('a'+i)), port)); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if p, err := s.AllocNodePort(20000, 20010); err != nil || p != 20002 {
+	if p, err := s.AllocAppPort(20000, 20010); err != nil || p != 20002 {
 		t.Errorf("want gap 20002, got %d err=%v", p, err)
 	}
-	if err := s.AddSite(node("dup", 20001)); !errors.Is(err, ErrExists) {
+	if err := s.AddSite(app("dup", 20001)); !errors.Is(err, ErrExists) {
 		t.Errorf("duplicate port: %v", err)
 	}
-	if _, err := s.AllocNodePort(20000, 20001); err == nil {
+	if _, err := s.AllocAppPort(20000, 20001); err == nil {
 		t.Error("range 20000-20001 is full, expected an error")
 	}
 }

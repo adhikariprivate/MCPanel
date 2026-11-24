@@ -24,6 +24,25 @@ func TestSiteInfoIsAReadAndNeedsAValidSite(t *testing.T) {
 	}
 }
 
+func TestBackgroundServiceOperationsUseFixedHelperCommands(t *testing.T) {
+	r := Request{Op: "site.bgadd", Site: "shop", BackgroundName: "queue worker", BackgroundKind: "binary", BackgroundCommand: "bin/worker --queue default"}
+	got, err := r.Argv()
+	want := []string{"site", "background", "add", "-name", "shop", "-id", "0", "-stdin", "-apply"}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("argv=%v err=%v", got, err)
+	}
+	if !strings.Contains(r.Stdin(), `"kind":"binary"`) || !IsWrite(r.Op) {
+		t.Fatalf("stdin=%q write=%t", r.Stdin(), IsWrite(r.Op))
+	}
+	got, err = Request{Op: "site.bgrestart", Site: "shop", BackgroundID: 7}.Argv()
+	if err != nil || !reflect.DeepEqual(got, []string{"site", "background", "restart", "-name", "shop", "-id", "7", "-apply"}) {
+		t.Fatalf("argv=%v err=%v", got, err)
+	}
+	if _, err = (Request{Op: "site.bgstop", Site: "shop"}).Argv(); err == nil {
+		t.Fatal("accepted missing service ID")
+	}
+}
+
 func TestSettingsOfAPhpSiteBecomeFlagsInAFixedOrder(t *testing.T) {
 	got, err := Request{Op: "site.set", Site: "blog", Kind: "php", PHP: "8.3", RootSub: "public",
 		PHPIni: map[string]string{"memory_limit": "512M", "display_errors": "On", "post_max_size": "128M"}}.Argv()
@@ -76,37 +95,25 @@ func TestPhpSettingsThatAreNotOnTheListAreRefused(t *testing.T) {
 }
 
 func TestSettingsOfOtherKinds(t *testing.T) {
-	got, err := Request{Op: "site.set", Site: "app", Kind: "node", Node: "22", Entry: "dist/server.js", Port: 20005, Mem: 512, RootSub: "app"}.Argv()
-	want := []string{"site", "set", "-name", "app", "-root-sub", "app", "-node", "22", "-entry", "dist/server.js", "-port", "20005", "-mem", "512", "-apply"}
-	if err != nil || !reflect.DeepEqual(got, want) {
-		t.Errorf("node: %v %v", got, err)
-	}
 	for name, r := range map[string]Request{
-		"node version":      {Kind: "node", Node: "16", Entry: "a.js", Port: 20005},
-		"node entry up":     {Kind: "node", Node: "22", Entry: "../a.js", Port: 20005},
-		"node entry abs":    {Kind: "node", Node: "22", Entry: "/etc/x.js", Port: 20005},
-		"node port low":     {Kind: "node", Node: "22", Entry: "a.js", Port: 80},
-		"node port panel":   {Kind: "node", Node: "22", Entry: "a.js", Port: 8780},
-		"node port browser": {Kind: "node", Node: "22", Entry: "a.js", Port: 2611},
-		"node port high":    {Kind: "node", Node: "22", Entry: "a.js", Port: 70000},
-		"node memory small": {Kind: "node", Node: "22", Entry: "a.js", Port: 20005, Mem: 10},
-		"node memory big":   {Kind: "node", Node: "22", Entry: "a.js", Port: 20005, Mem: 99999},
-		"root up":           {Kind: "static", RootSub: "../x"},
-		"root absolute":     {Kind: "static", RootSub: "/etc"},
-		"root hidden":       {Kind: "php", PHP: "8.4", RootSub: ".ssh"},
-		"root with space":   {Kind: "php", PHP: "8.4", RootSub: "a b"},
-		"root double slash": {Kind: "php", PHP: "8.4", RootSub: "a//b"},
-		"root trailing":     {Kind: "php", PHP: "8.4", RootSub: "a/"},
-		"root newline":      {Kind: "php", PHP: "8.4", RootSub: "a\nb"},
-		"unknown kind":      {Kind: "ruby"},
-		"no kind":           {},
+		"node runtime removed":   {Kind: "node"},
+		"python runtime removed": {Kind: "python"},
+		"root up":                {Kind: "static", RootSub: "../x"},
+		"root absolute":          {Kind: "static", RootSub: "/etc"},
+		"root hidden":            {Kind: "php", PHP: "8.4", RootSub: ".ssh"},
+		"root with space":        {Kind: "php", PHP: "8.4", RootSub: "a b"},
+		"root double slash":      {Kind: "php", PHP: "8.4", RootSub: "a//b"},
+		"root trailing":          {Kind: "php", PHP: "8.4", RootSub: "a/"},
+		"root newline":           {Kind: "php", PHP: "8.4", RootSub: "a\nb"},
+		"unknown kind":           {Kind: "ruby"},
+		"no kind":                {},
 	} {
 		r.Op, r.Site = "site.set", "app"
 		if _, err := r.Argv(); err == nil {
 			t.Errorf("%s must be refused", name)
 		}
 	}
-	got, err = Request{Op: "site.set", Site: "p", Kind: "proxy", Upstream: "https://127.0.0.1:3000"}.Argv()
+	got, err := Request{Op: "site.set", Site: "p", Kind: "proxy", Upstream: "https://127.0.0.1:3000"}.Argv()
 	if err != nil || !reflect.DeepEqual(got, []string{"site", "set", "-name", "p", "-upstream", "https://127.0.0.1:3000", "-apply"}) {
 		t.Errorf("proxy: %v %v", got, err)
 	}

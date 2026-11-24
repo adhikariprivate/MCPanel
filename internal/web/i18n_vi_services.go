@@ -16,8 +16,6 @@ func init() {
 		"svc.group.database.d":     "Cài một máy chủ thuộc nhóm MySQL (MariaDB hoặc MySQL), và có thể cài thêm PostgreSQL. Chọn phiên bản trước khi cài. Khi thêm cơ sở dữ liệu cho website, hãy chọn loại máy chủ.",
 		"svc.group.php":            "Phiên bản PHP",
 		"svc.group.php.d":          "Cài thêm phiên bản khi một website cần. Một phiên bản chỉ chạy khi có website dùng nó, nên phiên bản mới cài sẽ ở trạng thái đã dừng.",
-		"svc.group.node":           "Phiên bản Node.js",
-		"svc.group.node.d":         "Cài vào /opt/node. Website Node chọn phiên bản khi tạo hoặc trong phần cài đặt của website.",
 		"svc.group.tool":           "Công cụ",
 		"svc.group.tool.d":         "phpMyAdmin mở cơ sở dữ liệu MariaDB và MySQL từ thẻ Cơ sở dữ liệu. PostgreSQL không dùng phpMyAdmin.",
 		"svc.state.none":           "Chưa cài",

@@ -10,7 +10,7 @@ import (
 	"mpn/internal/ctl"
 )
 
-const nodeList = `[{"name":"app","kind":"node","user":"app","hostnames":["app.example.com"],"detail":"node 22","tls":false,"root":"/home/app/htdocs"}]`
+const binaryList = `[{"name":"app","kind":"binary","user":"app","hostnames":["app.example.com"],"detail":"binary on port 20003","tls":false,"root":"/home/app/htdocs"}]`
 const proxyList = `[{"name":"px","kind":"proxy","user":"px","hostnames":["px.example.com"],"detail":"http://127.0.0.1:3000","tls":false,"root":"/home/px/htdocs"}]`
 const staticList = `[{"name":"st","kind":"static","user":"st","hostnames":["st.example.com"],"detail":"","tls":false,"root":"/home/st/htdocs"}]`
 
@@ -22,8 +22,8 @@ func phpInfo() string {
 "php_set":{"memory_limit":"512M","display_errors":"On"},"php_memory_default":256,"installed_php":["8.3","8.4"],"installed_node":["22"],"nginx":"server { listen 80; }"}`, exp)
 }
 
-const nodeInfo = `{"name":"app","kind":"node","user":"app","hostnames":["app.example.com"],"root":"/home/app/htdocs","root_sub":"","tls":false,"running":false,"run_detail":"app-app.service",
-"disk_bytes":1000,"node_version":"22","entry":"server.js","port":20003,"mem_mb":0,"installed_php":["8.4"],"installed_node":["20","22"],"nginx":"server {}"}`
+const binaryInfo = `{"name":"app","kind":"binary","user":"app","hostnames":["app.example.com"],"root":"/home/app/htdocs","root_sub":"","tls":false,"running":false,"run_detail":"app-app.service",
+"disk_bytes":1000,"entry":"bin/server","port":20003,"mem_mb":0,"installed_php":["8.4"],"nginx":"server {}"}`
 const proxyInfo = `{"name":"px","kind":"proxy","user":"px","hostnames":["px.example.com"],"root":"/home/px/htdocs","tls":false,"running":true,"run_detail":"nginx","disk_bytes":0,"upstream":"http://127.0.0.1:3000","installed_php":[],"installed_node":[],"nginx":"server {}"}`
 const outsideInfo = `{"name":"st","kind":"static","user":"st","hostnames":["st.example.com"],"root":"/var/www/st","root_outside":true,"tls":false,"running":true,"disk_bytes":10,"installed_php":[],"installed_node":[],"nginx":"server {}"}`
 
@@ -78,15 +78,15 @@ func TestTheOverviewShowsStateInformationAndTheSettingsOfAPhpSite(t *testing.T) 
 }
 
 func TestTheOverviewOfOtherKindsShowsTheirOwnSettings(t *testing.T) {
-	h, _, c, _ := setupWith(t, answersFor(nodeList, nodeInfo), nil)
+	h, _, c, _ := setupWith(t, answersFor(binaryList, binaryInfo), nil)
 	body := do(h, "GET", "/sites/app", nil, cookie(c)).Body.String()
-	for _, want := range []string{"Không chạy", `name="node"`, `<option>20</option>`, `<option selected>22</option>`, `name="entry"`, `value="server.js"`, `name="port"`, `value="20003"`, `name="mem"`} {
+	for _, want := range []string{"Không chạy", `name="entry"`, `value="bin/server"`, `name="port"`, `value="20003"`, `name="mem"`} {
 		if !strings.Contains(body, want) {
-			t.Errorf("node: missing %q", want)
+			t.Errorf("binary: missing %q", want)
 		}
 	}
 	if strings.Contains(body, `name="ini_memory_limit"`) || strings.Contains(body, `name="upstream"`) {
-		t.Error("a node site shows no PHP or proxy settings")
+		t.Error("a binary site shows no PHP or proxy settings")
 	}
 	h, _, c, _ = setupWith(t, answersFor(proxyList, proxyInfo), nil)
 	body = do(h, "GET", "/sites/px", nil, cookie(c)).Body.String()
@@ -184,22 +184,21 @@ func TestAWebRootOutsideHtdocsCannotBeChangedHere(t *testing.T) {
 	}
 }
 
-func TestSavingNodeAndProxySettings(t *testing.T) {
-	h, f, c, tok := setupWith(t, answersFor(nodeList, nodeInfo), nil)
-	w := followed(h, do(h, "POST", "/sites/app/settings", url.Values{"csrf": {tok}, "root_sub": {"web"}, "node": {"20"}, "entry": {"dist/main.js"}, "port": {"3000"}, "mem": {"512"}}, cookie(c)), c)
+func TestSavingBinaryAndProxySettings(t *testing.T) {
+	h, f, c, tok := setupWith(t, answersFor(binaryList, binaryInfo), nil)
+	w := followed(h, do(h, "POST", "/sites/app/settings", url.Values{"csrf": {tok}, "entry": {"bin/new-server"}, "port": {"3000"}, "mem": {"512"}}, cookie(c)), c)
 	req, ok := lastSet(f)
-	if !ok || req.Kind != "node" || req.Node != "20" || req.Entry != "dist/main.js" || req.Port != 3000 || req.Mem != 512 || req.RootSub != "web" {
+	if !ok || req.Kind != "binary" || req.Entry != "bin/new-server" || req.Port != 3000 || req.Mem != 512 || req.RootSub != "" {
 		t.Fatalf("%+v\n%s", req, w.Body.String())
 	}
 	for name, form := range map[string]url.Values{
-		"a node version that is not installed": {"node": {"24"}, "entry": {"a.js"}, "port": {"3000"}},
-		"an entry that goes up":                {"node": {"22"}, "entry": {"../a.js"}, "port": {"3000"}},
-		"the panel's own port":                 {"node": {"22"}, "entry": {"a.js"}, "port": {"8780"}},
-		"a port below 1024":                    {"node": {"22"}, "entry": {"a.js"}, "port": {"80"}},
-		"a port that is not a number":          {"node": {"22"}, "entry": {"a.js"}, "port": {"abc"}},
-		"too little memory":                    {"node": {"22"}, "entry": {"a.js"}, "port": {"3000"}, "mem": {"5"}},
+		"an entry that goes up":       {"entry": {"../a.js"}, "port": {"3000"}},
+		"the panel's own port":        {"entry": {"bin/app"}, "port": {"8780"}},
+		"a port below 1024":           {"entry": {"bin/app"}, "port": {"80"}},
+		"a port that is not a number": {"entry": {"bin/app"}, "port": {"abc"}},
+		"too little memory":           {"entry": {"bin/app"}, "port": {"3000"}, "mem": {"5"}},
 	} {
-		h, f, c, tok = setupWith(t, answersFor(nodeList, nodeInfo), nil)
+		h, f, c, tok = setupWith(t, answersFor(binaryList, binaryInfo), nil)
 		form.Set("csrf", tok)
 		if w := do(h, "POST", "/sites/app/settings", form, cookie(c)); w.Code != 400 {
 			t.Errorf("%s: %d", name, w.Code)

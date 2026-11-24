@@ -21,7 +21,6 @@ func runPlan(args []string) {
 	engine := fs.String("engine", "mariadb", "mariadb, mysql, postgresql or none")
 	series := fs.String("series", "", "database series, such as 11.8 for MariaDB, 8.4 for MySQL or 18 for PostgreSQL; empty means the engine's default")
 	phpList := fs.String("php", "", "comma-separated PHP versions to install, such as 7.4,8.4")
-	nodeList := fs.String("node", "", "comma-separated Node.js major versions to install, such as 22,24")
 	panel := fs.Bool("panel", false, "also install the web panel (HTTPS on -panel-port, behind nginx)")
 	panelPort := fs.Int("panel-port", 2610, "public HTTPS port of the web panel")
 	var panelHosts hostList
@@ -44,7 +43,7 @@ func runPlan(args []string) {
 	plan, err := installer.Build(installer.Options{
 		Target: t, Profile: tune.New(tune.Input{RAMMB: *ram, CPUs: *cpus}),
 		CurrentSwapMB: *swap, Engine: eng, DBSeries: *series,
-		PHPVersions: splitList(*phpList), NodeVersions: splitList(*nodeList), SelfPath: selfPath(),
+		PHPVersions: splitList(*phpList), SelfPath: selfPath(),
 		Panel: *panel, PanelPort: *panelPort, PanelHosts: panelHosts, PMA: *pma && *panel && eng != "" && eng != "postgresql",
 	})
 	fail(err)
@@ -65,6 +64,9 @@ func splitList(s string) []string {
 func fail(err error) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if panelRuntimeMigrationCommitted {
+			os.Exit(3) // the schema is committed; an older binary may not be able to read it
+		}
 		os.Exit(2)
 	}
 }

@@ -12,7 +12,7 @@ import (
 
 func TestMiseSiteCanBeStoredAndSelected(t *testing.T) {
 	s, _ := open(t)
-	m := site.Site{Name: "miser", Kind: site.Mise, User: "miser", Root: "/home/miser/htdocs", Hostnames: []string{"mise.example.com"}, NodePort: 20011}
+	m := site.Site{Name: "miser", Kind: site.Mise, User: "miser", Root: "/home/miser/htdocs", Hostnames: []string{"mise.example.com"}, AppPort: 20011}
 	if err := s.AddSite(m); err != nil {
 		t.Fatal(err)
 	}
@@ -68,14 +68,14 @@ func TestMiseMigrationPreservesBinarySitesAndRelations(t *testing.T) {
 	}
 	defer s.Close()
 	got, err := s.GetSite("gobin")
-	if err != nil || got.Kind != site.Binary || got.NodePort != 22004 || got.Entry != "bin/server" || got.MemMB != 512 || !reflect.DeepEqual(got.Hostnames, []string{"go.example.com"}) {
+	if err != nil || got.Kind != site.Binary || got.AppPort != 22004 || got.Entry != "bin/server" || got.MemMB != 512 || !reflect.DeepEqual(got.Hostnames, []string{"go.example.com"}) {
 		t.Fatalf("binary site after migration: %+v err=%v", got, err)
 	}
 	var n int
 	if err := s.db.QueryRow(`SELECT count(*) FROM databases WHERE site_id=4`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("related database rows: %d err=%v", n, err)
 	}
-	m := site.Site{Name: "newmise", Kind: site.Mise, User: "newmise", Root: "/home/newmise/htdocs", Hostnames: []string{"newmise.example.com"}, NodePort: 20012, MiseTask: "serve"}
+	m := site.Site{Name: "newmise", Kind: site.Mise, User: "newmise", Root: "/home/newmise/htdocs", Hostnames: []string{"newmise.example.com"}, AppPort: 20012, MiseTask: "serve"}
 	if err := s.AddSite(m); err != nil {
 		t.Fatalf("mise kind rejected after migration: %v", err)
 	}

@@ -14,10 +14,10 @@ import (
 )
 
 type Options struct {
-	Profile   tune.Profile
-	TLS       bool
-	CertDir   string // default /etc/mpn/certs/<name>
-	NodeMemMB int    // MemoryMax for node apps, 0 for no cap
+	Profile  tune.Profile
+	TLS      bool
+	CertDir  string // default /etc/mpn/certs/<name>
+	AppMemMB int    // MemoryMax for Binary and mise apps, 0 for no cap
 }
 
 // LogDir holds a site's nginx logs. It belongs to root and not to the site user: nginx's master process (root) opens
@@ -153,12 +153,11 @@ func RemovePlan(s site.Site, purge bool) (installer.Plan, error) {
 	case site.PHP:
 		// The master stays only while another pool still uses this PHP version.
 		plan = append(plan, installer.Step{Name: "php-fpm pool", Actions: dropPHPPoolActions(s, s.PHPVersion)})
-	case site.Node, site.Python, site.Binary, site.Mise:
+	case site.Binary, site.Mise:
 		plan = append(plan, installer.Step{Name: string(s.Kind) + " service", Actions: []installer.Action{
 			installer.Run("systemctl", "disable", "--now", unit.Name(s)),
 			installer.Run("rm", "-f", "/etc/systemd/system/"+unit.Name(s)),
 			installer.Run("systemctl", "daemon-reload"),
-			installer.Run("rm", "-rf", site.AppSocketDir(s.Name)),
 		}})
 	}
 	if purge {
@@ -229,41 +228,8 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 			installer.Run("systemctl", "enable", distro.PHPService(v)),
 			installer.Run("systemctl", "reload-or-restart", distro.PHPService(v)),
 		}})
-	case site.Node:
-		mem := o.NodeMemMB
-		if s.MemMB > 0 {
-			mem = s.MemMB // the site's own limit wins over the default
-		}
-		content, err := unit.Node(s, mem)
-		if err != nil {
-			return nil, err
-		}
-		plan = append(plan, installer.Step{Name: "node service", Actions: []installer.Action{
-			installer.WriteFile("/etc/systemd/system/"+unit.Name(s), content, 0o644),
-			installer.Run("systemctl", "daemon-reload"),
-			installer.Run("systemctl", "enable", unit.Name(s)),
-			// Not "enable --now": a unit that is already running would keep its old version, port and memory limit.
-			installer.Run("systemctl", "restart", unit.Name(s)),
-		}})
-	case site.Python:
-		mem := o.NodeMemMB
-		if s.MemMB > 0 {
-			mem = s.MemMB
-		}
-		content, err := unit.Python(s, mem)
-		if err != nil {
-			return nil, err
-		}
-		plan = append(plan, installer.Step{Name: "python service", Actions: []installer.Action{
-			installer.Run("sh", "-c", venvScript(s)),
-			installer.RestoreconHome(site.VenvDir(s.User)), // on EL the interpreter needs the label of a program (see installer.selinuxScript)
-			installer.WriteFile("/etc/systemd/system/"+unit.Name(s), content, 0o644),
-			installer.Run("systemctl", "daemon-reload"),
-			installer.Run("systemctl", "enable", unit.Name(s)),
-			installer.Run("systemctl", "restart", unit.Name(s)),
-		}})
 	case site.Binary:
-		mem := o.NodeMemMB
+		mem := o.AppMemMB
 		if s.MemMB > 0 {
 			mem = s.MemMB
 		}
@@ -286,7 +252,7 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 			}})
 			break
 		}
-		mem := o.NodeMemMB
+		mem := o.AppMemMB
 		if s.MemMB > 0 {
 			mem = s.MemMB
 		}
@@ -314,41 +280,6 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 	return plan, nil
 }
 
-// venvScript makes the site's virtual environment with the interpreter of the version chosen, as the site's own user. An
-// environment made for another version is upgraded in place, so the packages stay. Every value in it has passed Validate.
-//
-// The environment belongs to the site user, who can put any program at venv/bin/python. Root never runs anything from it:
-// asking that interpreter for its version is done as the site user too, like making the environment.
-func venvScript(s site.Site) string {
-	py, venv := "/usr/bin/python"+s.PyVersion, site.VenvDir(s.User)
-	return fmt.Sprintf(`py=%[1]s; venv=%[2]s
-[ -x "$py" ] || { echo "Python %[3]s is not installed on this machine (install the package %[5]s)" >&2; exit 2; }
-if [ -x "$venv/bin/python" ]; then
-  [ "$(runuser -u %[4]s -- "$venv/bin/python" -c 'import sys; print("%%d.%%d" %% sys.version_info[:2])')" = %[3]s ] && exit 0
-  action=--upgrade
-else
-  action=
-fi
-runuser -u %[4]s -- "$py" -m venv $action "$venv" || { echo "the virtual environment could not be made (install the package %[6]s)" >&2; exit 2; }`,
-		py, venv, s.PyVersion, s.User, pyPackage(s.PyVersion), pyVenvPackage(s.PyVersion))
-}
-
-// pyPackage and pyVenvPackage name what to install for a Python version. On EL venv is part of the interpreter, and the system
-// version is the package python3 (3.9 on EL9, 3.12 on EL10); other versions are python3.N.
-func pyPackage(v string) string {
-	if distro.IsEL() {
-		return "python" + v + " (or python3 for the version of the system)"
-	}
-	return "python" + v
-}
-
-func pyVenvPackage(v string) string {
-	if distro.IsEL() {
-		return pyPackage(v)
-	}
-	return "python" + v + "-venv"
-}
-
 // dropPHPPoolActions take a site's pool out of one PHP version. The master stays only while another pool still uses it.
 func dropPHPPoolActions(s site.Site, version string) []installer.Action {
 	dir, svc := distro.PHPPoolDir(version), distro.PHPService(version)
@@ -359,7 +290,7 @@ func dropPHPPoolActions(s site.Site, version string) []installer.Action {
 }
 
 // ChangePlan puts a site that is already provisioned into its new state. Most changes (the web root, the PHP settings,
-// the port or memory of a node app) are the same steps as making the site, repeated.
+// the port or memory of an app) are the same steps as making the site, repeated.
 //
 // Moving a PHP site to another version is different. The old and the new pool have the same socket path, and an old master
 // that is told to drop its pool removes that path, so the old pool must go before the new master creates the socket. But it

@@ -17,15 +17,6 @@ func PHPPlan(o Options) (Plan, error) {
 	return Plan{s}, nil
 }
 
-// NodePlan installs one Node.js major version under /opt/node.
-func NodePlan(major string) (Plan, error) {
-	s, err := nodeStep(major)
-	if err != nil {
-		return nil, err
-	}
-	return Plan{s}, nil
-}
-
 // DatabasePlan installs a database server (o.Engine) with the default series for the engine and the settings that fit the machine. o
 // needs Target, Profile and the PHP versions that are installed.
 func DatabasePlan(o Options) (Plan, error) {

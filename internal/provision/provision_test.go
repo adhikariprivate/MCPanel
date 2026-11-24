@@ -9,7 +9,7 @@ import (
 	"mpn/internal/tune"
 )
 
-var opts = Options{Profile: tune.New(tune.Input{RAMMB: 960, CPUs: 1}), NodeMemMB: 256}
+var opts = Options{Profile: tune.New(tune.Input{RAMMB: 960, CPUs: 1}), AppMemMB: 256}
 
 func base(kind site.Kind) site.Site {
 	return site.Site{Name: "demo", Kind: kind, User: "demo", Root: "/home/demo/htdocs", Hostnames: []string{"demo.example.com"}}
@@ -55,14 +55,14 @@ func TestPoolIsWrittenBeforeFPMIsReloaded(t *testing.T) {
 	}
 }
 
-func TestNodeSite(t *testing.T) {
-	s := base(site.Node)
-	s.NodePort, s.NodeVersion, s.Entry = 20000, "22", "server.js"
+func TestBinarySite(t *testing.T) {
+	s := base(site.Binary)
+	s.AppPort, s.Entry = 20000, "app"
 	p, err := Plan(s, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := names(p), "account and directories,welcome page,node service,nginx vhost"; got != want {
+	if got, want := names(p), "account and directories,binary service,nginx vhost"; got != want {
 		t.Errorf("steps=%s want %s", got, want)
 	}
 	out := p.String()

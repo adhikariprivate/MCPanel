@@ -29,7 +29,6 @@ import (
 	"mpn/internal/panelssl"
 	"mpn/internal/site"
 	"mpn/internal/svcport"
-	"mpn/internal/unit"
 	"mpn/internal/web"
 	"mpn/internal/webauth"
 )
@@ -149,7 +148,6 @@ func webServe(args []string) {
 		TrustProxy:      *trustProxy,
 		Dialer:          sshDialer,
 		InstalledPHP:    site.InstalledPHP,
-		NodeRoot:        unit.NodeRoot,
 		TermLog: func(event, site string, err error) {
 			if err != nil {
 				log.Printf("terminal %s: site %s: %v", event, site, err)

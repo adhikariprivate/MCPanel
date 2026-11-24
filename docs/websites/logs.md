@@ -12,7 +12,7 @@ Pick one at the top right:
 
 * **Access**: every request sent to the website.
 * **Error**: Nginx errors.
-* **Application**: only for Node.js and Python websites, read from the website’s systemd service.
+* **Application**: output from a Binary or mise website’s systemd service.
 
 ## Search and line count
 
@@ -28,4 +28,4 @@ Old logs are rotated daily and 14 copies are kept.
 
 Tip
 
-When a website returns a 500 or 502 error, open the **Error** log first, then **Application** (for Node.js and Python) to find the cause.
+When an application website returns a 500 or 502 error, open the **Error** log first, then **Application** to find the cause.

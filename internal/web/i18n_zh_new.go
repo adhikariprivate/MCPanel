@@ -10,8 +10,6 @@ func init() {
 		"new.back":         "返回",
 		"new.create":       "创建网站",
 		"new.desc.php":     "PHP 网站，例如 WordPress 或 Laravel。每个网站有自己的 PHP 进程池。",
-		"new.desc.python":  "Python 应用（Flask、Django、FastAPI 等），在自己的虚拟环境中作为服务运行，nginx 将请求转发给它。",
-		"new.desc.node":    "Node.js 应用，作为独立服务运行，nginx 将请求转发给它。",
 		"new.desc.static":  "仅提供现有的 HTML、CSS 和图片文件。",
 		"new.desc.binary":  "将 Go、Rust 等编译后的程序作为受监控的 Web 服务运行，并由 nginx 转发请求。",
 		"new.desc.mise":    "使用 mise 管理语言运行时和应用任务，并将选定的前台任务作为受监控的 Web 服务运行。",
@@ -35,9 +33,7 @@ func init() {
 		"err.userused":     "账户 %q 已被网站 %q 使用，请选择其他名称。",
 		"err.siteused":     "已存在名为 %q 的网站。",
 		"err.phpmissing":   "未安装 PHP %q。安装命令：mpn plan -php <version> -apply",
-		"err.nodemissing":  "未安装 Node.js %q。安装命令：mpn plan -node <version> -apply",
 		"new.nophp":        "本机未安装任何 PHP 版本。安装命令：mpn plan -php 8.4 -apply",
-		"new.nonode":       "本机未安装任何 Node.js 版本。安装命令：mpn plan -node 22 -apply",
 		"err.exitstatus":   "命令执行失败，请查看下方结果详情。",
 	} {
 		zh[k] = v

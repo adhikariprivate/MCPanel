@@ -91,7 +91,7 @@ func TestTheWebsitesPageHasAButtonAndTheChoicePageHasTheKinds(t *testing.T) {
 		t.Errorf("the list page must link to the new-site page and not hold the form:\n%s", body)
 	}
 	choice := do(h, "GET", "/sites/new", nil, cookie(c)).Body.String()
-	for _, k := range []string{"php", "node", "static", "proxy"} {
+	for _, k := range []string{"php", "binary", "mise", "static", "proxy"} {
 		if !strings.Contains(choice, `href="/sites/new?kind=`+k+`"`) {
 			t.Errorf("no card for %s", k)
 		}
@@ -109,9 +109,9 @@ func TestTheWebsitesPageHasAButtonAndTheChoicePageHasTheKinds(t *testing.T) {
 
 func TestTheFormAsksForLittleAndAlwaysGivesLoginAccess(t *testing.T) {
 	h, _, c, _ := setup(t, okAnswer(""))
-	extra := map[string][]string{"php": {`name="php"`}, "node": {`name="node"`, `name="entry"`}, "proxy": {`name="upstream"`}, "static": {}}
-	never := map[string][]string{"php": {`name="node"`, `name="upstream"`}, "node": {`name="php"`, `name="upstream"`},
-		"proxy": {`name="php"`, `name="node"`}, "static": {`name="php"`, `name="node"`, `name="upstream"`}}
+	extra := map[string][]string{"php": {`name="php"`}, "binary": {`name="entry"`}, "mise": {}, "proxy": {`name="upstream"`}, "static": {}}
+	never := map[string][]string{"php": {`name="entry"`, `name="upstream"`}, "binary": {`name="php"`, `name="upstream"`}, "mise": {`name="php"`, `name="entry"`},
+		"proxy": {`name="php"`, `name="entry"`}, "static": {`name="php"`, `name="entry"`, `name="upstream"`}}
 	for kind := range extra {
 		body := do(h, "GET", "/sites/new?kind="+kind, nil, cookie(c)).Body.String()
 		for _, f := range append(extra[kind], `name="hosts"`, `data-hosts`, `name="user"`, `data-user`, `data-password`, `name="password"`,

@@ -21,7 +21,7 @@ func init() {
 		"log.missing":     "Chưa có nhật ký tại %s. Tệp được tạo khi website nhận yêu cầu đầu tiên.",
 		"log.empty":       "Nhật ký đang trống.",
 		"log.nomatch":     "Không có dòng nào chứa đoạn chữ này trong phần cuối của nhật ký.",
-		"log.hint":        "Nhật ký truy cập ghi từng yêu cầu gửi đến website, nhật ký lỗi ghi lỗi của nginx. Với website Node hoặc Python, nhật ký ứng dụng lấy từ dịch vụ của website. Nhật ký cũ được xoay vòng hằng ngày và giữ 14 bản.",
+		"log.hint":        "Nhật ký truy cập ghi từng yêu cầu gửi đến website, nhật ký lỗi ghi lỗi của nginx. Nhật ký cũ được xoay vòng hằng ngày và giữ 14 bản.",
 		"log.err.query":   "Đoạn chữ tìm kiếm không hợp lệ nên không được dùng.",
 	} {
 		vi[k] = v

@@ -8,7 +8,7 @@ MCPN (`mpn`) is a web server admin panel written in Go, shipped as a single bina
 
 ## What MCPN manages
 
-* **Websites**: PHP, Node.js, Python, static, reverse proxy — each type has its own settings tab.
+* **Websites**: PHP, Binary, mise, static and reverse proxy sites — each type has its own settings.
 * **Databases**: MariaDB or MySQL, and PostgreSQL; choose an installed engine for each website database, which gets its own dedicated user or role.
 * **Email**: Postfix + Dovecot + OpenDKIM, with per-domain webmail.
 * **SSL**: Let’s Encrypt with automatic renewal, or your own certificate.

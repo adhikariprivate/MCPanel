@@ -33,6 +33,7 @@ nav:
       - SSL: websites/ssl.md
       - Custom vHost: websites/custom-vhost.md
       - Cron: websites/cron.md
+      - Background services: websites/background-services.md
       - Logs: websites/logs.md
       - Terminal: websites/terminal.md
       - WordPress: websites/wordpress.md

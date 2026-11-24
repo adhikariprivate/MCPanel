@@ -247,15 +247,6 @@ func CronPackage() string {
 	return "cron"
 }
 
-// GPGVPackage gives the gpgv program, which checks the signature of a Node.js release: its own package on Debian and Ubuntu, part
-// of gnupg2 on the RHEL family.
-func GPGVPackage() string {
-	if IsEL() {
-		return "gnupg2"
-	}
-	return "gpgv"
-}
-
 // ---- packages -------------------------------------------------------------------------------------------------------------------
 
 // InstallCommand is the command that installs packages without questions, waiting for another package manager to finish.

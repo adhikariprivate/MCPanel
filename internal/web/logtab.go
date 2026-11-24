@@ -34,7 +34,7 @@ type logView struct {
 // valid is replaced by the default instead of being passed on.
 func (s *Server) loadLogs(r *http.Request, row siteRow) *logView {
 	T := translatorForRequest(r)
-	hasApp := row.Kind == string(site.Node) || row.Kind == string(site.Python) || row.Kind == string(site.Binary) || row.Kind == string(site.Mise)
+	hasApp := row.Kind == string(site.Binary) || row.Kind == string(site.Mise)
 	q := r.URL.Query()
 	kind := q.Get("kind")
 	if kind != sitelog.Error && !(kind == sitelog.App && hasApp) {

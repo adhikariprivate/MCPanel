@@ -36,9 +36,9 @@ func (s *Store) AddDatabaseEngine(site, name, engine string) error {
 
 // ListDatabases returns the databases of one site, or of all sites when site is empty, ordered by name.
 func (s *Store) ListDatabases(site string) ([]Database, error) {
-	q, args := `SELECT d.name, s.name, d.engine FROM databases d JOIN sites s ON s.id = d.site_id ORDER BY d.name`, []any{}
+	q, args := `SELECT d.name, COALESCE(s.name,''), d.engine FROM databases d LEFT JOIN sites s ON s.id = d.site_id ORDER BY d.name`, []any{}
 	if site != "" {
-		q, args = `SELECT d.name, s.name, d.engine FROM databases d JOIN sites s ON s.id = d.site_id WHERE s.name = ? ORDER BY d.name`, []any{site}
+		q, args = `SELECT d.name, COALESCE(s.name,''), d.engine FROM databases d JOIN sites s ON s.id = d.site_id WHERE s.name = ? ORDER BY d.name`, []any{site}
 	}
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
@@ -58,7 +58,7 @@ func (s *Store) ListDatabases(site string) ([]Database, error) {
 
 func (s *Store) GetDatabase(name string) (Database, error) {
 	var d Database
-	err := s.db.QueryRow(`SELECT d.name, s.name, d.engine FROM databases d JOIN sites s ON s.id = d.site_id WHERE d.name = ?`, name).Scan(&d.Name, &d.Site, &d.Engine)
+	err := s.db.QueryRow(`SELECT d.name, COALESCE(s.name,''), d.engine FROM databases d LEFT JOIN sites s ON s.id = d.site_id WHERE d.name = ?`, name).Scan(&d.Name, &d.Site, &d.Engine)
 	if err != nil {
 		return Database{}, fmt.Errorf("database %q: %w", name, ErrNotFound)
 	}

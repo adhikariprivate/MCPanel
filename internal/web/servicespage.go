@@ -21,7 +21,7 @@ type svcView struct {
 }
 
 // svcOrder is the order of the blocks. A group with no rows is not drawn.
-var svcOrder = []string{services.GroupService, services.GroupDatabase, services.GroupPHP, services.GroupNode, services.GroupTool}
+var svcOrder = []string{services.GroupService, services.GroupDatabase, services.GroupPHP, services.GroupTool}
 
 func (s *Server) servicesPages(mux *http.ServeMux) {
 	mux.HandleFunc("GET /services", s.auth(s.servicesPage))

@@ -99,8 +99,7 @@ func panelNewPort(old int) int {
 	return 0
 }
 
-// portFree checks that nothing on the machine holds port, apart from the service itself. The ports of node and python sites count
-// too, though they may be asleep behind their socket.
+// portFree checks that nothing on the machine holds port, apart from the service itself. Ports reserved for app sites count too.
 func portFree(st *store.Store, service string, port int) error {
 	cur := currentPorts(st)
 	if who, ok := cur.InUse()[port]; ok {
@@ -111,7 +110,7 @@ func portFree(st *store.Store, service string, port int) error {
 	}
 	if sites, err := st.ListSites(); err == nil {
 		for _, s := range sites {
-			if s.NodePort == port {
+			if s.AppPort == port {
 				return fmt.Errorf("port %d is the port of the website %s", port, s.Name)
 			}
 		}

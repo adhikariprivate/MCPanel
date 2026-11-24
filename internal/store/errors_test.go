@@ -14,11 +14,11 @@ func TestDuplicateErrorsAreReadable(t *testing.T) {
 	if err := s.AddSite(phpSite("blog", "blog.example.com")); err != nil {
 		t.Fatal(err)
 	}
-	node := func(name string, port int, host string) site.Site {
-		return site.Site{Name: name, Kind: site.Node, User: name, Root: "/home/" + name + "/app",
-			Hostnames: []string{host}, NodePort: port, NodeVersion: "22", Entry: "server.js"}
+	app := func(name string, port int, host string) site.Site {
+		return site.Site{Name: name, Kind: site.Binary, User: name, Root: "/home/" + name + "/app",
+			Hostnames: []string{host}, AppPort: port, Entry: "bin/server"}
 	}
-	if err := s.AddSite(node("api", 20000, "api.example.com")); err != nil {
+	if err := s.AddSite(app("api", 20000, "api.example.com")); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.AddDatabase("blog", "blog"); err != nil {
@@ -31,7 +31,7 @@ func TestDuplicateErrorsAreReadable(t *testing.T) {
 	}{
 		{"hostname", s.AddSite(phpSite("shop", "blog.example.com")), "hostname is already taken"},
 		{"site name", s.AddSite(phpSite("blog", "other.example.com")), "site name is already taken"},
-		{"node port", s.AddSite(node("api2", 20000, "api2.example.com")), "node port is already taken"},
+		{"application port", s.AddSite(app("api2", 20000, "api2.example.com")), "application port is already taken"},
 		{"system user", s.AddSite(func() site.Site {
 			x := phpSite("other", "other.example.com")
 			x.User = "blog"

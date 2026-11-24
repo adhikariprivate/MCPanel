@@ -77,17 +77,6 @@ func TestWebRootIsOnlyCreatedWhenAbsent(t *testing.T) {
 	}
 }
 
-// Root must never run a program from the site's home: the user owns venv/bin/python and can make it anything.
-func TestRootNeverRunsTheInterpreterOfTheVirtualEnvironment(t *testing.T) {
-	s := venvScript(pySite())
-	for _, line := range strings.Split(s, "\n") {
-		run := strings.Contains(line, `"$venv/bin/python" `) && !strings.Contains(line, `-x "$venv/bin/python"`) // [ -x ] only tests the file
-		if run && !strings.Contains(line, "runuser -u py -- \"$venv/bin/python\"") {
-			t.Errorf("the interpreter of the environment runs without runuser: %s", line)
-		}
-	}
-}
-
 func TestTLSPlanCreatesTheLogDirectoryForOlderSites(t *testing.T) {
 	p, err := TLSPlan(base(site.Static), []byte("C"), []byte("K"), true)
 	if err != nil {

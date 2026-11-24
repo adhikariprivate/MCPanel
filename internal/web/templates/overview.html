@@ -86,61 +86,6 @@
   </fieldset>
   {{end}}
 
-  {{if eq $o.Kind "node"}}
-  <fieldset class="mt-8">
-    <legend class="text-sm font-semibold">{{T "ov.node.title"}}</legend>
-    <div class="mt-3 grid gap-4 sm:grid-cols-2">
-      <div>
-        <label for="s-node" class="label">{{T "ov.node.version"}}</label>
-        <select id="s-node" name="node" class="field">{{range $v := $o.NodeVersions}}<option{{if eq $v $o.NodeVer}} selected{{end}}>{{$v}}</option>{{end}}</select>
-      </div>
-      <div>
-        <label for="s-entry" class="label">{{T "ov.node.entry"}}</label>
-        <input id="s-entry" name="entry" class="field font-mono" value="{{$o.Entry}}" maxlength="120" spellcheck="false" required>
-        <p class="hint">{{T "ov.node.entry.hint"}}</p>
-      </div>
-      <div>
-        <label for="s-port" class="label">{{T "ov.node.port"}}</label>
-        <input id="s-port" name="port" type="number" min="1024" max="65535" class="field font-mono" value="{{if $o.Port}}{{$o.Port}}{{end}}" placeholder="{{T "ov.node.socket"}}">
-        <p class="hint">{{T "ov.node.port.hint"}}</p>
-      </div>
-      <div>
-        <label for="s-mem" class="label">{{T "ov.node.mem"}}</label>
-        <input id="s-mem" name="mem" type="number" min="64" max="8192" class="field font-mono" value="{{if $o.MemMB}}{{$o.MemMB}}{{end}}">
-        <p class="hint">{{T "ov.node.mem.hint"}}</p>
-      </div>
-    </div>
-  </fieldset>
-  {{end}}
-
-  {{if eq $o.Kind "python"}}
-  <fieldset class="mt-8">
-    <legend class="text-sm font-semibold">{{T "ov.python.title"}}</legend>
-    <div class="mt-3 grid gap-4 sm:grid-cols-2">
-      <div>
-        <label for="s-python" class="label">{{T "ov.python.version"}}</label>
-        <select id="s-python" name="python" class="field">{{range $v := $o.PyVersions}}<option{{if eq $v $o.PyVer}} selected{{end}}>{{$v}}</option>{{end}}</select>
-        <p class="hint">{{T "ov.python.notinstalled"}}</p>
-      </div>
-      <div>
-        <label for="s-entry" class="label">{{T "ov.python.entry"}}</label>
-        <input id="s-entry" name="entry" class="field font-mono" value="{{$o.Entry}}" maxlength="120" spellcheck="false" required>
-        <p class="hint">{{T "ov.python.entry.hint"}}</p>
-      </div>
-      <div>
-        <label for="s-port" class="label">{{T "ov.node.port"}}</label>
-        <input id="s-port" name="port" type="number" min="1024" max="65535" class="field font-mono" value="{{if $o.Port}}{{$o.Port}}{{end}}" placeholder="{{T "ov.node.socket"}}">
-        <p class="hint">{{T "ov.node.port.hint"}}</p>
-      </div>
-      <div>
-        <label for="s-mem" class="label">{{T "ov.node.mem"}}</label>
-        <input id="s-mem" name="mem" type="number" min="64" max="8192" class="field font-mono" value="{{if $o.MemMB}}{{$o.MemMB}}{{end}}">
-        <p class="hint">{{T "ov.node.mem.hint"}}</p>
-      </div>
-    </div>
-  </fieldset>
-  {{end}}
-
   {{if eq $o.Kind "binary"}}
   <fieldset class="mt-8">
     <legend class="text-sm font-semibold">{{T "kind.binary"}}</legend>
@@ -151,13 +96,13 @@
         <p class="hint">{{T "new.binary.entry"}}</p>
       </div>
       <div>
-        <label for="s-port" class="label">{{T "ov.node.port"}}</label>
+        <label for="s-port" class="label">{{T "ov.app.port"}}</label>
         <input id="s-port" name="port" type="number" min="1024" max="65535" class="field font-mono" value="{{$o.Port}}" required>
       </div>
       <div>
-        <label for="s-mem" class="label">{{T "ov.node.mem"}}</label>
+        <label for="s-mem" class="label">{{T "ov.app.mem"}}</label>
         <input id="s-mem" name="mem" type="number" min="64" max="8192" class="field font-mono" value="{{if $o.MemMB}}{{$o.MemMB}}{{end}}">
-        <p class="hint">{{T "ov.node.mem.hint"}}</p>
+        <p class="hint">{{T "ov.app.mem.hint"}}</p>
       </div>
     </div>
   </fieldset>

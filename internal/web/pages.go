@@ -67,7 +67,7 @@ func (r siteRow) Runtime() string {
 func (r siteRow) RuntimeText(T translator) string {
 	f := strings.Fields(r.Detail)
 	switch r.Kind {
-	case "php", "node", "python":
+	case "php":
 		if len(f) >= 2 {
 			return T("kind."+r.Kind) + " " + f[1]
 		}
@@ -197,7 +197,7 @@ func (s *Server) sitePages(mux *http.ServeMux) {
 
 func (s *Server) sitesPage(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
 	T := translatorForWriter(w)
-	v := view{Page: "sites", PHPVersions: site.PHPVersions, NodeVersions: site.NodeVersions}
+	v := view{Page: "sites", PHPVersions: site.PHPVersions}
 	resp, err := s.askText(T, ctl.Request{Op: "site.list"})
 	switch {
 	case err != nil:
@@ -230,7 +230,7 @@ func splitHosts(v string) []string {
 	return strings.FieldsFunc(v, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 }
 
-var siteKinds = []string{"php", "node", "python", "binary", "mise", "static", "proxy"}
+var siteKinds = []string{"php", "binary", "mise", "static", "proxy"}
 
 // installedPHP and installedNode are the versions the form may offer: the ones on this machine, or every known one when the
 // server was not told where to look (a test, or a build that does not know the machine).
@@ -241,16 +241,9 @@ func (s *Server) installedPHP() []string {
 	return s.InstalledPHP()
 }
 
-func (s *Server) installedNode() []string {
-	if s.NodeRoot == "" {
-		return site.NodeVersions
-	}
-	return site.InstalledNode(s.NodeRoot)
-}
-
 func (s *Server) newSitePage(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
 	T := translatorForWriter(w)
-	v := view{Page: "sitenew", Kinds: siteKinds, Reserved: reservedList(), PHPVersions: s.installedPHP(), NodeVersions: s.installedNode(), Apps: appOptions(), Locales: apps.Locales}
+	v := view{Page: "sitenew", Kinds: siteKinds, Reserved: reservedList(), PHPVersions: s.installedPHP(), Apps: appOptions(), Locales: apps.Locales}
 	if k := r.URL.Query().Get("kind"); k != "" {
 		if !slices.Contains(siteKinds, k) {
 			http.Error(w, T("err.kind"), http.StatusBadRequest)
@@ -321,11 +314,6 @@ func (s *Server) addSite(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 			nothing(T("err.phpmissing", v))
 			return
 		}
-	case "node":
-		if v := r.PostFormValue("node"); !slices.Contains(s.installedNode(), v) {
-			nothing(T("err.nodemissing", v))
-			return
-		}
 	}
 	// The code to download is chosen only for a PHP site, and is checked now, before anything is created.
 	var app appForm
@@ -368,7 +356,7 @@ func (s *Server) addSite(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 	}
 	res := s.runText(r, T, T("act.site.create", name),
 		ctl.Request{Op: "site.add", Site: name, User: user, Kind: r.PostFormValue("kind"), Hosts: hosts, PHP: r.PostFormValue("php"),
-			Node: r.PostFormValue("node"), Python: r.PostFormValue("python"), Entry: strings.TrimSpace(r.PostFormValue("entry")), Upstream: strings.TrimSpace(r.PostFormValue("upstream"))},
+			Entry: strings.TrimSpace(r.PostFormValue("entry")), Upstream: strings.TrimSpace(r.PostFormValue("upstream"))},
 		ctl.Request{Op: "site.apply", Site: name},
 		ctl.Request{Op: "site.access", Site: name, Enable: true, Password: password})
 	if !res.OK {

@@ -89,7 +89,7 @@ func TestSiteWithoutTLSAnswersHTTPSByRedirect(t *testing.T) {
 
 func TestNodeAndProxy(t *testing.T) {
 	n := phpSite()
-	n.Kind, n.PHPVersion, n.NodePort, n.NodeVersion, n.Entry = site.Node, "", 3001, "22", "server.js"
+	n.Kind, n.PHPVersion, n.AppPort, n.Entry = site.Binary, "", 3001, "app"
 	out, err := Render(n, Options{})
 	if err != nil {
 		t.Fatal(err)

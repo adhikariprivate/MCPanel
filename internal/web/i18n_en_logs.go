@@ -21,7 +21,7 @@ func init() {
 		"log.missing":     "No log at %s yet. It is created when the website receives its first request.",
 		"log.empty":       "The log is empty.",
 		"log.nomatch":     "No matching lines in the end of this log.",
-		"log.hint":        "Access logs record requests; error logs record nginx errors. Node and Python application logs come from the website service. Logs rotate daily and 14 copies are kept.",
+		"log.hint":        "Access logs record requests and error logs record nginx errors. Logs rotate daily and 14 copies are kept.",
 		"log.err.query":   "Invalid search text; the filter was not applied.",
 	} {
 		en[k] = v

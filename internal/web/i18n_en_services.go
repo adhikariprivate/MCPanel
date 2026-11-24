@@ -16,8 +16,6 @@ func init() {
 		"svc.group.database.d":     "Install one MySQL-family server (MariaDB or MySQL), and PostgreSQL alongside it if needed. Choose a version before installing. Select the engine for each database when adding it to a website.",
 		"svc.group.php":            "PHP versions",
 		"svc.group.php.d":          "Install versions as websites need them. A version runs only when a website uses it, so newly installed versions appear stopped.",
-		"svc.group.node":           "Node.js versions",
-		"svc.group.node.d":         "Installed in /opt/node. Choose a version when creating a Node website or in its settings.",
 		"svc.group.tool":           "Tools",
 		"svc.group.tool.d":         "phpMyAdmin opens MariaDB and MySQL databases from each website's Databases tab. PostgreSQL databases do not use phpMyAdmin.",
 		"svc.state.none":           "Not installed",

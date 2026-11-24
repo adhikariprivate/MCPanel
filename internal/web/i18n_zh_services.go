@@ -16,8 +16,6 @@ func init() {
 		"svc.group.database.d":     "可安装一种 MySQL 系服务器（MariaDB 或 MySQL），并按需同时安装 PostgreSQL。安装前请选择版本。为网站添加数据库时，请选择数据库引擎。",
 		"svc.group.php":            "PHP 版本",
 		"svc.group.php.d":          "网站需要时再安装对应版本。版本仅在有网站使用时才会运行，因此新装的版本显示为已停止。",
-		"svc.group.node":           "Node.js 版本",
-		"svc.group.node.d":         "安装在 /opt/node。创建 Node 网站时或在其设置中选择版本。",
 		"svc.group.tool":           "工具",
 		"svc.group.tool.d":         "phpMyAdmin 可从网站的“数据库”标签页打开 MariaDB 和 MySQL 数据库。PostgreSQL 数据库不能使用 phpMyAdmin。",
 		"svc.state.none":           "未安装",

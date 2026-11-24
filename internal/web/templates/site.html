@@ -26,6 +26,7 @@
 {{if or (index .TabAccess "vhost.view") (index .TabAccess "vhost.manage")}}{{template "vhosttab" .}}{{end}}
 {{if .Owner}}{{template "deletecard" .}}{{end}}
 {{else if eq .Tab "cron"}}{{template "crontab" .}}
+{{else if eq .Tab "background"}}{{template "backgroundtab" .}}
 {{else if eq .Tab "logs"}}{{template "logstab" .}}
 {{else if eq .Tab "email"}}{{template "siteemail" .}}
 {{else if eq .Tab "wordpress"}}{{template "wptab" .}}

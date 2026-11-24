@@ -96,7 +96,7 @@ func TestParamsAreChecked(t *testing.T) {
 		t.Fatal(err)
 	}
 	bad := map[string]func(*Params){
-		"a node site":        func(p *Params) { p.Site.Kind = site.Node },
+		"a binary site":      func(p *Params) { p.Site.Kind = site.Binary },
 		"already installed":  func(p *Params) { p.Site.App = "laravel" },
 		"php too old":        func(p *Params) { p.Recipe, _ = Get("laravel"); p.Site.PHPVersion = "8.1" },
 		"no title":           func(p *Params) { p.Title = "" },

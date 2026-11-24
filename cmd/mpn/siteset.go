@@ -8,11 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"mpn/internal/distro"
 	"mpn/internal/provision"
 	"mpn/internal/site"
 	"mpn/internal/tune"
-	"mpn/internal/unit"
 )
 
 // iniList collects "-ini name=value" flags.
@@ -22,7 +20,7 @@ func (l *iniList) String() string     { return strings.Join(*l, ",") }
 func (l *iniList) Set(v string) error { *l = append(*l, v); return nil }
 
 // siteSet changes the settings of a site that already exists: the web root below htdocs, the PHP version and settings,
-// the version, port, start script and memory of a node app, and the address a proxy forwards to. Only the flags that are
+// the version and settings of an app, and the address a proxy forwards to. Only the flags that are
 // given change anything, and a flag that does not fit the kind of the site is an error rather than ignored.
 //
 // With -apply the files of the site are made again, and the database is updated only after that worked, so the stored
@@ -36,10 +34,8 @@ func siteSet(args []string) {
 	var ini iniList
 	fs.Var(&ini, "ini", "PHP setting as name=value, repeat for several, php sites only")
 	iniReset := fs.Bool("ini-reset", false, "forget the PHP settings that were set before, php sites only; with -ini the new ones follow")
-	node := fs.String("node", "", "Node.js major version, node sites only")
-	python := fs.String("python", "", "Python 3 minor version such as 3.12, python sites only")
-	entry := fs.String("entry", "", "start script or binary path for an app site")
-	port := fs.Int("port", 0, "app port, or 0 for a Unix socket on node/python sites")
+	entry := fs.String("entry", "", "binary path for a binary site")
+	port := fs.Int("port", 0, "application port for binary or mise sites")
 	mem := fs.Int("mem", 0, "memory the app may use in MB, 0 for the default")
 	miseTask := fs.String("mise-task", "", "mise task to supervise; empty leaves the app stopped")
 	upstream := fs.String("upstream", "", "http(s) URL, proxy sites only")
@@ -72,11 +68,9 @@ func siteSet(args []string) {
 	for _, f := range []string{"php", "ini", "ini-reset"} {
 		onlyFor(f, site.PHP)
 	}
-	onlyFor("node", site.Node)
-	onlyFor("python", site.Python)
-	onlyFor("entry", site.Node, site.Python, site.Binary)
+	onlyFor("entry", site.Binary)
 	for _, f := range []string{"port", "mem"} {
-		onlyFor(f, site.Node, site.Python, site.Binary, site.Mise)
+		onlyFor(f, site.Binary, site.Mise)
 	}
 	onlyFor("mise-task", site.Mise)
 	onlyFor("upstream", site.Proxy)
@@ -106,25 +100,13 @@ func siteSet(args []string) {
 		}
 		cur.PHPIni[k] = v
 	}
-	if given["node"] {
-		cur.NodeVersion = *node
-	}
-	if given["python"] {
-		cur.PyVersion = *python
-	}
 	if given["entry"] {
 		cur.Entry = *entry
 	}
-	if given["port"] && *port == 0 && distro.IsEL() {
-		fail(errors.New("on the RHEL family an app listens on a port; give -port with a number"))
-	}
-	if given["port"] && *port == 0 && cur.Kind == site.Binary {
-		fail(errors.New("a binary app must listen on a TCP port"))
-	}
 	if given["port"] && *port == 0 {
-		cur.NodePort = 0 // a Unix socket
+		fail(errors.New("binary and mise apps must listen on a TCP port"))
 	} else if given["port"] {
-		cur.NodePort = *port
+		cur.AppPort = *port
 		if f := mpnPortHolder(*port); f != "" {
 			fail(fmt.Errorf("port %d is used by the panel (%s); an app needs another port", *port, f))
 		}
@@ -161,16 +143,10 @@ func siteSet(args []string) {
 	if cur.Kind == site.PHP && cur.PHPVersion != old.PHPVersion && !slices.Contains(site.InstalledPHP(), cur.PHPVersion) {
 		fail(fmt.Errorf("php %s is not installed on this machine; install it first with: mpn plan -php %s -apply", cur.PHPVersion, cur.PHPVersion))
 	}
-	if cur.Kind == site.Node && cur.NodeVersion != old.NodeVersion && !slices.Contains(site.InstalledNode(unit.NodeRoot), cur.NodeVersion) {
-		fail(fmt.Errorf("node %s is not installed on this machine; install it first with: mpn plan -node %s -apply", cur.NodeVersion, cur.NodeVersion))
-	}
-	if cur.Kind == site.Python && cur.PyVersion != old.PyVersion && !slices.Contains(site.InstalledPython("/usr/bin"), cur.PyVersion) {
-		fail(fmt.Errorf("python %s is not installed on this machine; install the package python%s (and python%s-venv) first", cur.PyVersion, cur.PyVersion, cur.PyVersion))
-	}
 
 	plan, err := provision.ChangePlan(old, cur, provision.Options{
 		Profile: tune.New(tune.Input{RAMMB: *r.ram, CPUs: 1}),
-		TLS:     *r.tls, CertDir: *r.certDir, NodeMemMB: *r.nodeMem,
+		TLS:     *r.tls, CertDir: *r.certDir, AppMemMB: *r.appMem,
 	})
 	fail(err)
 	if !*apply {
@@ -192,7 +168,7 @@ func portHolder(st interface {
 		return "", err
 	}
 	for _, s := range all {
-		if s.Name != self && (s.Kind == site.Node || s.Kind == site.Python || s.Kind == site.Binary || s.Kind == site.Mise) && s.NodePort == port {
+		if s.Name != self && (s.Kind == site.Binary || s.Kind == site.Mise) && s.AppPort == port {
 			return s.Name, nil
 		}
 	}

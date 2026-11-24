@@ -9,7 +9,7 @@ import (
 	"mpn/internal/site"
 )
 
-// The removal of what the Services page installs. Only what can go without losing anything of the person: a PHP or Node.js version
+// The removal of what the Services page installs. Only what can go without losing anything of the person: a PHP version
 // that no website runs on, the database browser and fail2ban. The packages are removed (apt remove, dnf remove), not purged, so the
 // settings of PHP stay in /etc and come back with a new install. The database servers and the mail programs are never removed here:
 // that would take every database or mailbox with them.
@@ -47,26 +47,6 @@ func phpPackagePattern(v string) string {
 		return "php" + strings.ReplaceAll(v, ".", "") + "-*"
 	}
 	return "php" + v + "-*"
-}
-
-// NodeRemovePlan removes one Node.js major version: the link /opt/node/<major> and the release it points at.
-func NodeRemovePlan(major string, sites []site.Site) (Plan, error) {
-	if !slices.Contains(site.NodeVersions, major) {
-		return nil, fmt.Errorf("node version %q is not offered", major)
-	}
-	if users := usersOf(sites, func(s site.Site) bool { return s.Kind == site.Node && s.NodeVersion == major }); len(users) > 0 {
-		return nil, fmt.Errorf("Node.js %s runs the websites %s; give them another version first", major, strings.Join(users, ", "))
-	}
-	// The release folder is found from the link, so a folder that something else put in /opt/node is never touched.
-	script := `set -eu
-l=/opt/node/` + major + `
-[ -L "$l" ] || { echo "Node.js ` + major + ` is not installed" >&2; exit 1; }
-d=$(readlink "$l")
-case "$d" in /opt/node/v` + major + `.*) ;; *) echo "/opt/node/` + major + ` points somewhere unexpected ($d); nothing was removed" >&2; exit 1;; esac
-rm -f "$l"
-rm -rf "$d"
-`
-	return Plan{{Name: "remove Node.js " + major, Actions: []Action{Run("sh", "-c", script)}}}, nil
 }
 
 // PMARemovePlan removes the database browser: its files, its pool, its address in nginx, its sweep and the flag of the panel. Its

@@ -10,8 +10,6 @@ func init() {
 		"new.back":         "Quay lại",
 		"new.create":       "Tạo website",
 		"new.desc.php":     "Website PHP, ví dụ WordPress hoặc Laravel. Mỗi website có nhóm tiến trình PHP riêng.",
-		"new.desc.python":  "Ứng dụng Python (Flask, Django, FastAPI…) chạy trong môi trường ảo riêng như một dịch vụ, nginx chuyển tiếp yêu cầu tới nó.",
-		"new.desc.node":    "Ứng dụng Node.js chạy như một dịch vụ riêng, nginx chuyển tiếp yêu cầu tới nó.",
 		"new.desc.static":  "Chỉ phục vụ các tệp HTML, CSS, hình ảnh có sẵn.",
 		"new.desc.binary":  "Chạy chương trình đã biên dịch như Go hoặc Rust dưới dạng dịch vụ web được giám sát, nginx chuyển tiếp yêu cầu tới chương trình.",
 		"new.desc.mise":    "Quản lý runtime và tác vụ ứng dụng bằng mise, sau đó chạy tác vụ nền trước được chọn dưới dạng dịch vụ web được giám sát.",
@@ -35,9 +33,7 @@ func init() {
 		"err.userused":     "Tài khoản %q đã được website %q dùng. Hãy chọn tên khác.",
 		"err.siteused":     "Đã có website tên %q.",
 		"err.phpmissing":   "PHP %q chưa được cài trên máy này. Cài bằng: mpn plan -php <phiên bản> -apply",
-		"err.nodemissing":  "Node.js %q chưa được cài trên máy này. Cài bằng: mpn plan -node <phiên bản> -apply",
 		"new.nophp":        "Chưa cài phiên bản PHP nào trên máy này. Cài bằng: mpn plan -php 8.4 -apply",
-		"new.nonode":       "Chưa cài phiên bản Node.js nào trên máy này. Cài bằng: mpn plan -node 22 -apply",
 		"err.exitstatus":   "Lệnh không thực hiện được. Chi tiết nằm ở phần kết quả bên dưới.",
 	} {
 		vi[k] = v

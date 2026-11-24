@@ -8,7 +8,7 @@ Open a website from the [Websites](index.md) page to land on the **Overview** ta
 
 ## Status information
 
-* **Status**: Running / Stopped (for Node.js and Python. PHP and static sites are always “running” because they are served by the shared nginx/PHP-FPM).
+* **Status**: Running / Stopped for Binary and mise services. PHP and static sites are served by shared nginx/PHP-FPM.
 * **Disk usage**: total size of the website’s home directory. For very large directories the panel shows “too large to measure quickly” so the page does not hang.
 * **SSL certificate**: days remaining, or “No certificate”.
 * **Latest backup**: time of the most recent successful backup.
@@ -21,18 +21,9 @@ Open a website from the [Websites](index.md) page to land on the **Overview** ta
 * **Common settings**: `memory_limit`, `max_execution_time`, `upload_max_filesize` and similar. The panel limits each website to the supported PHP settings.
 * **Other settings**: less common php.ini options, hidden by default.
 
-### Node.js
+### Binary and mise
 
-* **Node.js version**
-* **Entry file**: path relative to the document root, e.g. `server.js` or `dist/index.js`.
-* **Application port**: leave it empty and the app listens on the Unix socket `/run/mpn-app/<website>/app.sock`, which only Nginx can reach (the default for new websites from 1.2.0). The path is in the `SOCKET` environment variable, and `PORT` holds the same path, so Node.js’s `server.listen(process.env.PORT)` keeps working. Enter a port number and the app listens on `127.0.0.1` at `PORT`. On AlmaLinux, Rocky Linux and CentOS Stream apps always use a port.
-* **Maximum RAM**: an application that exceeds this limit is stopped and restarted automatically.
-
-### Python
-
-* **Python version**
-* **Entry file**: a path, or `-m module_name`. The app runs in the website’s own virtualenv (`~/venv`).
-* **Application port**: as for Node.js, empty means a Unix socket. A Python app reads the path from `SOCKET`, for example `gunicorn --bind unix:$SOCKET app:app`.
+These applications run as the website account under dedicated systemd services. Binary sites select an executable under the account's home directory. mise sites select a task in the Overview and show the active or pending task before saving it.
 
 ### Reverse proxy
 

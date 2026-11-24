@@ -12,7 +12,7 @@ import (
 // where, in a field called "back". That field comes from the browser, so it is only taken if it is one of the panel's own
 // pages; anything else (another site, a script address, a path with a line break) is ignored and the default is used.
 
-var siteTabs = regexp.MustCompile(`^/sites/([^/]+)(?:/(domain|sftp|advanced|databases|backups|files|terminal|cron))?$`)
+var siteTabs = regexp.MustCompile(`^/sites/([^/]+)(?:/(domain|sftp|advanced|databases|backups|background|files|terminal|cron))?$`)
 
 // safeBack returns raw if it is the address of one of the panel's pages, otherwise def.
 func safeBack(raw, def string) string {

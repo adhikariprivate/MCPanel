@@ -2,49 +2,32 @@ package web
 
 import (
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"mpn/internal/ctl"
 )
 
-// machine makes folders that look like a server with PHP 8.3 and 8.4 and Node 22 installed.
-func machine(t *testing.T, php []string, node []string) func(*Server) {
-	t.Helper()
-	dir := t.TempDir()
+// machine reports the PHP versions installed on the server.
+func machine(php []string) func(*Server) {
 	installed := append([]string{}, php...)
-	root := filepath.Join(dir, "node")
-	_ = os.MkdirAll(root, 0o755)
-	for _, v := range node {
-		_ = os.MkdirAll(filepath.Join(root, v, "bin"), 0o755)
-		_ = os.WriteFile(filepath.Join(root, v, "bin", "node"), []byte("x"), 0o755)
-	}
-	return func(s *Server) { s.InstalledPHP, s.NodeRoot = func() []string { return installed }, root }
+	return func(s *Server) { s.InstalledPHP = func() []string { return installed } }
 }
 
 func TestTheFormOffersOnlyVersionsThatAreInstalled(t *testing.T) {
-	h, _, c, _ := setupWith(t, createAnswers(), machine(t, []string{"8.3", "8.4"}, []string{"22"}))
+	h, _, c, _ := setupWith(t, createAnswers(), machine([]string{"8.3", "8.4"}))
 	body := do(h, "GET", "/sites/new?kind=php", nil, cookie(c)).Body.String()
 	if !strings.Contains(body, "<option>8.3</option>") || !strings.Contains(body, "<option selected>8.4</option>") || strings.Contains(body, "<option>7.4</option>") || strings.Contains(body, "<option>8.5</option>") {
 		t.Errorf("php versions offered: %s", body)
 	}
-	body = do(h, "GET", "/sites/new?kind=node", nil, cookie(c)).Body.String()
-	if !strings.Contains(body, "<option selected>22</option>") || strings.Contains(body, "<option>18</option>") || strings.Contains(body, "<option>24</option>") {
-		t.Errorf("node versions offered: %s", body)
-	}
 }
 
 func TestTheFormSaysSoWhenNothingIsInstalled(t *testing.T) {
-	h, _, c, _ := setupWith(t, createAnswers(), machine(t, nil, nil))
+	h, _, c, _ := setupWith(t, createAnswers(), machine(nil))
 	if body := do(h, "GET", "/sites/new?kind=php", nil, cookie(c)).Body.String(); !strings.Contains(body, "Chưa cài phiên bản PHP nào") || strings.Contains(body, `name="php"`) {
 		t.Errorf("php: %s", body)
 	}
-	if body := do(h, "GET", "/sites/new?kind=node", nil, cookie(c)).Body.String(); !strings.Contains(body, "Chưa cài phiên bản Node.js nào") || strings.Contains(body, `name="node"`) {
-		t.Errorf("node: %s", body)
-	}
-	// kinds that need no runtime are not affected
+	// Kinds that need no runtime are not affected.
 	if body := do(h, "GET", "/sites/new?kind=static", nil, cookie(c)).Body.String(); strings.Contains(body, "Chưa cài") {
 		t.Error("a static site needs no PHP or Node")
 	}
@@ -52,10 +35,9 @@ func TestTheFormSaysSoWhenNothingIsInstalled(t *testing.T) {
 
 func TestAVersionThatIsNotInstalledIsRefusedBeforeAnythingIsMade(t *testing.T) {
 	for kind, form := range map[string]url.Values{
-		"php":  {"kind": {"php"}, "hosts": {"new.example.com"}, "php": {"7.4"}},
-		"node": {"kind": {"node"}, "hosts": {"new.example.com"}, "node": {"18"}},
+		"php": {"kind": {"php"}, "hosts": {"new.example.com"}, "php": {"7.4"}},
 	} {
-		h, f, c, tok := setupWith(t, createAnswers(), machine(t, []string{"8.4"}, []string{"22"}))
+		h, f, c, tok := setupWith(t, createAnswers(), machine([]string{"8.4"}))
 		form.Set("csrf", tok)
 		w := do(h, "POST", "/sites/add", form, cookie(c))
 		if w.Code != 400 || !strings.Contains(w.Body.String(), "chưa được cài") {
@@ -65,7 +47,7 @@ func TestAVersionThatIsNotInstalledIsRefusedBeforeAnythingIsMade(t *testing.T) {
 			t.Errorf("%s: the helper was asked: %v", kind, got)
 		}
 	}
-	h, f, c, tok := setupWith(t, createAnswers(), machine(t, []string{"8.4"}, []string{"22"}))
+	h, f, c, tok := setupWith(t, createAnswers(), machine([]string{"8.4"}))
 	w := do(h, "POST", "/sites/add", url.Values{"csrf": {tok}, "kind": {"php"}, "hosts": {"ok.example.com"}, "php": {"8.4"}}, cookie(c))
 	if w.Code != 303 || len(f.ops()) == 0 {
 		t.Errorf("an installed version must be accepted: %d %v", w.Code, f.ops())

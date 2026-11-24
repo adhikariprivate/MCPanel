@@ -153,7 +153,7 @@ func appInstall(args []string) {
 		cleanup()
 		fail(err)
 	}
-	plan, err := provision.ChangePlan(s, cur, provision.Options{Profile: tune.New(tune.Input{RAMMB: *ramFlag, CPUs: 1}), NodeMemMB: 256})
+	plan, err := provision.ChangePlan(s, cur, provision.Options{Profile: tune.New(tune.Input{RAMMB: *ramFlag, CPUs: 1}), AppMemMB: 256})
 	fail(err)
 	fail(runPlanQuiet(plan))
 	fail(st.UpdateSite(cur))

@@ -33,8 +33,6 @@ type siteInfo struct {
 	PHPValues   map[string]string `json:"php_values"`
 	PHPSet      map[string]string `json:"php_set"`
 	PHPMemory   int               `json:"php_memory_default"`
-	NodeVer     string            `json:"node_version"`
-	PyVer       string            `json:"python_version"`
 	Entry       string            `json:"entry"`
 	Port        int               `json:"port"`
 	MemMB       int               `json:"mem_mb"`
@@ -43,12 +41,10 @@ type siteInfo struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
 	} `json:"mise_tasks"`
-	MiseError     string   `json:"mise_error"`
-	Upstream      string   `json:"upstream"`
-	InstalledPHP  []string `json:"installed_php"`
-	InstalledNode []string `json:"installed_node"`
-	InstalledPy   []string `json:"installed_python"`
-	Nginx         string   `json:"nginx"`
+	MiseError    string   `json:"mise_error"`
+	Upstream     string   `json:"upstream"`
+	InstalledPHP []string `json:"installed_php"`
+	Nginx        string   `json:"nginx"`
 }
 
 // phpField is one PHP setting as the form shows it.
@@ -64,8 +60,7 @@ type overview struct {
 	DiskText, CertText, BackupText string
 	CertSoon                       bool // fewer than 14 days left
 	MiseTaskMissing                bool // the saved task is no longer present in mise.toml
-	PHPVersions, NodeVersions      []string
-	PyVersions                     []string
+	PHPVersions                    []string
 	Fields                         []phpField
 	More                           []phpField // settings that are not one of the six common ones
 	Home                           string     // the folder every web root lies in
@@ -108,8 +103,6 @@ func (s *Server) loadOverviewText(T translator, row siteRow) (*overview, string)
 	}
 	// Only versions that are installed are offered, and the one in use is always among them.
 	o.PHPVersions = withCurrent(in.InstalledPHP, in.PHPVersion)
-	o.NodeVersions = withCurrent(in.InstalledNode, in.NodeVer)
-	o.PyVersions = withCurrent(in.InstalledPy, in.PyVer)
 	if row.Kind == string(site.PHP) {
 		for _, d := range site.PHPSettings(strconv.Itoa(in.PHPMemory) + "M") {
 			f := phpField{Name: d.Name, Default: d.Default, Hint: hintFor(T, d.Name, d.Hint), Common: d.Common, Choices: d.Choices, Value: in.PHPValues[d.Name]}
@@ -176,40 +169,6 @@ func (s *Server) settingsRequest(r *http.Request, row siteRow, info siteInfo) (c
 		}
 		if site.UploadLargerThanPost(req.PHPIni) {
 			return req, T("set.err.upload")
-		}
-	case site.Node:
-		req.Node, req.Entry = get("node"), get("entry")
-		if !site.ValidNodeVersion(req.Node) || !slices.Contains(withCurrent(info.InstalledNode, info.NodeVer), req.Node) {
-			return req, T("set.err.node", req.Node)
-		}
-		if !site.ValidEntry(req.Entry) {
-			return req, T("set.err.entry")
-		}
-		var err error
-		if req.Port, err = appPortField(get("port")); err != nil {
-			return req, T("set.err.port")
-		}
-		if m := get("mem"); m != "" {
-			if req.Mem, err = strconv.Atoi(m); err != nil || !site.ValidMemMB(req.Mem) {
-				return req, T("set.err.mem")
-			}
-		}
-	case site.Python:
-		req.Python, req.Entry = get("python"), get("entry")
-		if !site.ValidPythonVersion(req.Python) || !slices.Contains(withCurrent(info.InstalledPy, info.PyVer), req.Python) {
-			return req, T("set.err.python", req.Python)
-		}
-		if !site.ValidPythonEntry(req.Entry) {
-			return req, T("set.err.pyentry")
-		}
-		var err error
-		if req.Port, err = appPortField(get("port")); err != nil {
-			return req, T("set.err.port")
-		}
-		if m := get("mem"); m != "" {
-			if req.Mem, err = strconv.Atoi(m); err != nil || !site.ValidMemMB(req.Mem) {
-				return req, T("set.err.mem")
-			}
 		}
 	case site.Binary:
 		req.Entry = get("entry")

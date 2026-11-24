@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strconv"
 
 	"mpn/internal/access"
 	"mpn/internal/apps"
@@ -20,7 +21,7 @@ func siteMenu(r siteRow, permissions map[string]bool, emailEnabled bool) []siteT
 	if permissions == nil {
 		permissions = map[string]bool{}
 	}
-	menu := []siteTabLink{{"overview", ""}, {"files", "/files"}, {"databases", "/databases"}, {"email", "/email"}, {"domain", "/domain"}, {"sftp", "/sftp"}, {"backups", "/backups"}, {"cron", "/cron"}, {"logs", "/logs"}, {"terminal", "/terminal"}, {"advanced", "/advanced"}}
+	menu := []siteTabLink{{"overview", ""}, {"files", "/files"}, {"databases", "/databases"}, {"email", "/email"}, {"domain", "/domain"}, {"sftp", "/sftp"}, {"backups", "/backups"}, {"background", "/background"}, {"cron", "/cron"}, {"logs", "/logs"}, {"terminal", "/terminal"}, {"advanced", "/advanced"}}
 	permissions["email"] = permissions["email"] && emailEnabled
 	permissions["domain"] = permissions["site.settings"] || permissions["domain"]
 	permissions["advanced"] = permissions["site.settings"] || permissions["vhost.view"] || permissions["vhost.manage"]
@@ -47,10 +48,10 @@ func siteMenu(r siteRow, permissions map[string]bool, emailEnabled bool) []siteT
 func (s *Server) siteTabAccess(user string, row siteRow) map[string]bool {
 	capabilities := map[string]string{
 		"overview": "site.view", "files": "files.read", "databases": "database.view", "email": "email.view",
-		"domain": "ssl.view", "ssl": "ssl.view", "backups": "backup.view", "cron": "cron.view", "logs": "logs.view", "sftp": "site.view", "advanced": "site.settings",
+		"domain": "ssl.view", "ssl": "ssl.view", "backups": "backup.view", "background": "background.view", "cron": "cron.view", "logs": "logs.view", "sftp": "site.view", "advanced": "site.settings",
 		"terminal": "terminal.open", "vhost.view": "vhost.view", "wordpress": "wordpress.view",
 		"site.settings": "site.settings", "ssh.manage": "ssh.manage", "app.manage": "app.manage",
-		"email.manage": "email.manage", "ssl.manage": "ssl.manage", "cron.manage": "cron.manage", "vhost.manage": "vhost.manage",
+		"email.manage": "email.manage", "ssl.manage": "ssl.manage", "cron.manage": "cron.manage", "background.manage": "background.manage", "vhost.manage": "vhost.manage",
 		"files.write": "files.write", "files.delete": "files.delete", "files.permissions": "files.permissions", "cloud.manage": "cloud.manage",
 		"wordpress.manage": "wordpress.manage",
 	}
@@ -68,21 +69,24 @@ func (s *Server) siteTabAccess(user string, row siteRow) map[string]bool {
 	for key, capability := range capabilities {
 		out[key] = access.Allows(user, row.AccessID, capability)
 	}
+	out["background"] = out["background.view"] || out["background.manage"]
 	out["advanced"] = out["site.settings"] || out["vhost.view"] || out["vhost.manage"]
 	return out
 }
 
 func (s *Server) sitePagesOfOne(mux *http.ServeMux) {
 	mux.HandleFunc("GET /sites/{name}/access", s.auth(s.siteAccessPage))
-	for _, tab := range []string{"", "/domain", "/sftp", "/advanced", "/databases", "/backups", "/cron", "/logs", "/email", "/wordpress"} {
+	for _, tab := range []string{"", "/domain", "/sftp", "/advanced", "/databases", "/backups", "/background", "/cron", "/logs", "/email", "/wordpress"} {
 		tab := tab
 		mux.HandleFunc("GET /sites/{name}"+tab, s.auth(func(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
-			s.siteTab(w, r, ss, map[string]string{"": "overview", "/domain": "domain", "/sftp": "sftp", "/advanced": "advanced", "/databases": "databases", "/backups": "backups", "/cron": "cron", "/logs": "logs", "/email": "email", "/wordpress": "wordpress"}[tab])
+			s.siteTab(w, r, ss, map[string]string{"": "overview", "/domain": "domain", "/sftp": "sftp", "/advanced": "advanced", "/databases": "databases", "/backups": "backups", "/background": "background", "/cron": "cron", "/logs": "logs", "/email": "email", "/wordpress": "wordpress"}[tab])
 		}))
 	}
 	mux.HandleFunc("POST /sites/{name}/cron", s.auth(s.addCron))
 	mux.HandleFunc("POST /sites/{name}/cron/{id}/toggle", s.auth(s.toggleCron))
 	mux.HandleFunc("POST /sites/{name}/cron/{id}/delete", s.auth(s.deleteCron))
+	mux.HandleFunc("POST /sites/{name}/background", s.auth(s.backgroundPost))
+	mux.HandleFunc("POST /sites/{name}/background/{id}/{action}", s.auth(s.backgroundPost))
 	mux.HandleFunc("POST /sites/{name}/vhost", s.auth(s.saveVhost))
 	mux.HandleFunc("POST /sites/{name}/vhost/reset", s.auth(s.resetVhost))
 	mux.HandleFunc("POST /sites/{name}/domain", s.auth(s.saveDomain))
@@ -179,6 +183,20 @@ func (s *Server) siteTab(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 		v.VH = s.loadVhostText(T, row)
 	case "cron":
 		v.Cron = s.loadCronText(T, row)
+	case "background":
+		v.Background = s.loadBackground(T, row)
+		v.Background.CanManage = v.TabAccess["background.manage"]
+		if raw := r.URL.Query().Get("logs"); raw != "" {
+			if id, err := strconv.ParseInt(raw, 10, 64); err == nil && id > 0 {
+				resp, e := s.Call(ctl.Request{Op: "site.bglogs", Site: row.Name, BackgroundID: id})
+				if e != nil {
+					v.Background.Error = e.Error()
+				} else {
+					v.Background.Logs = resp.Output
+					v.Background.LogID = id
+				}
+			}
+		}
 	case "logs":
 		v.Log = s.loadLogs(r, row)
 	case "email":

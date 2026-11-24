@@ -16,9 +16,7 @@ type Kind string
 const (
 	Static Kind = "static"
 	PHP    Kind = "php"
-	Node   Kind = "node"
 	Proxy  Kind = "proxy"
-	Python Kind = "python"
 	Binary Kind = "binary"
 	Mise   Kind = "mise"
 )
@@ -27,24 +25,6 @@ var miseTaskRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
 
 // ValidMiseTask reports whether name is safe as one argv item to mise run.
 func ValidMiseTask(name string) bool { return miseTaskRe.MatchString(name) }
-
-// pythonVersionRe matches the minor version of a Python 3 interpreter such as "3.12". Python sites use the interpreters the
-// system packages provide (/usr/bin/python3.N), so the list of versions is read from the machine, not fixed here.
-var pythonVersionRe = regexp.MustCompile(`^3\.(?:[0-9]|[1-3][0-9])$`)
-
-// ValidPythonVersion reports whether v looks like the minor version of a Python 3 interpreter.
-func ValidPythonVersion(v string) bool { return pythonVersionRe.MatchString(v) }
-
-// pythonEntryRe matches what a Python app is started with: a script relative to the web root, or "-m" and a module name.
-var pythonEntryRe = regexp.MustCompile(`^(?:[A-Za-z0-9_][A-Za-z0-9._/-]*|-m [A-Za-z_][A-Za-z0-9_.]*)$`)
-
-// ValidPythonEntry reports whether e is a safe start script or "-m module" for a Python app.
-func ValidPythonEntry(e string) bool {
-	return pythonEntryRe.MatchString(e) && !strings.Contains(e, "..")
-}
-
-// VenvDir is the virtual environment of a Python site. The site's own packages go here, never into the system's Python.
-func VenvDir(user string) string { return "/home/" + user + "/venv" }
 
 // MiseDataDir contains mutable mise metadata and caches for one site.
 func MiseDataDir(name string) string { return "/var/lib/mpn/mise/" + name + "/data" }
@@ -55,27 +35,22 @@ func MiseInstallsDir(name string) string { return "/var/lib/mpn/mise/" + name + 
 // PHPVersions are the versions offered. 8.6 is left out until it is confirmed as a stable release.
 var PHPVersions = []string{"7.0", "7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"}
 
-// NodeVersions are the Node.js major versions offered. Older ones are past end of life; the UI should warn.
-var NodeVersions = []string{"18", "20", "22", "24"}
-
 var entryRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._/-]*$`)
 
 type Site struct {
-	ID          int64  `json:"-"`
-	AccessID    string `json:"-"` // random stable identity; unlike a rowid, it cannot be reused for a recreated site
-	Name        string
-	Kind        Kind
-	User        string   // system account that owns the files and runs the app
-	Root        string   // absolute document root
-	Hostnames   []string // the first one is the primary name
-	PHPVersion  string   // php only
-	NodePort    int      // node and python: the port the app listens on (named for the first kind that used it); 0 is a Unix socket (UsesSocket)
-	NodeVersion string   // node only, a major version such as "22"
-	PyVersion   string   // python only, a minor version such as "3.12"
-	Entry       string   // node and python start script relative to Root; binary executable relative to the site's home
-	MiseTask    string   // mise task selected as the supervised web process; empty means not configured
-	Upstream    string   // proxy only, an http or https URL
-	TLS         bool     // HTTPS is on; set once a certificate is installed
+	ID         int64  `json:"-"`
+	AccessID   string `json:"-"` // random stable identity; unlike a rowid, it cannot be reused for a recreated site
+	Name       string
+	Kind       Kind
+	User       string   // system account that owns the files and runs the app
+	Root       string   // absolute document root
+	Hostnames  []string // the first one is the primary name
+	PHPVersion string   // php only
+	AppPort    int      // app port for Binary and mise sites
+	Entry      string   // binary executable relative to the site's home
+	MiseTask   string   // mise task selected as the supervised web process; empty means not configured
+	Upstream   string   // proxy only, an http or https URL
+	TLS        bool     // HTTPS is on; set once a certificate is installed
 	// Settings a person may change later (see settings.go).
 	PHPIni map[string]string // php only: the settings that differ from the defaults; validated against a fixed list
 	MemMB  int               // app memory limit in MB; 0 is the default
@@ -175,35 +150,9 @@ func (s Site) Validate() error {
 		if s.App != "" && !ValidApp(s.App) {
 			add("application %q is not one mpn installs", s.App)
 		}
-	case Node:
-		if s.NodePort != 0 && !ValidAppPort(s.NodePort) {
-			add("node port %d must be between 1024 and 65535 and not one that the server itself uses", s.NodePort)
-		}
-		if !slices.Contains(NodeVersions, s.NodeVersion) {
-			add("node version %q is not offered", s.NodeVersion)
-		}
-		if !entryRe.MatchString(s.Entry) || strings.Contains(s.Entry, "..") {
-			add("entry %q must be a relative path to the start script", s.Entry)
-		}
-		if s.MemMB != 0 && (s.MemMB < 64 || s.MemMB > 8192) {
-			add("memory %d MB must be 0 (the default) or between 64 and 8192", s.MemMB)
-		}
-	case Python:
-		if s.NodePort != 0 && !ValidAppPort(s.NodePort) {
-			add("python port %d must be between 1024 and 65535 and not one that the server itself uses", s.NodePort)
-		}
-		if !ValidPythonVersion(s.PyVersion) {
-			add("python version %q must look like 3.12", s.PyVersion)
-		}
-		if !ValidPythonEntry(s.Entry) {
-			add("entry %q must be a relative path to the start script, or -m and a module name", s.Entry)
-		}
-		if !ValidMemMB(s.MemMB) {
-			add("memory %d MB must be 0 (the default) or between 64 and 8192", s.MemMB)
-		}
 	case Binary:
-		if !ValidAppPort(s.NodePort) {
-			add("binary app port %d must be between 1024 and 65535 and not one that the server itself uses", s.NodePort)
+		if !ValidAppPort(s.AppPort) {
+			add("binary app port %d must be between 1024 and 65535 and not one that the server itself uses", s.AppPort)
 		}
 		if !ValidBinaryEntry(s.Entry) {
 			add("binary entry %q must be a relative executable path under the site's home", s.Entry)
@@ -215,8 +164,8 @@ func (s Site) Validate() error {
 		if s.Root != HtdocsOf(s.User) {
 			add("mise sites use the fixed web root %q so mise.toml stays editable in the site file tools", HtdocsOf(s.User))
 		}
-		if !ValidAppPort(s.NodePort) {
-			add("mise app port %d must be between 1024 and 65535 and not one that the server itself uses", s.NodePort)
+		if !ValidAppPort(s.AppPort) {
+			add("mise app port %d must be between 1024 and 65535 and not one that the server itself uses", s.AppPort)
 		}
 		if s.MiseTask != "" && !ValidMiseTask(s.MiseTask) {
 			add("mise task %q has an invalid name", s.MiseTask)
@@ -235,25 +184,11 @@ func (s Site) Validate() error {
 	return errors.Join(errs...)
 }
 
-// UsesSocket reports whether a node or python app listens on a Unix socket (AppSocket) instead of a TCP port: NodePort is 0. Sites
-// made from 1.2.0 on Debian and Ubuntu do; a socket cannot be reached by another account of the machine, a port on 127.0.0.1 can.
-func (s Site) UsesSocket() bool { return (s.Kind == Node || s.Kind == Python) && s.NodePort == 0 }
-
-// AppSocketDir holds the socket of an app. It is made by root when the app starts, owned by the site's account, with the group of
-// nginx and the setgid bit, so the socket the app makes belongs to that group and nginx alone may connect to it.
-func AppSocketDir(name string) string { return "/run/mpn-app/" + name }
-
-// AppSocket is the socket an app listens on; the unit passes it in SOCKET (and in PORT for Node.js, whose listen takes a path).
-func AppSocket(name string) string { return AppSocketDir(name) + "/app.sock" }
-
 // ProxyTarget returns the URL nginx forwards to, or "" for kinds that are not proxied.
 func (s Site) ProxyTarget() string {
 	switch s.Kind {
-	case Node, Python, Binary, Mise:
-		if s.UsesSocket() {
-			return "http://unix:" + AppSocket(s.Name) + ":"
-		}
-		return fmt.Sprintf("http://127.0.0.1:%d", s.NodePort)
+	case Binary, Mise:
+		return fmt.Sprintf("http://127.0.0.1:%d", s.AppPort)
 	case Proxy:
 		return s.Upstream
 	}
@@ -272,11 +207,7 @@ var reservedPorts = map[int]bool{
 // ValidAppPort reports whether an app may listen on p.
 func ValidAppPort(p int) bool { return p >= 1024 && p <= 65535 && !reservedPorts[p] }
 
-func ValidPHPVersion(v string) bool  { return slices.Contains(PHPVersions, v) }
-func ValidNodeVersion(v string) bool { return slices.Contains(NodeVersions, v) }
-
-// ValidEntry reports whether e is a relative path to a start script.
-func ValidEntry(e string) bool { return entryRe.MatchString(e) && !strings.Contains(e, "..") }
+func ValidPHPVersion(v string) bool { return slices.Contains(PHPVersions, v) }
 
 // ValidBinaryEntry permits an executable path under the site's home, outside the public document root.
 func ValidBinaryEntry(e string) bool { return entryRe.MatchString(e) && !strings.Contains(e, "..") }
@@ -287,5 +218,5 @@ func ValidUpstream(u string) bool {
 	return err == nil && (p.Scheme == "http" || p.Scheme == "https") && p.Host != "" && !strings.ContainsAny(u, " \t\r\n;{}\"'\\$")
 }
 
-// ValidMemMB reports whether m is 0 (the default) or a memory limit a node app may have.
+// ValidMemMB reports whether m is 0 (the default) or an application memory limit.
 func ValidMemMB(m int) bool { return m == 0 || (m >= 64 && m <= 8192) }

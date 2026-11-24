@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func TestPHPAndNodeSteps(t *testing.T) {
+func TestPHPSteps(t *testing.T) {
 	o := opts("mariadb", 1024)
-	o.PHPVersions, o.NodeVersions = []string{"7.4", "8.4"}, []string{"22", "24"}
+	o.PHPVersions = []string{"7.4", "8.4"}
 	p, err := Build(o)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,mise,php 7.4,8.4,node 22,node 24,database mariadb"; got != want {
+	if got, want := names(p), "base packages,journald limit,nginx,nginx pagespeed,mise,php 7.4,8.4,database mariadb"; got != want {
 		t.Errorf("steps=%s want %s", got, want)
 	}
 	s := p.String()
@@ -30,27 +30,11 @@ func TestPHPAndNodeSteps(t *testing.T) {
 	}
 }
 
-func TestNodeScriptNamesTheMajor(t *testing.T) {
-	st, err := nodeStep("22")
-	if err != nil {
-		t.Fatal(err)
-	}
-	script := st.Actions[len(st.Actions)-1].Args[2]
-	if !strings.Contains(script, "major=22\n") || strings.Contains(script, "@MAJOR@") {
-		t.Errorf("script:\n%s", script)
-	}
-}
-
-func TestUnknownRuntimeVersionsFail(t *testing.T) {
+func TestUnknownPHPVersionFails(t *testing.T) {
 	o := opts("", 1024)
 	o.PHPVersions = []string{"5.6"}
 	if _, err := Build(o); err == nil {
 		t.Error("php 5.6 must be rejected")
-	}
-	o = opts("", 1024)
-	o.NodeVersions = []string{"16"}
-	if _, err := Build(o); err == nil {
-		t.Error("node 16 must be rejected")
 	}
 }
 

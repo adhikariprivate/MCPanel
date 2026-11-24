@@ -11,9 +11,9 @@ The **Websites** page is the panel’s main page — it lists every website curr
 ## Information shown for each website
 
 * **Name**: the website’s system name (used as the SSH/SFTP account name and home directory name).
-* **Type**: PHP, Node.js, Python, Static or Reverse proxy.
+* **Type**: PHP, Binary, mise, Static or Reverse proxy.
 * **Domain**: the primary domain; extra domains collapse into “+N other domains”.
-* **Details**: the runtime version (PHP 8.4, Node 22…) or the upstream address (for reverse proxy).
+* **Details**: the PHP version, application type or upstream address (for reverse proxy).
 * **SSL**: whether a TLS certificate is installed.
 
 ## Website types
@@ -21,8 +21,8 @@ The **Websites** page is the panel’s main page — it lists every website curr
 | Type | Used for | Default document root |
 | --- | --- | --- |
 | **PHP** | WordPress, Laravel, custom PHP code | `htdocs` (or `public` when using a PHP framework) |
-| **Node.js** | Long-running Node apps (Express, Next.js…) | the directory chosen at creation |
-| **Python** | Flask, Django, FastAPI, running in their own virtualenv | the directory chosen at creation |
+| **Binary** | A compiled web application supervised by systemd | `htdocs` |
+| **mise** | A mise task supervised by systemd | `htdocs` |
 | **Static** | Plain HTML/CSS/JS, no server-side processing | `htdocs` |
 | **Reverse proxy** | Forwards requests to another address (an app running on a different host/port) | not applicable |
 

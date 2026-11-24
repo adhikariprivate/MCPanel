@@ -10,8 +10,6 @@ func init() {
 		"new.back":         "Back",
 		"new.create":       "Create website",
 		"new.desc.php":     "A PHP website such as WordPress or Laravel. Each website has its own PHP process pool.",
-		"new.desc.python":  "A Python application (Flask, Django, FastAPI…) running as a service in its own virtual environment, with nginx forwarding requests to it.",
-		"new.desc.node":    "A Node.js application running as a dedicated service, with nginx forwarding requests to it.",
 		"new.desc.static":  "Serve existing HTML, CSS and image files.",
 		"new.desc.binary":  "Run a compiled Go, Rust or other executable as a supervised web service, with nginx forwarding requests to it.",
 		"new.desc.mise":    "Manage language runtimes and app tasks with mise, then run a selected foreground task as a supervised web service.",
@@ -35,9 +33,7 @@ func init() {
 		"err.userused":     "Account %q is already used by website %q. Choose another.",
 		"err.siteused":     "A website named %q already exists.",
 		"err.phpmissing":   "PHP %q is not installed. Install with: mpn plan -php <version> -apply",
-		"err.nodemissing":  "Node.js %q is not installed. Install with: mpn plan -node <version> -apply",
 		"new.nophp":        "No PHP versions installed. Install with: mpn plan -php 8.4 -apply",
-		"new.nonode":       "No Node.js versions installed. Install with: mpn plan -node 22 -apply",
 		"err.exitstatus":   "The command failed. See the result details below.",
 	} {
 		en[k] = v

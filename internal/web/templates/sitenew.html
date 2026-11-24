@@ -45,22 +45,6 @@
         </div>
         <p class="hint">{{T "app.note"}}</p>
       </div>
-      {{else if eq .Kind "node"}}
-      <div>
-        <label for="f-node" class="label">{{T "f.node"}}</label>
-        {{if .NodeVersions}}<select id="f-node" name="node" class="field">{{range .NodeVersions}}<option{{if eq . "22"}} selected{{end}}>{{.}}</option>{{end}}</select>
-        {{else}}<p class="alert-warn mt-1">{{T "new.nonode"}}</p>{{end}}
-      </div>
-      <div class="sm:col-span-2">
-        <label for="f-entry" class="label">{{T "f.entry"}}</label>
-        <input id="f-entry" name="entry" class="field" value="server.js">
-      </div>
-      {{else if eq .Kind "python"}}
-      <div class="sm:col-span-2">
-        <label for="f-entry" class="label">{{T "f.entry"}}</label>
-        <input id="f-entry" name="entry" class="field" value="app.py">
-        <p class="hint">{{T "ov.python.entry.hint"}}</p>
-      </div>
       {{else if eq .Kind "binary"}}
       <div class="sm:col-span-2">
         <label for="f-entry" class="label">{{T "f.entry"}}</label>

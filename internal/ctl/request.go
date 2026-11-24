@@ -14,6 +14,7 @@ import (
 
 	"mpn/internal/audit"
 	"mpn/internal/backup"
+	"mpn/internal/bgservice"
 	"mpn/internal/cloudprov"
 	"mpn/internal/cloudsync"
 	"mpn/internal/cron"
@@ -38,8 +39,6 @@ type Request struct {
 	User      string   `json:"user,omitempty"`
 	Hosts     []string `json:"hosts,omitempty"`
 	PHP       string   `json:"php,omitempty"`
-	Node      string   `json:"node,omitempty"`
-	Python    string   `json:"python,omitempty"` // a python site's interpreter, such as 3.12
 	Entry     string   `json:"entry,omitempty"`
 	MiseTask  string   `json:"mise_task,omitempty"`
 	Upstream  string   `json:"upstream,omitempty"`
@@ -53,8 +52,8 @@ type Request struct {
 	Password  string   `json:"password,omitempty"` // site.access with Enable: the password; reaches mpn on stdin only
 	// site.set: the settings of a site. All of those that belong to its kind are sent every time, so what a form shows is what is stored.
 	RootSub string            `json:"root_sub,omitempty"` // web root below htdocs; empty is htdocs itself
-	Port    int               `json:"port,omitempty"`     // port of a node app
-	Mem     int               `json:"mem,omitempty"`      // memory of a node app in MB, 0 for the default
+	Port    int               `json:"port,omitempty"`     // port of a Binary or mise app
+	Mem     int               `json:"mem,omitempty"`      // app memory in MB, 0 for the default
 	PHPIni  map[string]string `json:"php_ini,omitempty"`  // PHP settings that differ from the defaults
 	// site.domain: the domain of a site and its www choice. Both are sent every time.
 	Domain string `json:"domain,omitempty"`
@@ -70,10 +69,16 @@ type Request struct {
 	// site.vhostset: the nginx configuration written by hand. It reaches mpn on standard input only.
 	Vhost string `json:"vhost,omitempty"`
 	// Scheduled jobs. site.cronadd sends the schedule and the command on standard input.
-	Schedule string `json:"schedule,omitempty"`
-	Command  string `json:"command,omitempty"`
-	JobID    int64  `json:"job_id,omitempty"` // site.cronset and site.crondel
-	On       bool   `json:"on,omitempty"`     // site.cronset: the job runs
+	Schedule          string `json:"schedule,omitempty"`
+	Command           string `json:"command,omitempty"`
+	JobID             int64  `json:"job_id,omitempty"` // site.cronset and site.crondel
+	On                bool   `json:"on,omitempty"`     // site.cronset: the job runs
+	BackgroundID      int64  `json:"background_id,omitempty"`
+	BackgroundName    string `json:"background_name,omitempty"`
+	BackgroundKind    string `json:"background_kind,omitempty"`
+	BackgroundCommand string `json:"background_command,omitempty"`
+	BackgroundTask    string `json:"background_task,omitempty"`
+	BackgroundMemory  int    `json:"background_memory,omitempty"`
 	// The firewall. Client is the address of the person, so a rule that would block it is refused.
 	FwAction  string `json:"fw_action,omitempty"`
 	FwProto   string `json:"fw_proto,omitempty"`
@@ -171,6 +176,9 @@ func (r Request) Stdin() string {
 			Command  string `json:"command"`
 		}{r.Schedule, r.Command})
 		return string(b)
+	case r.Op == "site.bgadd", r.Op == "site.bgedit":
+		b, _ := json.Marshal(bgservice.Service{Name: r.BackgroundName, Kind: bgservice.Kind(r.BackgroundKind), Command: r.BackgroundCommand, Task: r.BackgroundTask, MemoryMB: r.BackgroundMemory})
+		return string(b)
 	case r.Op == "cloud.connect":
 		b, _ := json.Marshal(struct {
 			ClientID     string `json:"client_id"`
@@ -201,6 +209,7 @@ var writes = map[string]bool{
 	"site.ssl": true, "site.sslcustom": true, "site.csr": true, "site.ssloff": true, "site.sslredirect": true, // where the certificate comes from
 	"site.vhostset": true, "site.vhostreset": true, "site.speed": true, // the nginx configuration of a site
 	"site.cronadd": true, "site.cronset": true, "site.crondel": true, // the scheduled jobs of a site
+	"site.bgadd": true, "site.bgedit": true, "site.bgstart": true, "site.bgstop": true, "site.bgrestart": true, "site.bgdel": true,
 	"firewall.enable": true, "firewall.disable": true, "firewall.add": true, "firewall.del": true,
 	"port.set": true, "port.finish": true, "port.cancel": true, // the ports of SSH, the panel, phpMyAdmin and the web mail
 	"security.waf": true, "security.f2b": true, "security.unban": true, // ModSecurity with the OWASP rules, and fail2ban
@@ -223,7 +232,7 @@ var writes = map[string]bool{
 	"panel.update": true, // replaces the program with a signed release (mpn update), in the background
 }
 
-var reads = map[string]bool{"port.status": true, "port.sshaddr": true, "notify.status": true, "audit.list": true, "audit.note": true, "mail.cfdetect": true, "site.list": true, "site.info": true, "site.log": true, "services.status": true, "site.sslinfo": true, "site.vhost": true, "site.cronlist": true, "firewall.status": true, "security.status": true, "mail.status": true, "mail.records": true, "panel.sslinfo": true, "cloud.status": true, "cloud.list": true, "wp.status": true, "wp.search": true, "db.list": true, "backup.list": true, "panel.updatecheck": true}
+var reads = map[string]bool{"port.status": true, "port.sshaddr": true, "notify.status": true, "audit.list": true, "audit.note": true, "mail.cfdetect": true, "site.list": true, "site.info": true, "site.log": true, "site.bglist": true, "site.bglogs": true, "services.status": true, "site.sslinfo": true, "site.vhost": true, "site.cronlist": true, "firewall.status": true, "security.status": true, "mail.status": true, "mail.records": true, "panel.sslinfo": true, "cloud.status": true, "cloud.list": true, "wp.status": true, "wp.search": true, "db.list": true, "backup.list": true, "panel.updatecheck": true}
 
 var versionRe = regexp.MustCompile(`^\d{1,4}\.\d{1,4}\.\d{1,4}$`)
 
@@ -531,6 +540,28 @@ func (r Request) Argv() ([]string, error) {
 			verb = "enable"
 		}
 		return []string{"cron", verb, "-site", r.Site, "-id", strconv.FormatInt(r.JobID, 10), "-apply"}, nil
+	case "site.bglist", "site.bgadd", "site.bgedit", "site.bgstart", "site.bgstop", "site.bgrestart", "site.bglogs", "site.bgdel":
+		if err := requireSite(r.Site); err != nil {
+			return nil, err
+		}
+		if r.Op == "site.bglist" {
+			return []string{"site", "background", "list", "-name", r.Site}, nil
+		}
+		if r.BackgroundID < 1 && r.Op != "site.bgadd" {
+			return nil, fmt.Errorf("background service ID is not valid")
+		}
+		verb := strings.TrimPrefix(r.Op, "site.bg")
+		if verb == "add" || verb == "edit" {
+			v := bgservice.Service{Name: r.BackgroundName, Kind: bgservice.Kind(r.BackgroundKind), Command: r.BackgroundCommand, Task: r.BackgroundTask, MemoryMB: r.BackgroundMemory}
+			if err := bgservice.Valid(v); err != nil {
+				return nil, err
+			}
+			if r.BackgroundKind == string(bgservice.PHP) && !site.ValidPHPVersion(r.PHP) {
+				return nil, fmt.Errorf("site PHP version is not valid")
+			}
+			return []string{"site", "background", verb, "-name", r.Site, "-id", strconv.FormatInt(r.BackgroundID, 10), "-stdin", "-apply"}, nil
+		}
+		return []string{"site", "background", verb, "-name", r.Site, "-id", strconv.FormatInt(r.BackgroundID, 10), "-apply"}, nil
 	case "site.vhost", "site.vhostset", "site.vhostreset":
 		if err := requireSite(r.Site); err != nil {
 			return nil, err
@@ -688,7 +719,7 @@ func (r Request) addSite() ([]string, error) {
 		user = r.Site
 	}
 	s := site.Site{Name: r.Site, Kind: site.Kind(r.Kind), User: user, Root: "/home/" + user + "/htdocs",
-		Hostnames: r.Hosts, PHPVersion: r.PHP, NodeVersion: r.Node, Entry: r.Entry, Upstream: r.Upstream}
+		Hostnames: r.Hosts, PHPVersion: r.PHP, Entry: r.Entry, Upstream: r.Upstream}
 	a := []string{"site", "add", "-name", s.Name, "-kind", string(s.Kind), "-user", user}
 	switch s.Kind {
 	case site.PHP:
@@ -696,36 +727,14 @@ func (r Request) addSite() ([]string, error) {
 			s.PHPVersion = "8.4"
 		}
 		a = append(a, "-php", s.PHPVersion)
-	case site.Node:
-		if s.NodeVersion == "" {
-			s.NodeVersion = "22"
-		}
-		if s.Entry == "" {
-			s.Entry = "server.js"
-		}
-		s.NodePort = 20000 // only for the check; the real port is picked by mpn
-		a = append(a, "-node", s.NodeVersion, "-entry", s.Entry)
-	case site.Python:
-		s.PyVersion = r.Python
-		if s.PyVersion == "" {
-			s.PyVersion = "3.12" // only for the check; mpn uses the system's python3 when none is given
-		}
-		if s.Entry == "" {
-			s.Entry = "app.py"
-		}
-		s.NodePort = 20000
-		a = append(a, "-entry", s.Entry)
-		if r.Python != "" {
-			a = append(a, "-python", r.Python)
-		}
 	case site.Binary:
 		if s.Entry == "" {
 			s.Entry = "bin/server"
 		}
-		s.NodePort = 20000 // only for validation; mpn allocates the real port
+		s.AppPort = 20000 // only for validation; mpn allocates the real port
 		a = append(a, "-entry", s.Entry)
 	case site.Mise:
-		s.NodePort = 20000 // only for validation; the real port is picked by mpn
+		s.AppPort = 20000 // only for validation; the real port is picked by mpn
 	case site.Proxy:
 		a = append(a, "-upstream", s.Upstream)
 	}
@@ -790,7 +799,7 @@ func (r Request) setSite() ([]string, error) {
 	}
 	a := []string{"site", "set", "-name", r.Site}
 	switch site.Kind(r.Kind) {
-	case site.Static, site.PHP, site.Node, site.Python, site.Binary:
+	case site.Static, site.PHP, site.Binary:
 		if !site.ValidSubdir(r.RootSub) {
 			return nil, fmt.Errorf("web root %q: use folder names of letters, digits, '.', '_' and '-', separated by '/'", r.RootSub)
 		}
@@ -817,30 +826,6 @@ func (r Request) setSite() ([]string, error) {
 		for _, k := range keys {
 			a = append(a, "-ini", k+"="+r.PHPIni[k])
 		}
-	case site.Node:
-		switch {
-		case !site.ValidNodeVersion(r.Node):
-			return nil, fmt.Errorf("node version %q is not offered", r.Node)
-		case !site.ValidEntry(r.Entry):
-			return nil, fmt.Errorf("entry %q must be a relative path to the start script", r.Entry)
-		case r.Port != 0 && !site.ValidAppPort(r.Port):
-			return nil, fmt.Errorf("port %d must be between 1024 and 65535 and not one that the server itself uses", r.Port)
-		case !site.ValidMemMB(r.Mem):
-			return nil, fmt.Errorf("memory %d MB must be 0 (the default) or between 64 and 8192", r.Mem)
-		}
-		a = append(a, "-node", r.Node, "-entry", r.Entry, "-port", strconv.Itoa(r.Port), "-mem", strconv.Itoa(r.Mem))
-	case site.Python:
-		switch {
-		case !site.ValidPythonVersion(r.Python):
-			return nil, fmt.Errorf("python version %q must look like 3.12", r.Python)
-		case !site.ValidPythonEntry(r.Entry):
-			return nil, fmt.Errorf("entry %q must be a relative path to the start script, or -m and a module name", r.Entry)
-		case r.Port != 0 && !site.ValidAppPort(r.Port):
-			return nil, fmt.Errorf("port %d must be between 1024 and 65535 and not one that the server itself uses", r.Port)
-		case !site.ValidMemMB(r.Mem):
-			return nil, fmt.Errorf("memory %d MB must be 0 (the default) or between 64 and 8192", r.Mem)
-		}
-		a = append(a, "-python", r.Python, "-entry", r.Entry, "-port", strconv.Itoa(r.Port), "-mem", strconv.Itoa(r.Mem))
 	case site.Binary:
 		switch {
 		case !site.ValidBinaryEntry(r.Entry):

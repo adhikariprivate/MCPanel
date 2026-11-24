@@ -11,39 +11,53 @@ import (
 )
 
 func pySite() site.Site {
-	return site.Site{Name: "py", Kind: site.Python, User: "py", Root: "/home/py/htdocs", Hostnames: []string{"py.example.com"},
-		NodePort: 20007, PyVersion: "3.12", Entry: "app.py", MemMB: 256}
+	return site.Site{Name: "py", Kind: site.Kind("python"), User: "py", Root: "/home/py/htdocs", Hostnames: []string{"py.example.com"},
+		AppPort: 20007, Entry: "app.py", MemMB: 256}
 }
 
-func TestAPythonSiteIsStoredAndUpdated(t *testing.T) {
+func TestPythonSitesAreRefused(t *testing.T) {
 	s, _ := open(t)
-	if err := s.AddSite(pySite()); err != nil {
-		t.Fatal(err)
-	}
-	got, err := s.GetSite("py")
-	if err != nil || !reflect.DeepEqual(withoutSiteIdentity(got), pySite()) {
-		t.Fatalf("err=%v\ngot  %+v\nwant %+v", err, got, pySite())
-	}
-	next := pySite()
-	next.PyVersion, next.Entry, next.NodePort, next.MemMB = "3.11", "-m myapp", 20008, 0
-	if err := s.UpdateSite(next); err != nil {
-		t.Fatal(err)
-	}
-	if got, _ = s.GetSite("py"); !reflect.DeepEqual(withoutSiteIdentity(got), next) {
-		t.Fatalf("after update: %+v", got)
-	}
-	// the port is unique across node and python sites
-	other := pySite()
-	other.Name, other.User, other.Hostnames = "py2", "py2", []string{"py2.example.com"}
-	other.NodePort = 20008
-	if err := s.AddSite(other); !errors.Is(err, ErrExists) {
-		t.Errorf("a port in use must be refused: %v", err)
+	if err := s.AddSite(pySite()); err == nil {
+		t.Fatal("Python site creation should be disabled")
 	}
 }
 
-// A database made by the last release (version 4) must come through the rebuild of the sites table with its sites,
-// hostnames and databases intact: dropping the old table with foreign keys on would wipe the hostnames.
-func TestMigrationToPythonKeepsHostnamesAndDatabases(t *testing.T) {
+func TestLegacyRuntimeInventoryOnFreshDatabaseIsEmpty(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fresh.db")
+	sites, err := LegacyRuntimeSites(path)
+	if err != nil || len(sites) != 0 {
+		t.Fatalf("fresh database inventory: %+v err=%v", sites, err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatalf("fresh database should migrate normally: %v", err)
+	}
+	s.Close()
+}
+
+func TestLegacyRuntimeInventoryIncludesDelegatedAccessIdentity(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	db, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range migrations[:len(migrations)-1] {
+		if _, err := db.Exec(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(`INSERT INTO sites (name,kind,system_user,root_dir,created_at,access_id) VALUES ('legacy','python','legacy','/home/legacy/htdocs',1,'0123456789abcdef0123456789abcdef')`); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	sites, err := LegacyRuntimeSites(path)
+	if err != nil || len(sites) != 1 || sites[0].AccessID != "0123456789abcdef0123456789abcdef" {
+		t.Fatalf("legacy inventory identity: %+v err=%v", sites, err)
+	}
+}
+
+// The breaking migration removes generated runtime sites only after explicit cleanup and keeps their DB records detached.
+func TestRuntimeRemovalPreservesSiteFilesAndDatabases(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "old.db")
 	db, err := sql.Open("sqlite", path+"?_pragma=foreign_keys(1)")
 	if err != nil {
@@ -62,6 +76,7 @@ func TestMigrationToPythonKeepsHostnamesAndDatabases(t *testing.T) {
 		`INSERT INTO sites (id, name, kind, system_user, root_dir, app_port, node_version, entry, mem_mb, created_at) VALUES (2,'api','node','api','/home/api/htdocs',20000,'22','server.js',128,1)`,
 		`INSERT INTO hostnames VALUES ('blog.example.com',1,0), ('www.blog.example.com',1,1), ('api.example.com',2,0)`,
 		`INSERT INTO databases VALUES ('blog_wp',1,1)`,
+		`INSERT INTO databases VALUES ('api_data',2,2)`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			t.Fatal(err)
@@ -69,7 +84,14 @@ func TestMigrationToPythonKeepsHostnamesAndDatabases(t *testing.T) {
 	}
 	db.Close()
 
-	s, err := Open(path)
+	if _, err := Open(path); err == nil {
+		t.Fatal("ordinary Store.Open must refuse to remove legacy runtime sites")
+	}
+	legacy, err := LegacyRuntimeSites(path)
+	if err != nil || len(legacy) != 1 || legacy[0].Name != "api" || legacy[0].User != "api" {
+		t.Fatalf("raw legacy inventory: %+v err=%v", legacy, err)
+	}
+	s, err := OpenAfterRuntimeCleanup(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,16 +100,21 @@ func TestMigrationToPythonKeepsHostnamesAndDatabases(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(blog.Hostnames, []string{"blog.example.com", "www.blog.example.com"}) || !blog.TLS || blog.PHPIni["memory_limit"] != "512M" {
 		t.Fatalf("blog after the migration: %+v %v", blog, err)
 	}
-	api, err := s.GetSite("api")
-	if err != nil || api.NodePort != 20000 || api.MemMB != 128 || !reflect.DeepEqual(api.Hostnames, []string{"api.example.com"}) {
-		t.Fatalf("api after the migration: %+v %v", api, err)
+	if _, err := s.GetSite("api"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("legacy site metadata should be removed after OS cleanup: %v", err)
 	}
-	var n int
-	if err := s.db.QueryRow(`SELECT count(*) FROM databases WHERE site_id = 1`).Scan(&n); err != nil || n != 1 {
-		t.Fatalf("databases after the migration: %d %v", n, err)
+	d, err := s.GetDatabase("api_data")
+	if err != nil || d.Name != "api_data" || d.Site != "" || d.Engine != "mysql" {
+		t.Fatalf("database metadata must remain detached: %+v %v", d, err)
 	}
-	if err := s.AddSite(pySite()); err != nil {
-		t.Fatalf("a python site cannot be added after the migration: %v", err)
+	if err := s.AddSite(pySite()); err == nil {
+		t.Fatal("a python site cannot be added after the migration")
+	}
+	if rows, err := s.ListDatabases(""); err != nil || len(rows) != 2 || rows[0].Site != "" || rows[1].Site != "blog" {
+		t.Fatalf("detached DB list: %+v %v", rows, err)
+	}
+	if rows, err := s.ListDatabases("blog"); err != nil || len(rows) != 1 || rows[0].Name != "blog_wp" {
+		t.Fatalf("site DB list: %+v %v", rows, err)
 	}
 	// foreign keys are enforced again afterwards
 	if _, err := s.db.Exec(`INSERT INTO hostnames VALUES ('x.example.com', 999, 0)`); err == nil {

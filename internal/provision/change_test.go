@@ -88,9 +88,9 @@ func TestNoTimeLimitForTheScriptStillEndsTheRequestAfterAnHour(t *testing.T) {
 	}
 }
 
-func TestANodeSitesOwnMemoryWinsOverTheDefault(t *testing.T) {
-	s := base(site.Node)
-	s.NodePort, s.NodeVersion, s.Entry = 20000, "22", "server.js"
+func TestBinarySitesOwnMemoryWinsOverTheDefault(t *testing.T) {
+	s := base(site.Binary)
+	s.AppPort, s.Entry = 20000, "app"
 	p, _ := Plan(s, opts)
 	if u := fileWritten(p, "/etc/systemd/system/app-demo.service"); !strings.Contains(u, "MemoryMax=256M") {
 		t.Errorf("the default:\n%s", u)

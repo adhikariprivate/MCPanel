@@ -29,7 +29,7 @@ The installer will:
 
 Installation takes a few minutes depending on network speed.
 
-The installer does **not** install PHP, Node.js or a database. Pick what your websites need on the [Services](../services.md) page after signing in: PHP 7.0 to 8.5, Node.js 18 to 24, one of MariaDB or MySQL, PostgreSQL, and phpMyAdmin for MariaDB/MySQL.
+The installer does **not** install PHP or a database. Pick what your websites need on the [Services](../services.md) page after signing in: PHP 7.0 to 8.5, one of MariaDB or MySQL, PostgreSQL, and phpMyAdmin for MariaDB/MySQL. Node.js and Python are not managed site runtimes.
 
 ### Options
 
@@ -68,7 +68,7 @@ On these systems MCPN does a few things differently from Debian and Ubuntu:
 ## After installing
 
 1. Open the setup link the installer printed and create the administrator account. See [First-run setup](first-run-setup.md).
-2. Go to the [Services](../services.md) page to install PHP, Node.js and a database as you need.
+2. Go to the [Services](../services.md) page to install PHP and a database as you need.
 3. [Add a website](../websites/adding-a-website.md), point its domain at the server’s IP, then turn on [SSL](../websites/ssl.md).
 
 If your VPS provider has its own firewall, open TCP ports 80 and 443 and the panel port (2610 by default).

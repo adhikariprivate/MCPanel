@@ -39,10 +39,8 @@ type Server struct {
 	LoginCheck func(user string) error
 	// PasswdFile is where the shell of an account is read from; /etc/passwd when empty.
 	PasswdFile string
-	// InstalledPHP (site.InstalledPHP on a server) and NodeRoot (/opt/node) tell which versions are installed, so the form to
-	// add a website offers only those. When nil or empty, every version mpn knows is offered.
+	// InstalledPHP tells which versions are installed, so the form offers only those. When nil, the form uses known PHP versions.
 	InstalledPHP func() []string
-	NodeRoot     string
 	// Mon takes the measurements the monitoring page draws; nil leaves the page empty. UnitState asks systemd about a service;
 	// the real systemd when nil.
 	Mon       *monitor.Collector
@@ -319,7 +317,7 @@ func (s *Server) authorizeRequest(w http.ResponseWriter, r *http.Request, ss web
 		return s.denyAccess(w, r, ss, capability, site)
 	}
 	for _, row := range rows {
-		if row.Name == site && row.AccessID != "" && (access.Allows(ss.User, row.AccessID, capability) || (capability == "site.domain" && (access.Allows(ss.User, row.AccessID, "site.settings") || access.Allows(ss.User, row.AccessID, "ssl.view"))) || (capability == "site.advanced" && (access.Allows(ss.User, row.AccessID, "site.settings") || access.Allows(ss.User, row.AccessID, "vhost.view") || access.Allows(ss.User, row.AccessID, "vhost.manage")))) {
+		if row.Name == site && row.AccessID != "" && (access.Allows(ss.User, row.AccessID, capability) || (capability == "site.domain" && (access.Allows(ss.User, row.AccessID, "site.settings") || access.Allows(ss.User, row.AccessID, "ssl.view"))) || (capability == "site.advanced" && (access.Allows(ss.User, row.AccessID, "site.settings") || access.Allows(ss.User, row.AccessID, "vhost.view") || access.Allows(ss.User, row.AccessID, "vhost.manage"))) || (capability == "background.view" && access.Allows(ss.User, row.AccessID, "background.manage"))) {
 			return true
 		}
 	}
@@ -387,6 +385,8 @@ func requestCapability(r *http.Request) (capability, site string, ownerOnly bool
 			return "site.advanced", site, false
 		case "cron":
 			return "cron.view", site, false
+		case "background":
+			return "background.view", site, false
 		case "logs":
 			return "logs.view", site, false
 		case "databases":
@@ -420,6 +420,8 @@ func requestCapability(r *http.Request) (capability, site string, ownerOnly bool
 		return "ssl.manage", site, false
 	case "cron":
 		return "cron.manage", site, false
+	case "background":
+		return "background.manage", site, false
 	case "domain", "settings", "speed", "webmail":
 		return "site.settings", site, false
 	case "mise-task":
@@ -438,6 +440,11 @@ func requestCapability(r *http.Request) (capability, site string, ownerOnly bool
 	if len(parts) == 5 && parts[2] == "cron" && (parts[4] == "toggle" || parts[4] == "delete") {
 		if id, err := strconv.ParseInt(parts[3], 10, 64); err == nil && id > 0 {
 			return "cron.manage", site, false
+		}
+	}
+	if len(parts) == 5 && parts[2] == "background" && (parts[4] == "start" || parts[4] == "stop" || parts[4] == "restart" || parts[4] == "delete") {
+		if id, err := strconv.ParseInt(parts[3], 10, 64); err == nil && id > 0 {
+			return "background.manage", site, false
 		}
 	}
 	return "", "", true
@@ -546,6 +553,7 @@ type view struct {
 	SSL                                         *sslView
 	VH                                          *vhostView
 	Cron                                        *cronView
+	Background                                  *backgroundView
 	Log                                         *logView
 	Svc                                         *svcView
 	CF                                          *cfView
@@ -568,7 +576,6 @@ type view struct {
 	Backups                                     []backupRow
 	SiteNames                                   []string
 	PHPVersions                                 []string
-	NodeVersions                                []string
 	Result                                      *result
 	Confirm                                     *confirm
 	Foot                                        *footerView

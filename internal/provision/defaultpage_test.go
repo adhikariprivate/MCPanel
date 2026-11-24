@@ -21,10 +21,6 @@ func TestEachKindGetsThePageThatFitsIt(t *testing.T) {
 	}{
 		{pageSite(site.Static, ""), "index.html", "<title>Website đã sẵn sàng | MCPN</title>"},
 		{pageSite(site.PHP, ""), "index.php", "PHP_VERSION"},
-		{pageSite(site.Node, "server.js"), "server.js", "process.env.PORT"},
-		{pageSite(site.Node, "dist/app.js"), "", ""},
-		{pageSite(site.Python, "app.py"), "app.py", "HTTPServer"},
-		{pageSite(site.Python, "-m myapp"), "", ""},
 		{pageSite(site.Proxy, ""), "", ""},
 	} {
 		name, content, ok := DefaultPage(c.s)
@@ -53,14 +49,6 @@ func TestThePagesEscapeTheHostTheyShow(t *testing.T) {
 	_, php, _ := DefaultPage(pageSite(site.PHP, ""))
 	if !strings.Contains(php, "htmlspecialchars($_SERVER['HTTP_HOST']") || strings.Contains(php, "{{HOST}}") || strings.Contains(php, "{{RUNTIME}}") {
 		t.Errorf("php page:\n%s", php)
-	}
-	_, node, _ := DefaultPage(pageSite(site.Node, "server.js"))
-	if !strings.Contains(node, "esc(req.headers.host") {
-		t.Error("the node page must escape the host")
-	}
-	_, py, _ := DefaultPage(pageSite(site.Python, "app.py"))
-	if !strings.Contains(py, "html.escape(self.headers.get('Host'") {
-		t.Error("the python page must escape the host")
 	}
 	_, static, _ := DefaultPage(pageSite(site.Static, ""))
 	if strings.Contains(static, "{{") {

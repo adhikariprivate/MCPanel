@@ -25,37 +25,33 @@ import (
 // siteInfo is what the overview of a site shows. It is read by the root helper, because the size of a home directory and the
 // state of a service are not for the unprivileged web process to look at.
 type siteInfo struct {
-	Name          string            `json:"name"`
-	Kind          string            `json:"kind"`
-	User          string            `json:"user"`
-	Hostnames     []string          `json:"hostnames"`
-	Root          string            `json:"root"`
-	RootSub       string            `json:"root_sub"`
-	RootOutside   bool              `json:"root_outside"` // the root is not below htdocs (made by hand); it cannot be changed here
-	TLS           bool              `json:"tls"`
-	CertExpiry    int64             `json:"cert_expiry,omitempty"`
-	Running       bool              `json:"running"`
-	RunDetail     string            `json:"run_detail,omitempty"`
-	DiskBytes     int64             `json:"disk_bytes"`
-	DiskCut       bool              `json:"disk_cut,omitempty"`
-	LastBackup    string            `json:"last_backup,omitempty"`
-	PHPVersion    string            `json:"php_version,omitempty"`
-	PHPValues     map[string]string `json:"php_values,omitempty"` // every setting with the value that runs
-	PHPSet        map[string]string `json:"php_set,omitempty"`    // the settings the site changed
-	PHPMemory     int               `json:"php_memory_default,omitempty"`
-	NodeVer       string            `json:"node_version,omitempty"`
-	PyVer         string            `json:"python_version,omitempty"`
-	Entry         string            `json:"entry,omitempty"`
-	Port          int               `json:"port,omitempty"`
-	MemMB         int               `json:"mem_mb,omitempty"`
-	MiseTask      string            `json:"mise_task,omitempty"`
-	MiseTasks     []miseTask        `json:"mise_tasks,omitempty"`
-	MiseError     string            `json:"mise_error,omitempty"`
-	Upstream      string            `json:"upstream,omitempty"`
-	InstalledPHP  []string          `json:"installed_php"`
-	InstalledNode []string          `json:"installed_node"`
-	InstalledPy   []string          `json:"installed_python"`
-	Nginx         string            `json:"nginx"`
+	Name         string            `json:"name"`
+	Kind         string            `json:"kind"`
+	User         string            `json:"user"`
+	Hostnames    []string          `json:"hostnames"`
+	Root         string            `json:"root"`
+	RootSub      string            `json:"root_sub"`
+	RootOutside  bool              `json:"root_outside"` // the root is not below htdocs (made by hand); it cannot be changed here
+	TLS          bool              `json:"tls"`
+	CertExpiry   int64             `json:"cert_expiry,omitempty"`
+	Running      bool              `json:"running"`
+	RunDetail    string            `json:"run_detail,omitempty"`
+	DiskBytes    int64             `json:"disk_bytes"`
+	DiskCut      bool              `json:"disk_cut,omitempty"`
+	LastBackup   string            `json:"last_backup,omitempty"`
+	PHPVersion   string            `json:"php_version,omitempty"`
+	PHPValues    map[string]string `json:"php_values,omitempty"` // every setting with the value that runs
+	PHPSet       map[string]string `json:"php_set,omitempty"`    // the settings the site changed
+	PHPMemory    int               `json:"php_memory_default,omitempty"`
+	Entry        string            `json:"entry,omitempty"`
+	Port         int               `json:"port,omitempty"`
+	MemMB        int               `json:"mem_mb,omitempty"`
+	MiseTask     string            `json:"mise_task,omitempty"`
+	MiseTasks    []miseTask        `json:"mise_tasks,omitempty"`
+	MiseError    string            `json:"mise_error,omitempty"`
+	Upstream     string            `json:"upstream,omitempty"`
+	InstalledPHP []string          `json:"installed_php"`
+	Nginx        string            `json:"nginx"`
 }
 
 func sh(timeout time.Duration, name string, args ...string) (string, error) {
@@ -99,7 +95,7 @@ func lastBackup(name string) string {
 	return stamps[len(stamps)-1]
 }
 
-// running says whether the site is being served: the PHP pool exists and its master runs, the node unit is active, or (for
+// running says whether the site is being served: the PHP pool exists and its master runs, the app unit is active, or (for
 // static and proxy sites) its vhost is in place.
 func running(s site.Site) (bool, string) {
 	switch s.Kind {
@@ -110,7 +106,7 @@ func running(s site.Site) (bool, string) {
 		}
 		out, _ := sh(3*time.Second, "systemctl", "is-active", svc)
 		return out == "active", svc
-	case site.Node, site.Python, site.Binary:
+	case site.Binary:
 		out, _ := sh(3*time.Second, "systemctl", "is-active", unit.Name(s))
 		return out == "active", unit.Name(s)
 	case site.Mise:
@@ -127,7 +123,7 @@ func running(s site.Site) (bool, string) {
 func buildInfo(s site.Site, ramMB int) siteInfo {
 	p := tune.New(tune.Input{RAMMB: ramMB, CPUs: 1})
 	in := siteInfo{Name: s.Name, Kind: string(s.Kind), User: s.User, Hostnames: s.Hostnames, Root: s.Root, TLS: s.TLS,
-		InstalledPHP: site.InstalledPHP(), InstalledNode: site.InstalledNode(unit.NodeRoot), InstalledPy: site.InstalledPython("/usr/bin")}
+		InstalledPHP: site.InstalledPHP()}
 	if sub, ok := s.RootSub(); ok {
 		in.RootSub = sub
 	} else {
@@ -152,14 +148,10 @@ func buildInfo(s site.Site, ramMB int) siteInfo {
 		for _, k := range site.PHPSettings("") {
 			in.PHPValues[k.Name] = s.PHPValue(k.Name, p.PHPMemoryLimitMB)
 		}
-	case site.Node:
-		in.NodeVer, in.Entry, in.Port, in.MemMB = s.NodeVersion, s.Entry, s.NodePort, s.MemMB
-	case site.Python:
-		in.PyVer, in.Entry, in.Port, in.MemMB = s.PyVersion, s.Entry, s.NodePort, s.MemMB
 	case site.Binary:
-		in.Entry, in.Port, in.MemMB = s.Entry, s.NodePort, s.MemMB
+		in.Entry, in.Port, in.MemMB = s.Entry, s.AppPort, s.MemMB
 	case site.Mise:
-		in.MiseTask, in.Port, in.MemMB = s.MiseTask, s.NodePort, s.MemMB
+		in.MiseTask, in.Port, in.MemMB = s.MiseTask, s.AppPort, s.MemMB
 		var taskErr error
 		in.MiseTasks, taskErr = listMiseTasks(s)
 		if taskErr != nil {

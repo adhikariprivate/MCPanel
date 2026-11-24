@@ -3,8 +3,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/adhikariprivate/MCPanel/main/scripts/installer/install.sh | sh
 #
-# Installs nginx with the PageSpeed module and MCPN itself (ModSecurity is added when switched on). PHP, Node.js and the database are not installed here:
-# pick the ones you want later on the Services page of the panel.
+# Installs nginx with the PageSpeed module and MCPN itself (ModSecurity is added when switched on). PHP and the database are not installed here:
+# pick the ones you want later on the Services page of the panel. Use mise websites for Node.js, Python, or other app runtimes.
 #
 # Optional environment variables:
 #   MPN_VERSION    release to install, such as 1.0.0 (default: the latest release)
@@ -86,14 +86,38 @@ if [ -x /usr/local/bin/mpn ] && [ -f /etc/systemd/system/mpn-web.service ]; then
   # Already installed: replace the program only. Running the whole plan again would rewrite settings chosen since
   # (the phpMyAdmin port in mpn-web.service, for one).
   say "MCPN is already installed ($(/usr/local/bin/mpn version)); updating the program"
+  cp -p /usr/local/bin/mpn "$TMP/mpn.previous"
+  if [ "$HAVE_CLOUD" = 1 ] && [ -x /usr/local/bin/mpn-cloud ]; then cp -p /usr/local/bin/mpn-cloud "$TMP/mpn-cloud.previous"; fi
   install -m 0755 "$TMP/mpn" /usr/local/bin/mpn
   [ "$HAVE_CLOUD" = 1 ] && install -m 0755 "$TMP/mpn-cloud" /usr/local/bin/mpn-cloud
-  systemctl restart mpn-root mpn-web
-  # Bring the files a first install writes up to date (from 1.2.0: the panel on its socket). An older program has no such
-  # command and answers with its usage (exit 2); anything else that fails stops here.
+  if ! systemctl stop mpn-root mpn-web; then
+    install -m 0755 "$TMP/mpn.previous" /usr/local/bin/mpn
+    if [ -f "$TMP/mpn-cloud.previous" ]; then install -m 0755 "$TMP/mpn-cloud.previous" /usr/local/bin/mpn-cloud; fi
+    systemctl restart mpn-root mpn-web || true
+    die "could not stop MCPN services for the migration; the previous program was restored and a service restart was attempted"
+  fi
+  # Bring the files a first install writes up to date. An older program has no migrate subcommand and prints panel usage;
+  # never treat an actual migration error as success just because both historically used exit 2.
+  MIGRATE_LOG="$TMP/migrate.log"
   rc=0
-  /usr/local/bin/mpn panel migrate -apply || rc=$?
-  [ "$rc" -eq 0 ] || [ "$rc" -eq 2 ] || die "mpn panel migrate failed; the program was updated, run it again once the cause is fixed"
+  /usr/local/bin/mpn panel migrate -apply >"$MIGRATE_LOG" 2>&1 || rc=$?
+  if [ "$rc" -eq 2 ] && grep -Eq '^usage: mpn panel <[^>]+>' "$MIGRATE_LOG" && ! grep -Eq '^usage: mpn panel <[^>]*migrate' "$MIGRATE_LOG"; then
+    : # Old binary: this subcommand did not exist yet.
+  elif [ "$rc" -eq 3 ]; then
+    cat "$MIGRATE_LOG" >&2
+    rm -f "$MIGRATE_LOG"
+    systemctl restart mpn-root mpn-web || true
+    die "the database schema migration committed, so the new program was kept. Resolve the follow-up error and restart MCPN services"
+  elif [ "$rc" -ne 0 ]; then
+    cat "$MIGRATE_LOG" >&2
+    rm -f "$MIGRATE_LOG"
+    install -m 0755 "$TMP/mpn.previous" /usr/local/bin/mpn
+    if [ -f "$TMP/mpn-cloud.previous" ]; then install -m 0755 "$TMP/mpn-cloud.previous" /usr/local/bin/mpn-cloud; fi
+    systemctl restart mpn-root mpn-web || true
+    die "mpn panel migrate failed; the previous program was restored and a service restart was attempted. Resolve the cause, then run the update again"
+  fi
+  rm -f "$MIGRATE_LOG"
+  systemctl restart mpn-root mpn-web || die "migration completed, but MCPN services did not restart; start mpn-root and mpn-web after resolving the service error"
   say "Updated to $(/usr/local/bin/mpn version)"
   exit 0
 fi
@@ -121,7 +145,7 @@ cat <<EOF
      Lost it? Run: mpn web setup-link
 
   2. Install what your websites need on the Services page:
-     PHP (7.0 to 8.5), Node.js (18 to 24), MariaDB or MySQL, phpMyAdmin.
+     PHP (7.0 to 8.5), MariaDB or MySQL, phpMyAdmin. Use mise for application runtimes such as Node.js or Python.
 
   3. Add a website, point its domain to $IP and turn on SSL.
 

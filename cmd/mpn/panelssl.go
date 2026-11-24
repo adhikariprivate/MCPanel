@@ -190,6 +190,10 @@ func runPanel(args []string) {
 	staging := fs.Bool("staging", false, "ssl: use the Let's Encrypt test CA (for trials; browsers do not trust the result)")
 	apply := fs.Bool("apply", false, "change this machine (Linux, root); otherwise only check")
 	_ = fs.Parse(args[1:])
+	if sub == "migrate" {
+		panelMigratePath(*db, *apply)
+		return
+	}
 	st := openStore(*db)
 	defer st.Close()
 
@@ -262,8 +266,6 @@ func runPanel(args []string) {
 		fail(st.SetSetting(panelssl.SettingDomain, ""))
 		fail(syncFront(st))
 		fmt.Println("the panel uses its self-signed certificate again")
-	case "migrate":
-		panelMigrate(st, *apply)
 	case "sync":
 		// Writes or removes the server blocks that give the panel, the database browser and the web mail an address without a port,
 		// to match what is true now. Every command that changes one of the things they depend on does this by itself; this is for

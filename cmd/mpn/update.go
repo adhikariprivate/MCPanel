@@ -28,7 +28,8 @@ func insecureLocal() *http.Transport {
 
 // The program is replaced by "mpn update", which the web panel starts through the root helper (op panel.update). It downloads the
 // release, checks it against the key built into this program (update.Check), keeps the program that runs as mpn.prev, puts the
-// new one in place and runs "mpn panel migrate". When the panel does not answer afterwards, it puts mpn.prev back.
+// new one in place and runs "mpn panel migrate". It only rolls back before a schema change commits; older binaries may not read
+// the migrated database.
 
 const (
 	mpnPrev       = "/usr/local/bin/mpn.prev"
@@ -158,25 +159,47 @@ func installRelease(ctx context.Context, target, current update.Version, allowOl
 		_ = os.Remove(cloudTmp)
 		return fmt.Errorf("could not keep the old program: %w", err)
 	}
+	restart := func() error {
+		return exec.Command("systemctl", "restart", "mpn-root", "mpn-web").Run()
+	}
+	if out, err := exec.Command("systemctl", "stop", "mpn-root", "mpn-web").CombinedOutput(); err != nil {
+		_ = os.Remove(tmp)
+		_ = os.Remove(cloudTmp)
+		_ = restart()
+		return fmt.Errorf("could not stop MCPN services before migration: %v %s", err, strings.TrimSpace(string(out)))
+	}
 	if err := os.Rename(tmp, mpnPath); err != nil {
+		_ = restart()
 		return err
 	}
 	if hasCloud {
 		if err := os.Rename(cloudTmp, mpnCloudFile); err != nil {
-			return err
+			return rollBack(restart, say, err)
 		}
 	}
 	say("the program is %s; the old one is kept as %s", v, mpnPrev)
 
-	restart := func() error {
-		return exec.Command("systemctl", "restart", "mpn-root", "mpn-web").Run()
-	}
-	_ = restart()
-	if out, err := exec.Command(mpnPath, "panel", "migrate", "-apply").CombinedOutput(); err != nil {
+	out, err := exec.Command(mpnPath, "panel", "migrate", "-apply").CombinedOutput()
+	schemaCommitted := strings.Contains(string(out), "database schema migration committed")
+	if err != nil {
 		say("mpn panel migrate: %s", strings.TrimSpace(string(out)))
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 3 {
+			_ = restart()
+			return fmt.Errorf("mpn panel migrate reported a follow-up error after committing the database schema; the new program was kept: %w", err)
+		}
 		return rollBack(restart, say, fmt.Errorf("mpn panel migrate failed: %w", err))
 	}
+	if err := restart(); err != nil {
+		if schemaCommitted {
+			return fmt.Errorf("database schema migration committed; the new program was kept but MCPN services did not restart: %w", err)
+		}
+		return rollBack(restart, say, fmt.Errorf("MCPN services did not restart: %w", err))
+	}
 	if err := panelAnswers(); err != nil {
+		if schemaCommitted {
+			return fmt.Errorf("database schema migration committed; the new program was kept but the panel did not answer: %w", err)
+		}
 		return rollBack(restart, say, err)
 	}
 	say("done: the panel runs %s", v)

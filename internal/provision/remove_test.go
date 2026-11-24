@@ -31,9 +31,9 @@ func TestRemovePHPKeepsAccountByDefault(t *testing.T) {
 	}
 }
 
-func TestRemoveNodeAndPurge(t *testing.T) {
-	s := base(site.Node)
-	s.NodePort, s.NodeVersion, s.Entry = 20000, "22", "server.js"
+func TestRemoveBinaryAndPurge(t *testing.T) {
+	s := base(site.Binary)
+	s.AppPort, s.Entry = 20000, "app"
 	p, err := RemovePlan(s, true)
 	if err != nil {
 		t.Fatal(err)

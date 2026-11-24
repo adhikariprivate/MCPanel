@@ -6,7 +6,7 @@ import (
 	"mpn/internal/installer"
 )
 
-func probe(units map[string]string, files map[string]string, node ...string) Probe {
+func probe(units map[string]string, files map[string]string) Probe {
 	return Probe{
 		State: func(u string) (string, string) {
 			if st, ok := units[u]; ok {
@@ -14,7 +14,6 @@ func probe(units map[string]string, files map[string]string, node ...string) Pro
 			}
 			return "", ""
 		},
-		Node:     node,
 		Exists:   func(p string) bool { _, ok := files[p]; return ok },
 		ReadFile: func(p string) (string, error) { return files[p], nil },
 	}
@@ -89,21 +88,21 @@ func TestOnlyTheListedServicesAndActionsAreAccepted(t *testing.T) {
 }
 
 func TestOnlyWhatTheInstallerSupportsCanBeInstalled(t *testing.T) {
-	for _, k := range []string{PhpMyAdmin, "mariadb", "mysql", "postgresql", "php-7.0", "php-8.5", "node-18", "node-24"} {
+	for _, k := range []string{PhpMyAdmin, "mariadb", "mysql", "postgresql", "php-7.0", "php-8.5"} {
 		if err := ValidInstall(k); err != nil {
 			t.Errorf("%s: %v", k, err)
 		}
 	}
-	for _, k := range []string{"redis", "memcached", "nginx", "postfix", "php-5.6", "php-9.0", "node-16", "node-22; id", "", "php-"} {
+	for _, k := range []string{"redis", "memcached", "nginx", "postfix", "php-5.6", "php-9.0", "node-16", "node-22", "node-22; id", "", "php-"} {
 		if ValidInstall(k) == nil {
 			t.Errorf("%q must be refused", k)
 		}
 	}
 }
 
-func TestEveryPHPAndNodeVersionTheInstallerOffersIsListed(t *testing.T) {
+func TestEveryPHPVersionTheInstallerOffersIsListed(t *testing.T) {
 	items := Status(probe(nil, nil))
-	for _, k := range []string{"php-7.0", "php-7.4", "php-8.0", "php-8.4", "php-8.5", "node-18", "node-20", "node-22", "node-24"} {
+	for _, k := range []string{"php-7.0", "php-7.4", "php-8.0", "php-8.4", "php-8.5"} {
 		it, ok := byKey(items, k)
 		if !ok || it.Installed || !it.Installable {
 			t.Errorf("%s: %+v", k, it)
@@ -123,7 +122,7 @@ func TestEveryPHPAndNodeVersionTheInstallerOffersIsListed(t *testing.T) {
 
 func TestStatusShowsWhatIsInstalledAndWhatCouldBe(t *testing.T) {
 	p := probe(map[string]string{"nginx.service": "active", "mariadb.service": "inactive", "php8.4-fpm.service": "active", "php8.3-fpm.service": "inactive"},
-		map[string]string{"/etc/nginx/conf.d/01-mpn-panel.conf": ""}, "22")
+		map[string]string{"/etc/nginx/conf.d/01-mpn-panel.conf": ""})
 	items := Status(p)
 	if it, ok := byKey(items, "nginx"); !ok || !it.Installed || !it.Active || len(it.Actions) != 3 {
 		t.Errorf("nginx: %+v", it)
@@ -143,11 +142,8 @@ func TestStatusShowsWhatIsInstalledAndWhatCouldBe(t *testing.T) {
 	if it, _ := byKey(items, "php-8.2"); it.Installed || !it.Installable {
 		t.Errorf("php 8.2: %+v", it)
 	}
-	if it, _ := byKey(items, "node-22"); !it.Installed || it.Installable || it.Unit != "" {
-		t.Errorf("node 22 is files, not a unit: %+v", it)
-	}
-	if it, _ := byKey(items, "node-20"); it.Installed || !it.Installable {
-		t.Errorf("node 20: %+v", it)
+	if _, ok := byKey(items, "node-22"); ok {
+		t.Error("Node.js runtimes are not listed as panel-managed services")
 	}
 	if _, ok := byKey(items, "redis"); ok {
 		t.Error("redis is not something mpn manages")

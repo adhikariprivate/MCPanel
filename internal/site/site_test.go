@@ -11,11 +11,9 @@ func TestValidSites(t *testing.T) {
 	if err := valid().Validate(); err != nil {
 		t.Fatal(err)
 	}
-	n := valid()
-	n.Kind, n.PHPVersion, n.NodePort, n.NodeVersion, n.Entry = Node, "", 3001, "22", "server.js"
 	p := valid()
 	p.Kind, p.PHPVersion, p.Upstream = Proxy, "", "https://10.0.0.5:8443"
-	for _, s := range []Site{n, p} {
+	for _, s := range []Site{p} {
 		if err := s.Validate(); err != nil {
 			t.Errorf("%s: %v", s.Kind, err)
 		}
@@ -39,21 +37,9 @@ func TestRejects(t *testing.T) {
 		"web server user": func(s *Site) { s.User = "www-data" },
 		"systemd account": func(s *Site) { s.User = "systemd-network" },
 		"database user":   func(s *Site) { s.User = "mysql" },
-		"node low port": func(s *Site) {
-			s.Kind, s.PHPVersion, s.NodePort, s.NodeVersion, s.Entry = Node, "", 80, "22", "server.js"
-		},
-		"node bad version": func(s *Site) {
-			s.Kind, s.PHPVersion, s.NodePort, s.NodeVersion, s.Entry = Node, "", 3001, "9", "server.js"
-		},
-		"entry traversal": func(s *Site) {
-			s.Kind, s.PHPVersion, s.NodePort, s.NodeVersion, s.Entry = Node, "", 3001, "22", "../x.js"
-		},
-		"absolute entry": func(s *Site) {
-			s.Kind, s.PHPVersion, s.NodePort, s.NodeVersion, s.Entry = Node, "", 3001, "22", "/etc/x.js"
-		},
-		"ftp upstream":   func(s *Site) { s.Kind, s.Upstream = Proxy, "ftp://x.com" },
-		"space upstream": func(s *Site) { s.Kind, s.Upstream = Proxy, "http://a b" },
-		"semicolon":      func(s *Site) { s.Kind, s.Upstream = Proxy, "http://x.com;y" },
+		"ftp upstream":    func(s *Site) { s.Kind, s.Upstream = Proxy, "ftp://x.com" },
+		"space upstream":  func(s *Site) { s.Kind, s.Upstream = Proxy, "http://a b" },
+		"semicolon":       func(s *Site) { s.Kind, s.Upstream = Proxy, "http://x.com;y" },
 	}
 	for name, mutate := range cases {
 		s := valid()
@@ -65,10 +51,6 @@ func TestRejects(t *testing.T) {
 }
 
 func TestProxyTarget(t *testing.T) {
-	s := Site{Kind: Node, NodePort: 3001}
-	if got := s.ProxyTarget(); got != "http://127.0.0.1:3001" {
-		t.Errorf("got %q", got)
-	}
 	if got := valid().ProxyTarget(); got != "" {
 		t.Errorf("php must not be proxied, got %q", got)
 	}

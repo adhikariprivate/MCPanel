@@ -31,7 +31,7 @@ phpMyAdmin and webmail change in one step. Moving the panel keeps their ports. A
 | SSH | 1 to 65535 |
 | Panel, phpMyAdmin, webmail | 1024 to 65535 |
 
-Ports used by websites (80, 443), mail, MySQL, PHP-FPM, another service, a Node.js or Python site, or any other program are refused.
+Ports used by websites (80, 443), mail, MySQL, PHP-FPM, another service, or any other program are refused.
 
 Caution
 

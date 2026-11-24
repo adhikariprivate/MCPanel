@@ -4,6 +4,16 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ## [Unreleased]
 
+## [1.2.9] - 2026-11-24
+
+### Added
+
+- Websites can run multiple independently managed systemd background services alongside their web process. PHP sites accept PHP CLI commands, mise sites accept configured tasks, and all site kinds can run executables inside the site account's home. Services start stopped when saved and have individual lifecycle controls, journal logs and optional memory caps. Delegated access has separate view and manage permissions. See [Background services](websites/background-services.md).
+
+### Changed
+
+- Node.js and Python are no longer managed website types or installable panel runtimes. Use mise for those and other application runtimes. `mpn panel migrate -apply` first removes identifiable MCPN-generated services and site config and the obsolete Node.js release keyring, then removes the legacy site records while keeping `/home/<user>` and databases. Database records from removed sites remain available as detached databases. Shared runtimes under `/opt/node` remain in place because preserved site files or custom services may still use them. Review the default migration plan first; custom vHosts, cron files, or ambiguous generated units require manual resolution.
+
 ## [1.2.8] - 2026-11-24
 
 ### Changed

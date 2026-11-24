@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	defaultDB  = "/var/lib/mpn/mpn.db"
-	nodePortLo = 20000
-	nodePortHi = 29999
+	defaultDB = "/var/lib/mpn/mpn.db"
+	appPortLo = 20000
+	appPortHi = 29999
 )
 
 type hostList []string
@@ -33,7 +33,7 @@ type renderFlags struct {
 	tls     *bool
 	certDir *string
 	ram     *int
-	nodeMem *int
+	appMem  *int
 }
 
 func addRenderFlags(fs *flag.FlagSet) renderFlags {
@@ -41,7 +41,7 @@ func addRenderFlags(fs *flag.FlagSet) renderFlags {
 		fs.Bool("tls", false, "render the HTTPS server block"),
 		fs.String("certdir", "", "certificate directory for -tls (default /etc/mpn/certs/<name>)"),
 		fs.Int("ram", 1024, "host RAM in MB, sizes the PHP pool"),
-		fs.Int("nodemem", 256, "MemoryMax in MB for node apps, 0 for no cap"),
+		fs.Int("appmem", 256, "MemoryMax in MB for application services, 0 for no cap"),
 	}
 }
 
@@ -96,6 +96,8 @@ func runSite(args []string) {
 		siteMkroot(args[1:])
 	case "mise-install":
 		siteMiseInstall(args[1:])
+	case "background":
+		runSiteBackground(args[1:])
 	default:
 		siteUsage()
 	}
@@ -116,7 +118,7 @@ func openStore(path string) *store.Store {
 func siteAdd(args []string) {
 	fs := flag.NewFlagSet("site add", flag.ExitOnError)
 	db := fs.String("db", defaultDB, "database path")
-	kind := fs.String("kind", "php", "static, php, node, python, binary, mise or proxy")
+	kind := fs.String("kind", "php", "static, php, binary, mise or proxy")
 	var hosts hostList
 	fs.Var(&hosts, "host", "hostname, repeat for aliases (the first is primary)")
 	var s site.Site
@@ -124,11 +126,8 @@ func siteAdd(args []string) {
 	fs.StringVar(&s.User, "user", "", "system user (default: the site name)")
 	fs.StringVar(&s.Root, "root", "", "document root (default: /home/<user>/htdocs)")
 	fs.StringVar(&s.PHPVersion, "php", "8.4", "PHP version, php sites only")
-	fs.StringVar(&s.NodeVersion, "node", "22", "Node.js major version, node sites only")
-	fs.StringVar(&s.PyVersion, "python", "", "Python 3 minor version such as 3.12, python sites only (default: the system's python3)")
 	fs.StringVar(&s.Entry, "entry", "", "start script or binary path (binary paths are relative to the site home)")
-	fs.IntVar(&s.NodePort, "port", 0, "app port; 0 means a Unix socket for node/python, or a free port with -use-port")
-	usePort := fs.Bool("use-port", false, "node/python: listen on a free TCP port instead of a Unix socket")
+	fs.IntVar(&s.AppPort, "port", 0, "application port; automatically allocated when omitted")
 	fs.StringVar(&s.Upstream, "upstream", "", "http(s) URL, proxy sites only")
 	r := addRenderFlags(fs)
 	_ = fs.Parse(args)
@@ -143,17 +142,6 @@ func siteAdd(args []string) {
 	st := openStore(*db)
 	defer st.Close()
 	switch s.Kind {
-	case site.Node:
-		if s.Entry == "" {
-			s.Entry = "server.js"
-		}
-	case site.Python:
-		if s.Entry == "" {
-			s.Entry = "app.py"
-		}
-		if s.PyVersion == "" {
-			s.PyVersion = site.SystemPython()
-		}
 	case site.Binary:
 		if s.Entry == "" {
 			s.Entry = "bin/server"
@@ -161,21 +149,14 @@ func siteAdd(args []string) {
 	case site.Mise:
 		// The account starts unconfigured; only its nginx upstream port is allocated here.
 	}
-	// From 1.2.0 a node or python app listens on a Unix socket unless a port is asked for (-port N). On the RHEL family it keeps a port: nginx
-	// there runs as httpd_t, and connecting to a socket of an app in another domain needs a policy of its own, not written yet.
-	if (s.Kind == site.Binary || s.Kind == site.Mise) && s.NodePort == 0 {
-		p, err := st.AllocNodePort(nodePortLo, nodePortHi)
+	if (s.Kind == site.Binary || s.Kind == site.Mise) && s.AppPort == 0 {
+		p, err := st.AllocAppPort(appPortLo, appPortHi)
 		fail(err)
-		s.NodePort = p
+		s.AppPort = p
 	}
-	if (s.Kind == site.Node || s.Kind == site.Python) && s.NodePort == 0 && (*usePort || distro.IsEL()) {
-		p, err := st.AllocNodePort(nodePortLo, nodePortHi)
-		fail(err)
-		s.NodePort = p
-	}
-	if s.NodePort != 0 {
-		if f := mpnPortHolder(s.NodePort); f != "" {
-			fail(fmt.Errorf("port %d is used by the panel (%s); an app needs another port", s.NodePort, f))
+	if s.AppPort != 0 {
+		if f := mpnPortHolder(s.AppPort); f != "" {
+			fail(fmt.Errorf("port %d is used by the panel (%s); an app needs another port", s.AppPort, f))
 		}
 	}
 	fail(st.AddSite(s))
@@ -183,14 +164,6 @@ func siteAdd(args []string) {
 	fail(err)
 	fmt.Printf("# site %q saved in %s (nothing was written to the system)\n\n", saved.Name, *db)
 	fail(printArtifacts(saved, r))
-}
-
-// listensOn says where an app listens, for the list.
-func listensOn(s site.Site) string {
-	if s.UsesSocket() {
-		return "on a socket"
-	}
-	return fmt.Sprintf("on port %d", s.NodePort)
 }
 
 // expiryOf is when the certificate of a site with HTTPS ends, or 0.
@@ -218,14 +191,10 @@ func siteList(args []string) {
 		switch s.Kind {
 		case site.PHP:
 			detail = "php " + s.PHPVersion
-		case site.Node:
-			detail = fmt.Sprintf("node %s %s", s.NodeVersion, listensOn(s))
-		case site.Python:
-			detail = fmt.Sprintf("python %s %s", s.PyVersion, listensOn(s))
 		case site.Binary:
-			detail = fmt.Sprintf("binary %s", listensOn(s))
+			detail = fmt.Sprintf("binary on port %d", s.AppPort)
 		case site.Mise:
-			detail = fmt.Sprintf("mise %s", listensOn(s))
+			detail = fmt.Sprintf("mise on port %d", s.AppPort)
 		case site.Proxy:
 			detail = s.Upstream
 		}
@@ -278,22 +247,10 @@ func printArtifacts(s site.Site, r renderFlags) error {
 	case site.PHP:
 		p := tune.New(tune.Input{RAMMB: *r.ram, CPUs: 1})
 		fmt.Printf("# --- %s%s.conf\n%s", distro.PHPPoolDir(s.PHPVersion), s.Name, p.PHPPool(s.Name, s.User, provision.PHPSocket(s.Name)))
-	case site.Node:
-		u, err := unit.Node(s, *r.nodeMem)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("# --- /etc/systemd/system/%s\n%s", unit.Name(s), u)
-	case site.Python:
-		u, err := unit.Python(s, *r.nodeMem)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("# --- /etc/systemd/system/%s\n%s", unit.Name(s), u)
 	case site.Binary:
 		mem := s.MemMB
 		if mem == 0 {
-			mem = *r.nodeMem
+			mem = *r.appMem
 		}
 		u, err := unit.Binary(s, mem)
 		if err != nil {

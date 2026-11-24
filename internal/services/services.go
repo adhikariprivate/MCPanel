@@ -1,5 +1,5 @@
 // Package services lists what the panel manages on a machine and what it can still install: the services that run as units (nginx, the
-// database, PHP-FPM, the mail programs), the PHP and Node.js versions, and the database browser. The list is fixed here and follows what
+// database, PHP-FPM, the mail programs), the PHP versions, and the database browser. The list is fixed here and follows what
 // the installer of mpn really supports; a key that is not in it is refused, so the web side never names a unit of its own.
 package services
 
@@ -29,7 +29,6 @@ const (
 	GroupService  = "service"
 	GroupDatabase = "database"
 	GroupPHP      = "php"
-	GroupNode     = "node"
 	GroupTool     = "tool"
 )
 
@@ -63,9 +62,8 @@ const PhpMyAdmin = "phpmyadmin"
 
 var phpActions = []string{Start, Stop, Restart, Reload}
 
-// PHPKey is the key of a PHP version, such as "php-8.4"; NodeKey that of a Node.js major version, such as "node-22".
-func PHPKey(v string) string  { return "php-" + v }
-func NodeKey(v string) string { return "node-" + v }
+// PHPKey is the key of a PHP version, such as "php-8.4".
+func PHPKey(v string) string { return "php-" + v }
 
 func phpUnit(v string) string { return distro.PHPService(v) + ".service" }
 
@@ -81,11 +79,6 @@ func find(key string) (Def, bool) {
 func phpVersion(key string) (string, bool) {
 	v, ok := strings.CutPrefix(key, "php-")
 	return v, ok && site.ValidPHPVersion(v)
-}
-
-func nodeVersion(key string) (string, bool) {
-	v, ok := strings.CutPrefix(key, "node-")
-	return v, ok && slices.Contains(site.NodeVersions, v)
 }
 
 // ValidAction reports whether action may be done to the service named by key. The check is on the shape only; whether the service
@@ -105,7 +98,7 @@ func ValidAction(key, action string) error {
 	return nil
 }
 
-// ValidInstall reports whether key is something the panel can install: the database browser, a PHP or Node.js version, or a database
+// ValidInstall reports whether key is something the panel can install: the database browser, a PHP version, or a database
 // server.
 func ValidInstall(key string) error {
 	if key == PhpMyAdmin || key == "mariadb" || key == "mysql" || key == "postgresql" {
@@ -114,13 +107,10 @@ func ValidInstall(key string) error {
 	if _, ok := phpVersion(key); ok {
 		return nil
 	}
-	if _, ok := nodeVersion(key); ok {
-		return nil
-	}
 	return fmt.Errorf("the panel cannot install %q", key)
 }
 
-// ValidRemove reports whether key is something the panel removes: a PHP or Node.js version, the database browser or fail2ban. The
+// ValidRemove reports whether key is something the panel removes: a PHP version, the database browser or fail2ban. The
 // database servers and the mail programs are never removed from the panel: their data would go with them.
 func ValidRemove(key string) error {
 	if key == PhpMyAdmin || key == "fail2ban" {
@@ -129,19 +119,13 @@ func ValidRemove(key string) error {
 	if _, ok := phpVersion(key); ok {
 		return nil
 	}
-	if _, ok := nodeVersion(key); ok {
-		return nil
-	}
 	return fmt.Errorf("the panel does not remove %q", key)
 }
 
-// InstallVersion splits a "php-8.4" or "node-22" key into its kind and version.
+// InstallVersion splits a PHP version key into its kind and version.
 func InstallVersion(key string) (kind, version string, ok bool) {
 	if v, ok := phpVersion(key); ok {
 		return GroupPHP, v, true
-	}
-	if v, ok := nodeVersion(key); ok {
-		return GroupNode, v, true
 	}
 	return "", "", false
 }
@@ -194,7 +178,6 @@ func ValidSeries(s string) error {
 // Probe is what Status asks of the machine, so a test can answer without one.
 type Probe struct {
 	State    monitor.UnitState
-	Node     []string // the installed Node.js major versions
 	Exists   func(path string) bool
 	ReadFile func(path string) (string, error)
 	Series   func(engine string) []string // the versions of each database engine this release offers; nil leaves the choice out
@@ -268,15 +251,6 @@ func Status(p Probe) []Item {
 		}
 		out = append(out, it)
 	}
-	for _, v := range slices.Backward(site.NodeVersions) {
-		it := Item{Key: NodeKey(v), Label: "Node.js " + v, Group: GroupNode}
-		if slices.Contains(p.Node, v) {
-			it.Installed = true
-		} else {
-			it.Installable = true
-		}
-		out = append(out, it)
-	}
 	pma := Item{Key: PhpMyAdmin, Label: "phpMyAdmin", Group: GroupTool}
 	if p.Exists(installer.PMAVersionFile) {
 		pma.Installed = true
@@ -302,7 +276,7 @@ func Status(p Probe) []Item {
 		}
 		it.Removable = true
 		for _, s := range p.Sites {
-			if (it.Group == GroupPHP && s.Kind == site.PHP && PHPKey(s.PHPVersion) == it.Key) || (it.Group == GroupNode && s.Kind == site.Node && NodeKey(s.NodeVersion) == it.Key) {
+			if it.Group == GroupPHP && s.Kind == site.PHP && PHPKey(s.PHPVersion) == it.Key {
 				it.UsedBy = append(it.UsedBy, s.Name)
 			}
 		}

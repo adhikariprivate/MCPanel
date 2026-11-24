@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"mpn/internal/installer"
 	"mpn/internal/provision"
 	"mpn/internal/tune"
 )
@@ -32,6 +33,19 @@ func siteRemove(args []string) {
 	}
 	plan, err := provision.RemovePlan(s, *purge)
 	fail(err)
+	background, err := st.BackgroundServices(s.Name)
+	fail(err)
+	if len(background) > 0 {
+		var actions []installer.Action
+		for _, service := range background {
+			cleanup, err := backgroundCleanupActions(s.Name, s.User, service)
+			fail(err)
+			actions = append(actions, cleanup...)
+		}
+		if len(actions) > 0 {
+			plan = append(installer.Plan{{Name: "background services", Actions: actions}}, plan...)
+		}
+	}
 	if !*apply {
 		fmt.Print(plan)
 		if len(dbNames) > 0 {
@@ -66,7 +80,7 @@ func siteApply(args []string) {
 	fail(err)
 	plan, err := provision.Plan(s, provision.Options{
 		Profile: tune.New(tune.Input{RAMMB: *r.ram, CPUs: 1}),
-		TLS:     *r.tls, CertDir: *r.certDir, NodeMemMB: *r.nodeMem,
+		TLS:     *r.tls, CertDir: *r.certDir, AppMemMB: *r.appMem,
 	})
 	fail(err)
 	if *apply {

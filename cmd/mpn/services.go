@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"slices"
 
 	"mpn/internal/installer"
 	"mpn/internal/monitor"
@@ -14,7 +13,6 @@ import (
 	"mpn/internal/site"
 	"mpn/internal/store"
 	"mpn/internal/tune"
-	"mpn/internal/unit"
 )
 
 func servicesUsage() {
@@ -31,7 +29,6 @@ func servicesProbe() services.Probe {
 	return services.Probe{
 		Sites: sites,
 		State: monitor.SystemdState,
-		Node:  site.InstalledNode(unit.NodeRoot),
 		Exists: func(p string) bool {
 			_, err := os.Stat(p)
 			return err == nil
@@ -87,7 +84,7 @@ func controlPlan(key, u, action string) installer.Plan {
 // alreadyInstalled says whether key is on the machine. The database browser is not counted: installing it again brings it up to the
 // version of this program.
 func alreadyInstalled(key string) bool {
-	kind, v, versioned := services.InstallVersion(key)
+	kind, _, versioned := services.InstallVersion(key)
 	switch {
 	case key == "mariadb" || key == "mysql":
 		return unitOf("database") != ""
@@ -95,8 +92,6 @@ func alreadyInstalled(key string) bool {
 		return unitOf("postgresql-service") != ""
 	case versioned && kind == services.GroupPHP:
 		return unitOf(key) != ""
-	case versioned && kind == services.GroupNode:
-		return slices.Contains(site.InstalledNode(unit.NodeRoot), v)
 	case key == services.PhpMyAdmin:
 		return fileExists(installer.PMAVersionFile)
 	case key == "fail2ban":
@@ -120,10 +115,7 @@ func installPlan(key, series string) (installer.Plan, error) {
 	if err != nil {
 		return nil, err
 	}
-	if kind, v, ok := services.InstallVersion(key); ok {
-		if kind == services.GroupNode {
-			return installer.NodePlan(v)
-		}
+	if _, v, ok := services.InstallVersion(key); ok {
 		if db := unitOf("database"); v < "7.4" && (db == "mysql.service" || db == "mysqld.service") {
 			return nil, fmt.Errorf("PHP %s cannot sign in to MySQL 8 unless the server was set up for it when it was installed", v)
 		}
@@ -276,10 +268,7 @@ func removePlan(key string) (installer.Plan, error) {
 	if err != nil {
 		return nil, err
 	}
-	if kind, v, ok := services.InstallVersion(key); ok {
-		if kind == services.GroupNode {
-			return installer.NodeRemovePlan(v, sites)
-		}
+	if _, v, ok := services.InstallVersion(key); ok {
 		return installer.PHPRemovePlan(v, sites, fileExists(installer.PMAVersionFile))
 	}
 	switch key {

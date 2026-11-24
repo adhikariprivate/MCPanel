@@ -6,6 +6,8 @@ title: Cron
 
 The **Cron** tab manages a website’s scheduled jobs. Each job runs as the website’s own system account, so it cannot touch another website’s files.
 
+Cron jobs are scheduled commands that finish after each run. For a continuously running queue worker or other supervised process, use [Background services](background-services.md) instead.
+
 ## Job list
 
 The table lists each job with four columns:

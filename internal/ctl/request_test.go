@@ -28,8 +28,6 @@ func TestValidRequests(t *testing.T) {
 		{Request{Op: "services.install", SvcKey: "postgresql", DBSeries: "18"}, "services install -key=postgresql -apply -series=18"},
 		{Request{Op: "site.add", Site: "blog", Kind: "php", Hosts: []string{"blog.example.com", "www.blog.example.com"}},
 			"site add -name blog -kind php -user blog -php 8.4 -host blog.example.com -host www.blog.example.com"},
-		{Request{Op: "site.add", Site: "api", Kind: "node", Hosts: []string{"api.example.com"}},
-			"site add -name api -kind node -user api -node 22 -entry server.js -host api.example.com"},
 		{Request{Op: "site.add", Site: "p", Kind: "proxy", Hosts: []string{"p.example.com"}, Upstream: "http://10.0.0.5:8080"},
 			"site add -name p -kind proxy -user p -upstream http://10.0.0.5:8080 -host p.example.com"},
 	}
@@ -47,6 +45,8 @@ func TestValidRequests(t *testing.T) {
 
 func TestRejectedRequests(t *testing.T) {
 	bad := map[string]Request{
+		"removed node type":         {Op: "site.add", Site: "api", Kind: "node", Hosts: []string{"api.example.com"}},
+		"removed python type":       {Op: "site.add", Site: "api", Kind: "python", Hosts: []string{"api.example.com"}},
 		"unknown op":                {Op: "rm -rf /"},
 		"empty op":                  {},
 		"flag as site name":         {Op: "site.apply", Site: "-purge"},

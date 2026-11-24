@@ -262,7 +262,7 @@ func RunPHPDir() []Action {
 // ---- SELinux -------------------------------------------------------------------------------------------------------------------
 
 // selinuxScript gives what the panel serves the labels nginx and PHP-FPM may use, and allows them the network: nginx proxies to the
-// panel, to node and python sites; PHP reaches the database over TCP and other sites over HTTPS (found on AlmaLinux 9, 2026-11-13,
+// panel and other sites over HTTPS (found on AlmaLinux 9, 2026-11-13,
 // with nginx.org's nginx and Remi's PHP: without these, every page of a site in /home was 403 and every proxy 502). Nothing is done
 // when SELinux is off. ports are the TCP ports nginx listens on besides 80 and 443.
 func selinuxScript(ports []int) string {
@@ -294,16 +294,12 @@ label httpd_var_run_t '/run/php(/.*)?' 2>/dev/null || label httpd_var_run_t '/va
 # path, so the rule must exist before the socket is started.
 label httpd_var_run_t '/run/mpn-web(/.*)?' 2>/dev/null || label httpd_var_run_t '/var/run/mpn-web(/.*)?'
 [ ! -d /run/mpn-web ] || restorecon -R /run/mpn-web
-` + panelSELinuxModule + `# systemd may start a program only from a path labelled as one: the interpreter of a python site's virtual environment is in the
-# home of the site, user_home_t ("Unable to locate executable .../venv/bin/python: Permission denied", seen on Rocky Linux 10).
-label bin_t '/home/[^/]+/venv/bin(/.*)?'
-label bin_t '/opt/node/[^/]+/bin(/.*)?'
+` + panelSELinuxModule + `# systemd may start mise-managed tools from a path labelled as an executable.
 # mise tools are downloaded into a private per-site data directory. systemd may execute these tools as the site user.
 label bin_t '/var/lib/mpn/mise/[^/]+/installs(/.*)?'
 # File tasks are optional; only the conventional mise task directories receive an executable label.
 label bin_t '/home/[^/]+/htdocs/mise-tasks(/.*)?'
 label bin_t '/home/[^/]+/htdocs/\.mise/tasks(/.*)?'
-[ ! -d /opt/node ] || restorecon -R /opt/node
 [ ! -d /opt/mpn/php ] || restorecon -R /opt/mpn/php
 [ ! -d /home ] || restorecon -R /home/*/htdocs/mise-tasks /home/*/htdocs/.mise/tasks 2>/dev/null || true
 install -d -m 0755 /var/log/mpn/sites
