@@ -4,6 +4,12 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-11-24
+
+### Changed
+
+- Replaced the horizontal main menu with a persistent sidebar. Account settings, language, theme and sign-out controls are grouped in the sidebar footer; page content now uses the available width.
+
 ## [1.2.5] - 2026-11-24
 
 ### Added

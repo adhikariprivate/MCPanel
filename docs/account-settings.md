@@ -6,7 +6,7 @@ title: Account settings
 
 ![The account settings page](assets/mpanel/settings.v_8LlP4o_1tlR6i.webp)
 
-Open the **Account** menu at the top and choose **Settings**. This page manages the admin account’s password and two-factor authentication.
+Open the account menu at the bottom of the left sidebar and choose **Settings**. The same menu contains the language selector, theme switch and sign-out control. This page manages the admin account’s password and two-factor authentication.
 
 ## Changing the password
 

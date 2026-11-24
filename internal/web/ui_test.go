@@ -38,6 +38,23 @@ func TestLoginPageUsesTheNewDesignInVietnamese(t *testing.T) {
 	}
 }
 
+func TestAuthenticatedShellUsesSidebarAndAccountMenu(t *testing.T) {
+	h, _, c, _ := setup(t, okAnswer(""))
+	body := do(h, "GET", "/", nil, cookie(c)).Body.String()
+	for _, want := range []string{`class="app-sidebar"`, `class="app-content"`, `aria-label="Điều hướng chính"`,
+		`href="/" class="nav-link" aria-current="page"`, `href="/email" class="nav-link"`, `href="/monitor" class="nav-link"`,
+		`href="/firewall" class="nav-link"`, `href="/services" class="nav-link"`, `href="/security" class="nav-link"`,
+		`href="/activity" class="nav-link"`, `href="/notify" class="nav-link"`, `href="/update" class="nav-link"`,
+		`data-theme-toggle`, `href="/settings"`, `href="/language/en"`, `action="/logout"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("sidebar shell missing %q", want)
+		}
+	}
+	if strings.Contains(body, `class="app-nav"`) {
+		t.Error("authenticated shell still has the horizontal main navigation")
+	}
+}
+
 func TestLoginMessagesAreInVietnamese(t *testing.T) {
 	h := newServer().Handler()
 	if body := login(h, "sai-mat-khau").Body.String(); !strings.Contains(body, "Sai tên đăng nhập hoặc mật khẩu.") {
@@ -58,7 +75,7 @@ func TestStaticAssetsAreServedAndTheStylesheetIsCurrent(t *testing.T) {
 		t.Errorf("css: %d %q %q", css.Code, css.Header().Get("Content-Type"), css.Header().Get("Cache-Control"))
 	}
 	// A stylesheet built before the last template change would miss these classes: run the Tailwind build again.
-	for _, want := range []string{".btn-primary", ".card", ".field", ".min-h-dvh", ".bg-primary", ".app-nav", ".site-tabs", ".accent-primary", "JetBrains Mono"} {
+	for _, want := range []string{".btn-primary", ".card", ".field", ".app-shell", ".bg-primary", ".app-sidebar", ".account-panel", ".site-tabs", ".accent-primary", "JetBrains Mono"} {
 		if !strings.Contains(css.Body.String(), want) {
 			t.Errorf("the stylesheet lacks %s", want)
 		}

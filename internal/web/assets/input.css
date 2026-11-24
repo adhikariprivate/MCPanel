@@ -172,50 +172,56 @@
    shadows, one green for what is current or primary, red only for what removes something, and 150 ms colour changes that stop when
    the person asks for less motion. */
 @layer components {
-  /* The header. Two rows: the bar with the brand and the person's controls, and the row of the main menu. */
-  .app-header {
-    @apply border-border bg-background/90 supports-[backdrop-filter]:bg-background/75 z-30 border-b backdrop-blur-lg sm:sticky sm:top-0;
+  /* The signed-in app frame: persistent sidebar and a full-width, independently scrolling content column. */
+  .app-shell { @apply min-h-dvh; }
+  .app-sidebar {
+    @apply bg-sidebar text-sidebar-foreground border-sidebar-border fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r px-3 py-4;
   }
-  .app-bar {
-    @apply mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8;
+  .app-content {
+    width: calc(100% - 16rem);
+    min-width: 0;
+    min-height: 100dvh;
+    margin-left: 16rem;
+    display: flex;
+    flex-direction: column;
   }
+  .app-main { @apply w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-8; }
   .brand {
-    @apply focus-visible:ring-ring -mx-1 flex shrink-0 items-center gap-2 rounded-md px-1 py-1 focus:outline-none focus-visible:ring-2;
+    @apply focus-visible:ring-sidebar-ring flex min-h-10 shrink-0 items-center gap-2 rounded-md px-2 py-1 focus:outline-none focus-visible:ring-2;
   }
-  .app-nav-row {
-    @apply mx-auto w-full max-w-7xl px-2 sm:px-4 lg:px-6;
-  }
-  /* Only this row scrolls sideways on a narrow screen, so the page itself never does. */
-  .app-nav {
-    @apply -mb-px flex items-stretch gap-0.5 overflow-x-auto overscroll-x-contain;
-    scrollbar-width: none;
-  }
-  .app-nav::-webkit-scrollbar {
-    display: none;
-  }
-  /* On a phone the last links fade out at the right edge, which tells that the row goes on. */
-  @media (width < 48rem) {
-    .app-nav {
-      mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-      padding-right: 2rem;
-    }
-  }
-  /* A link of the main menu. The page the person is on is underlined in the green of the mark and set in the text colour, so it
-     reads as the current place and not only as a colour. */
+  .sidebar-nav { @apply mt-7 min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pb-4; scrollbar-width: thin; }
+  .sidebar-group { @apply space-y-1; }
+  .sidebar-heading { @apply text-sidebar-foreground/55 px-3 pb-1 text-[11px] font-semibold tracking-[0.12em] uppercase; }
   .nav-link {
-    @apply text-muted-foreground hover:text-foreground focus-visible:ring-ring relative flex min-h-11 shrink-0 cursor-pointer items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 focus:outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-inset motion-reduce:transition-none;
+    @apply text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex min-h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none;
   }
-  .nav-link:hover {
-    @apply border-border;
-  }
-  .nav-link[aria-current="page"] {
-    @apply border-primary text-foreground;
-  }
+  .nav-link[aria-current="page"] { @apply bg-sidebar-accent text-sidebar-accent-foreground; }
   .nav-link[aria-current="page"] .nav-icon {
-    @apply text-primary;
+    @apply text-sidebar-primary;
   }
   .nav-icon {
     @apply size-4 shrink-0;
+  }
+  .account-area { @apply border-sidebar-border relative mt-auto border-t pt-3; }
+  .account-trigger { @apply text-sidebar-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2; }
+  .account-avatar { @apply bg-sidebar-primary/15 text-sidebar-primary grid size-8 shrink-0 place-items-center rounded-full; }
+  .account-panel { @apply border-sidebar-border bg-card absolute bottom-0 z-50 overflow-y-auto rounded-lg border shadow-lg; left: calc(100% + 0.5rem); width: min(16rem, calc(100vw - 12rem)); max-height: min(75dvh, 34rem); }
+  .account-menu-user { @apply border-border border-b px-3 py-2.5; }
+  .account-menu-section { @apply border-border border-b p-1 last:border-b-0; }
+  .account-menu-label { @apply text-muted-foreground px-2.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase; }
+  @media (width < 48rem) {
+    .app-sidebar { @apply w-52 px-2; }
+    .app-content { width: calc(100% - 13rem); margin-left: 13rem; }
+    .app-main { @apply px-3 py-5; }
+    .account-panel { width: min(16rem, calc(100vw - 13.5rem)); }
+  }
+  @media (width < 25rem) {
+    .app-sidebar { @apply w-44 px-1.5; }
+    .app-content { width: calc(100% - 11rem); margin-left: 11rem; }
+    .account-panel { width: min(16rem, calc(100vw - 11.5rem)); }
+    .nav-link { @apply gap-2 px-2 text-xs; }
+    .sidebar-heading { @apply px-2; }
+    .account-trigger { @apply gap-1.5 px-1; }
   }
 
   /* The sections of one website: second-level navigation, drawn as a segmented strip so it never looks like the main menu. */
@@ -231,9 +237,6 @@
   }
   .tab[aria-current="page"] svg {
     @apply text-primary;
-  }
-  .back-link {
-    @apply text-muted-foreground hover:text-foreground focus-visible:ring-ring -ml-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2;
   }
 
   .card {
