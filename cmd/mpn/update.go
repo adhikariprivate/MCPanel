@@ -162,7 +162,7 @@ func installRelease(ctx context.Context, target, current update.Version, allowOl
 	restart := func() error {
 		return exec.Command("systemctl", "restart", "mpn-root", "mpn-web").Run()
 	}
-	if out, err := exec.Command("systemctl", "stop", "mpn-root", "mpn-web").CombinedOutput(); err != nil {
+	if out, err := exec.Command("systemctl", "stop", "mpn-root", "mpn-web", "mpn-web.socket").CombinedOutput(); err != nil {
 		_ = os.Remove(tmp)
 		_ = os.Remove(cloudTmp)
 		_ = restart()

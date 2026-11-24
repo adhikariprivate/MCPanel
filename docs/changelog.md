@@ -4,6 +4,12 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ## [Unreleased]
 
+## [1.2.10] - 2026-11-24
+
+### Fixed
+
+- The updater and installer stop `mpn-web.socket` with the panel services before database migrations, preventing socket activation from restarting the web process during migration.
+
 ## [1.2.9] - 2026-11-24
 
 ### Added

@@ -90,7 +90,7 @@ if [ -x /usr/local/bin/mpn ] && [ -f /etc/systemd/system/mpn-web.service ]; then
   if [ "$HAVE_CLOUD" = 1 ] && [ -x /usr/local/bin/mpn-cloud ]; then cp -p /usr/local/bin/mpn-cloud "$TMP/mpn-cloud.previous"; fi
   install -m 0755 "$TMP/mpn" /usr/local/bin/mpn
   [ "$HAVE_CLOUD" = 1 ] && install -m 0755 "$TMP/mpn-cloud" /usr/local/bin/mpn-cloud
-  if ! systemctl stop mpn-root mpn-web; then
+  if ! systemctl stop mpn-root mpn-web mpn-web.socket; then
     install -m 0755 "$TMP/mpn.previous" /usr/local/bin/mpn
     if [ -f "$TMP/mpn-cloud.previous" ]; then install -m 0755 "$TMP/mpn-cloud.previous" /usr/local/bin/mpn-cloud; fi
     systemctl restart mpn-root mpn-web || true
