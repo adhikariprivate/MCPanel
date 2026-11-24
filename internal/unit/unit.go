@@ -1,4 +1,4 @@
-// Package unit renders systemd service units for Node.js apps.
+// Package unit renders systemd service units for supervised site apps.
 package unit
 
 import (
@@ -43,6 +43,37 @@ func Python(s site.Site, memoryMB int) (string, error) {
 		"NoNewPrivileges=yes",
 		"PrivateTmp=yes",
 	)
+	if memoryMB > 0 {
+		lines = append(lines, fmt.Sprintf("MemoryMax=%dM", memoryMB))
+	}
+	lines = append(lines, "", "[Install]", "WantedBy=multi-user.target", "")
+	return strings.Join(lines, "\n"), nil
+}
+
+// Binary renders a unit for a compiled web application installed under its site's home, outside the public document root.
+func Binary(s site.Site, memoryMB int) (string, error) {
+	if s.Kind != site.Binary {
+		return "", fmt.Errorf("site %q is %s, not binary", s.Name, s.Kind)
+	}
+	if err := s.Validate(); err != nil {
+		return "", err
+	}
+	lines := []string{
+		"[Unit]",
+		"Description=Binary app " + s.Name,
+		"After=network.target",
+		"",
+		"[Service]",
+		"User=" + s.User,
+		"WorkingDirectory=" + s.Root,
+		fmt.Sprintf("Environment=PORT=%d", s.NodePort),
+		"ExecCondition=/usr/bin/test -x /home/" + s.User + "/" + s.Entry,
+		"ExecStart=/home/" + s.User + "/" + s.Entry,
+		"Restart=always",
+		"RestartSec=3",
+		"NoNewPrivileges=yes",
+		"PrivateTmp=yes",
+	}
 	if memoryMB > 0 {
 		lines = append(lines, fmt.Sprintf("MemoryMax=%dM", memoryMB))
 	}

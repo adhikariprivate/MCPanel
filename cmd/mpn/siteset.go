@@ -38,9 +38,9 @@ func siteSet(args []string) {
 	iniReset := fs.Bool("ini-reset", false, "forget the PHP settings that were set before, php sites only; with -ini the new ones follow")
 	node := fs.String("node", "", "Node.js major version, node sites only")
 	python := fs.String("python", "", "Python 3 minor version such as 3.12, python sites only")
-	entry := fs.String("entry", "", "start script relative to the root (python also accepts \"-m module\"), node and python sites only")
-	port := fs.Int("port", 0, "port of the app, or 0 for a Unix socket, node and python sites only")
-	mem := fs.Int("mem", 0, "memory the app may use in MB, 0 for the default, node and python sites only")
+	entry := fs.String("entry", "", "start script or binary path for an app site")
+	port := fs.Int("port", 0, "app port, or 0 for a Unix socket on node/python sites")
+	mem := fs.Int("mem", 0, "memory the app may use in MB, 0 for the default")
 	upstream := fs.String("upstream", "", "http(s) URL, proxy sites only")
 	apply := fs.Bool("apply", false, "make the changes on this machine (Linux, root); otherwise the plan is only printed")
 	r := addRenderFlags(fs)
@@ -74,7 +74,7 @@ func siteSet(args []string) {
 	onlyFor("node", site.Node)
 	onlyFor("python", site.Python)
 	for _, f := range []string{"entry", "port", "mem"} {
-		onlyFor(f, site.Node, site.Python)
+		onlyFor(f, site.Node, site.Python, site.Binary)
 	}
 	onlyFor("upstream", site.Proxy)
 
@@ -114,6 +114,9 @@ func siteSet(args []string) {
 	}
 	if given["port"] && *port == 0 && distro.IsEL() {
 		fail(errors.New("on the RHEL family an app listens on a port; give -port with a number"))
+	}
+	if given["port"] && *port == 0 && cur.Kind == site.Binary {
+		fail(errors.New("a binary app must listen on a TCP port"))
 	}
 	if given["port"] && *port == 0 {
 		cur.NodePort = 0 // a Unix socket
@@ -169,7 +172,7 @@ func portHolder(st interface {
 		return "", err
 	}
 	for _, s := range all {
-		if s.Name != self && (s.Kind == site.Node || s.Kind == site.Python) && s.NodePort == port {
+		if s.Name != self && (s.Kind == site.Node || s.Kind == site.Python || s.Kind == site.Binary) && s.NodePort == port {
 			return s.Name, nil
 		}
 	}

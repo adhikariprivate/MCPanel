@@ -23,6 +23,7 @@ func init() {
 		"f.entry":                 "Entry file",
 		"f.upstream":              "Upstream address",
 		"kind.static":             "Static",
+		"kind.binary":             "Binary app",
 		"kind.php":                "PHP",
 		"kind.node":               "Node.js",
 		"kind.python":             "Python",

@@ -114,7 +114,7 @@ func openStore(path string) *store.Store {
 func siteAdd(args []string) {
 	fs := flag.NewFlagSet("site add", flag.ExitOnError)
 	db := fs.String("db", defaultDB, "database path")
-	kind := fs.String("kind", "php", "static, php, node, python or proxy")
+	kind := fs.String("kind", "php", "static, php, node, python, binary or proxy")
 	var hosts hostList
 	fs.Var(&hosts, "host", "hostname, repeat for aliases (the first is primary)")
 	var s site.Site
@@ -124,9 +124,9 @@ func siteAdd(args []string) {
 	fs.StringVar(&s.PHPVersion, "php", "8.4", "PHP version, php sites only")
 	fs.StringVar(&s.NodeVersion, "node", "22", "Node.js major version, node sites only")
 	fs.StringVar(&s.PyVersion, "python", "", "Python 3 minor version such as 3.12, python sites only (default: the system's python3)")
-	fs.StringVar(&s.Entry, "entry", "", "start script relative to the root (default server.js for node, app.py for python)")
-	fs.IntVar(&s.NodePort, "port", 0, "node or python app port; 0 means a Unix socket, or a free port with -use-port")
-	usePort := fs.Bool("use-port", false, "node or python: listen on a free TCP port on 127.0.0.1 instead of a Unix socket")
+	fs.StringVar(&s.Entry, "entry", "", "start script or binary path (binary paths are relative to the site home)")
+	fs.IntVar(&s.NodePort, "port", 0, "app port; 0 means a Unix socket for node/python, or a free port with -use-port")
+	usePort := fs.Bool("use-port", false, "node/python: listen on a free TCP port instead of a Unix socket")
 	fs.StringVar(&s.Upstream, "upstream", "", "http(s) URL, proxy sites only")
 	r := addRenderFlags(fs)
 	_ = fs.Parse(args)
@@ -152,9 +152,18 @@ func siteAdd(args []string) {
 		if s.PyVersion == "" {
 			s.PyVersion = site.SystemPython()
 		}
+	case site.Binary:
+		if s.Entry == "" {
+			s.Entry = "bin/server"
+		}
 	}
-	// From 1.2.0 an app listens on a Unix socket unless a port is asked for (-port N). On the RHEL family it keeps a port: nginx
+	// From 1.2.0 a node or python app listens on a Unix socket unless a port is asked for (-port N). On the RHEL family it keeps a port: nginx
 	// there runs as httpd_t, and connecting to a socket of an app in another domain needs a policy of its own, not written yet.
+	if s.Kind == site.Binary && s.NodePort == 0 {
+		p, err := st.AllocNodePort(nodePortLo, nodePortHi)
+		fail(err)
+		s.NodePort = p
+	}
 	if (s.Kind == site.Node || s.Kind == site.Python) && s.NodePort == 0 && (*usePort || distro.IsEL()) {
 		p, err := st.AllocNodePort(nodePortLo, nodePortHi)
 		fail(err)
@@ -209,6 +218,8 @@ func siteList(args []string) {
 			detail = fmt.Sprintf("node %s %s", s.NodeVersion, listensOn(s))
 		case site.Python:
 			detail = fmt.Sprintf("python %s %s", s.PyVersion, listensOn(s))
+		case site.Binary:
+			detail = fmt.Sprintf("binary %s", listensOn(s))
 		case site.Proxy:
 			detail = s.Upstream
 		}
@@ -269,6 +280,16 @@ func printArtifacts(s site.Site, r renderFlags) error {
 		fmt.Printf("# --- /etc/systemd/system/%s\n%s", unit.Name(s), u)
 	case site.Python:
 		u, err := unit.Python(s, *r.nodeMem)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("# --- /etc/systemd/system/%s\n%s", unit.Name(s), u)
+	case site.Binary:
+		mem := s.MemMB
+		if mem == 0 {
+			mem = *r.nodeMem
+		}
+		u, err := unit.Binary(s, mem)
 		if err != nil {
 			return err
 		}

@@ -194,6 +194,20 @@ func (s *Server) settingsRequest(r *http.Request, row siteRow, info siteInfo) (c
 				return req, T("set.err.mem")
 			}
 		}
+	case site.Binary:
+		req.Entry = get("entry")
+		if !site.ValidBinaryEntry(req.Entry) {
+			return req, T("set.err.entry")
+		}
+		var err error
+		if req.Port, err = appPortField(get("port")); err != nil || req.Port == 0 {
+			return req, T("set.err.port")
+		}
+		if m := get("mem"); m != "" {
+			if req.Mem, err = strconv.Atoi(m); err != nil || !site.ValidMemMB(req.Mem) {
+				return req, T("set.err.mem")
+			}
+		}
 	case site.Proxy:
 		req.Upstream = get("upstream")
 		if !site.ValidUpstream(req.Upstream) {

@@ -13,6 +13,8 @@ func init() {
 		"new.desc.python":  "Ứng dụng Python (Flask, Django, FastAPI…) chạy trong môi trường ảo riêng như một dịch vụ, nginx chuyển tiếp yêu cầu tới nó.",
 		"new.desc.node":    "Ứng dụng Node.js chạy như một dịch vụ riêng, nginx chuyển tiếp yêu cầu tới nó.",
 		"new.desc.static":  "Chỉ phục vụ các tệp HTML, CSS, hình ảnh có sẵn.",
+		"new.desc.binary":  "Chạy chương trình đã biên dịch như Go hoặc Rust dưới dạng dịch vụ web được giám sát, nginx chuyển tiếp yêu cầu tới chương trình.",
+		"new.binary.entry": "Sau khi tạo website, tải chương trình lên thư mục bên ngoài htdocs, cấp quyền thực thi và lắng nghe trên 127.0.0.1 bằng PORT. Sau đó áp dụng lại website để khởi chạy.",
 		"new.desc.proxy":   "Chuyển tiếp toàn bộ yêu cầu tới một địa chỉ khác, ví dụ một ứng dụng chạy ở máy khác.",
 		"f.hosts.hint":     "Một tên miền, ví dụ example.com. Việc dùng thêm www chọn sau ở Tổng quan, còn SSL cấp ở tab SSL.",
 		"f.user":           "Tài khoản website",

@@ -35,7 +35,7 @@ func siteLogCmd(args []string) {
 	var text string
 	switch *kind {
 	case sitelog.App:
-		if s.Kind != site.Node && s.Kind != site.Python {
+		if s.Kind != site.Node && s.Kind != site.Python && s.Kind != site.Binary {
 			fail(fmt.Errorf("site %q is %s: only a node or python site has a program of its own", s.Name, s.Kind))
 		}
 		res.Path = unit.Name(s)

@@ -193,7 +193,7 @@ func splitHosts(v string) []string {
 	return strings.FieldsFunc(v, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 }
 
-var siteKinds = []string{"php", "node", "python", "static", "proxy"}
+var siteKinds = []string{"php", "node", "python", "binary", "static", "proxy"}
 
 // installedPHP and installedNode are the versions the form may offer: the ones on this machine, or every known one when the
 // server was not told where to look (a test, or a build that does not know the machine).

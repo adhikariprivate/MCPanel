@@ -107,7 +107,7 @@ func running(s site.Site) (bool, string) {
 		}
 		out, _ := sh(3*time.Second, "systemctl", "is-active", svc)
 		return out == "active", svc
-	case site.Node, site.Python:
+	case site.Node, site.Python, site.Binary:
 		out, _ := sh(3*time.Second, "systemctl", "is-active", unit.Name(s))
 		return out == "active", unit.Name(s)
 	}
@@ -147,6 +147,8 @@ func buildInfo(s site.Site, ramMB int) siteInfo {
 		in.NodeVer, in.Entry, in.Port, in.MemMB = s.NodeVersion, s.Entry, s.NodePort, s.MemMB
 	case site.Python:
 		in.PyVer, in.Entry, in.Port, in.MemMB = s.PyVersion, s.Entry, s.NodePort, s.MemMB
+	case site.Binary:
+		in.Entry, in.Port, in.MemMB = s.Entry, s.NodePort, s.MemMB
 	case site.Proxy:
 		in.Upstream = s.Upstream
 	}

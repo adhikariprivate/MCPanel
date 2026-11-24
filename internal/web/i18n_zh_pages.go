@@ -23,6 +23,7 @@ func init() {
 		"f.entry":                 "入口文件",
 		"f.upstream":              "上游地址",
 		"kind.static":             "静态",
+		"kind.binary":             "二进制应用",
 		"kind.php":                "PHP",
 		"kind.node":               "Node.js",
 		"kind.python":             "Python",

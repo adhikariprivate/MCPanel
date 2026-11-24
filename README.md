@@ -29,7 +29,7 @@ Options: `MPN_VERSION=1.0.2` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 
 ## Features
 
-- **Websites:** PHP 7.0 to 8.5 (one PHP-FPM pool per site), Node.js 18 to 24, Python, static sites and reverse proxies. Each site has its own system account, domain, SSH/SFTP, file manager, web terminal, cron, logs and an editable vHost (checked with `nginx -t` before it is loaded).
+- **Websites:** PHP 7.0 to 8.5 (one PHP-FPM pool per site), Node.js 18 to 24, Python, compiled binary web services (such as Go or Rust), static sites and reverse proxies. Each site has its own system account, domain, SSH/SFTP, file manager, web terminal, cron, logs and an editable vHost (checked with `nginx -t` before it is loaded).
 - **App installer:** WordPress, Laravel, CodeIgniter 4, CakePHP, Yii 2, plus a WordPress manager (updates, plugins, themes).
 - **SSL:** Let's Encrypt with a DNS check first and automatic renewal, custom certificates, CSR generation. The panel has its own certificate as well.
 - **Databases:** MariaDB or MySQL, one user per database, phpMyAdmin that signs in with a temporary account.
@@ -44,6 +44,7 @@ Options: `MPN_VERSION=1.0.2` installs a fixed version, `MPN_PANEL_PORT=2610` cha
 
 - `mpn web` serves the interface as a user without root rights. It listens on the Unix socket `/run/mpn-web/web.sock`, which systemd keeps and only nginx and phpMyAdmin may open, and sits behind nginx with TLS.
 - Node.js and Python apps listen on a Unix socket of their own (`/run/mpn-app/<site>/app.sock`, path in `SOCKET` and `PORT`) that only nginx can reach. On the RHEL family they listen on a port of `127.0.0.1`.
+- Binary apps run from outside the public document root under the site's own account, get a private loopback TCP port in `PORT`, and are supervised by their own systemd service.
 - `mpn root` is a helper running as root. It listens on a Unix socket and accepts only a fixed list of operations. Every value is checked again before it becomes a command-line argument, and no shell is involved.
 - Passwords, private keys and certificates travel over standard input, never in arguments, logs or the database.
 - Every change to the machine is a plan of steps. By default it is only shown, and it runs with `-apply`. If `nginx -t` or a step fails, the old files are restored.

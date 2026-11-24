@@ -149,7 +149,7 @@ func RemovePlan(s site.Site, purge bool) (installer.Plan, error) {
 	case site.PHP:
 		// The master stays only while another pool still uses this PHP version.
 		plan = append(plan, installer.Step{Name: "php-fpm pool", Actions: dropPHPPoolActions(s, s.PHPVersion)})
-	case site.Node, site.Python:
+	case site.Node, site.Python, site.Binary:
 		plan = append(plan, installer.Step{Name: string(s.Kind) + " service", Actions: []installer.Action{
 			installer.Run("systemctl", "disable", "--now", unit.Name(s)),
 			installer.Run("rm", "-f", "/etc/systemd/system/"+unit.Name(s)),
@@ -188,7 +188,7 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 		// SELinux labels the new web root and log folder for nginx and PHP-FPM (the rules were set when the panel was installed).
 		plan[0].Actions = append(plan[0].Actions, installer.RestoreconHome(site.HtdocsOf(s.User)), installer.RestoreconHome(LogDir(s.Name)))
 	}
-	// A node or python site needs its start script before the service starts, so the page comes before the services.
+	// An interpreted app needs its start script before the service starts, so the page comes before the services.
 	if page, ok := defaultPageStep(s); ok {
 		plan = append(plan, page)
 	}
@@ -233,6 +233,21 @@ func Plan(s site.Site, o Options) (installer.Plan, error) {
 		plan = append(plan, installer.Step{Name: "python service", Actions: []installer.Action{
 			installer.Run("sh", "-c", venvScript(s)),
 			installer.RestoreconHome(site.VenvDir(s.User)), // on EL the interpreter needs the label of a program (see installer.selinuxScript)
+			installer.WriteFile("/etc/systemd/system/"+unit.Name(s), content, 0o644),
+			installer.Run("systemctl", "daemon-reload"),
+			installer.Run("systemctl", "enable", unit.Name(s)),
+			installer.Run("systemctl", "restart", unit.Name(s)),
+		}})
+	case site.Binary:
+		mem := o.NodeMemMB
+		if s.MemMB > 0 {
+			mem = s.MemMB
+		}
+		content, err := unit.Binary(s, mem)
+		if err != nil {
+			return nil, err
+		}
+		plan = append(plan, installer.Step{Name: "binary service", Actions: []installer.Action{
 			installer.WriteFile("/etc/systemd/system/"+unit.Name(s), content, 0o644),
 			installer.Run("systemctl", "daemon-reload"),
 			installer.Run("systemctl", "enable", unit.Name(s)),

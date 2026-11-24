@@ -61,6 +61,12 @@
         <input id="f-entry" name="entry" class="field" value="app.py">
         <p class="hint">{{T "ov.python.entry.hint"}}</p>
       </div>
+      {{else if eq .Kind "binary"}}
+      <div class="sm:col-span-2">
+        <label for="f-entry" class="label">{{T "f.entry"}}</label>
+        <input id="f-entry" name="entry" class="field" value="bin/server" required>
+        <p class="hint">{{T "new.binary.entry"}}</p>
+      </div>
       {{else if eq .Kind "proxy"}}
       <div>
         <label for="f-up" class="label">{{T "f.upstream"}}</label>

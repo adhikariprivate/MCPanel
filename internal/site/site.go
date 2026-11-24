@@ -19,6 +19,7 @@ const (
 	Node   Kind = "node"
 	Proxy  Kind = "proxy"
 	Python Kind = "python"
+	Binary Kind = "binary"
 )
 
 // pythonVersionRe matches the minor version of a Python 3 interpreter such as "3.12". Python sites use the interpreters the
@@ -57,12 +58,12 @@ type Site struct {
 	NodePort    int      // node and python: the port the app listens on (named for the first kind that used it); 0 is a Unix socket (UsesSocket)
 	NodeVersion string   // node only, a major version such as "22"
 	PyVersion   string   // python only, a minor version such as "3.12"
-	Entry       string   // node and python: start script relative to Root, such as "server.js"; python also accepts "-m module"
+	Entry       string   // node and python start script relative to Root; binary executable relative to the site's home
 	Upstream    string   // proxy only, an http or https URL
 	TLS         bool     // HTTPS is on; set once a certificate is installed
 	// Settings a person may change later (see settings.go).
 	PHPIni map[string]string // php only: the settings that differ from the defaults; validated against a fixed list
-	MemMB  int               // node and python: memory the app may use in MB; 0 is the default
+	MemMB  int               // app memory limit in MB; 0 is the default
 	// The domain choices (see domain.go).
 	WWW       string // WWWOff, WWWBare or WWWWith
 	AllowHTTP bool   // with SSL on, still serve over plain HTTP instead of sending visitors to SSL
@@ -185,6 +186,16 @@ func (s Site) Validate() error {
 		if !ValidMemMB(s.MemMB) {
 			add("memory %d MB must be 0 (the default) or between 64 and 8192", s.MemMB)
 		}
+	case Binary:
+		if !ValidAppPort(s.NodePort) {
+			add("binary app port %d must be between 1024 and 65535 and not one that the server itself uses", s.NodePort)
+		}
+		if !ValidBinaryEntry(s.Entry) {
+			add("binary entry %q must be a relative executable path under the site's home", s.Entry)
+		}
+		if !ValidMemMB(s.MemMB) {
+			add("memory %d MB must be 0 (the default) or between 64 and 8192", s.MemMB)
+		}
 	case Proxy:
 		if u, err := url.Parse(s.Upstream); err != nil || (u.Scheme != "http" && u.Scheme != "https") ||
 			u.Host == "" || strings.ContainsAny(s.Upstream, " \t\r\n;{}\"'\\$") {
@@ -210,7 +221,7 @@ func AppSocket(name string) string { return AppSocketDir(name) + "/app.sock" }
 // ProxyTarget returns the URL nginx forwards to, or "" for kinds that are not proxied.
 func (s Site) ProxyTarget() string {
 	switch s.Kind {
-	case Node, Python:
+	case Node, Python, Binary:
 		if s.UsesSocket() {
 			return "http://unix:" + AppSocket(s.Name) + ":"
 		}
@@ -238,6 +249,9 @@ func ValidNodeVersion(v string) bool { return slices.Contains(NodeVersions, v) }
 
 // ValidEntry reports whether e is a relative path to a start script.
 func ValidEntry(e string) bool { return entryRe.MatchString(e) && !strings.Contains(e, "..") }
+
+// ValidBinaryEntry permits an executable path under the site's home, outside the public document root.
+func ValidBinaryEntry(e string) bool { return entryRe.MatchString(e) && !strings.Contains(e, "..") }
 
 // ValidUpstream reports whether u is a plain http or https address that is safe to place in the web server's settings.
 func ValidUpstream(u string) bool {

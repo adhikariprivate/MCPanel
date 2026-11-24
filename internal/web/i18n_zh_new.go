@@ -13,6 +13,8 @@ func init() {
 		"new.desc.python":  "Python 应用（Flask、Django、FastAPI 等），在自己的虚拟环境中作为服务运行，nginx 将请求转发给它。",
 		"new.desc.node":    "Node.js 应用，作为独立服务运行，nginx 将请求转发给它。",
 		"new.desc.static":  "仅提供现有的 HTML、CSS 和图片文件。",
+		"new.desc.binary":  "将 Go、Rust 等编译后的程序作为受监控的 Web 服务运行，并由 nginx 转发请求。",
+		"new.binary.entry": "创建网站后，将可执行文件上传到主目录中 htdocs 之外的位置，赋予执行权限，并通过 PORT 监听 127.0.0.1。然后重新应用网站以启动程序。",
 		"new.desc.proxy":   "将所有请求转发到另一个地址，例如运行在其他服务器上的应用。",
 		"f.hosts.hint":     "一个域名，例如 example.com。之后可在概览中配置 www，并在 SSL 标签页签发证书。",
 		"f.user":           "网站账户",

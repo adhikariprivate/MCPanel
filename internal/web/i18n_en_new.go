@@ -13,6 +13,8 @@ func init() {
 		"new.desc.python":  "A Python application (Flask, Django, FastAPI…) running as a service in its own virtual environment, with nginx forwarding requests to it.",
 		"new.desc.node":    "A Node.js application running as a dedicated service, with nginx forwarding requests to it.",
 		"new.desc.static":  "Serve existing HTML, CSS and image files.",
+		"new.desc.binary":  "Run a compiled Go, Rust or other executable as a supervised web service, with nginx forwarding requests to it.",
+		"new.binary.entry": "After creating the site, upload the executable under the site's home (outside htdocs), make it executable, and have it listen on 127.0.0.1 using PORT. Then re-apply the site to start it.",
 		"new.desc.proxy":   "Forward all requests to another address, such as an application on another server.",
 		"f.hosts.hint":     "One domain, e.g. example.com. Configure www later in Overview and issue a certificate in the SSL tab.",
 		"f.user":           "Website account",

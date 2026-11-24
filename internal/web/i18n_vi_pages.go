@@ -23,6 +23,7 @@ func init() {
 		"f.entry":                 "Tệp khởi động",
 		"f.upstream":              "Địa chỉ đích",
 		"kind.static":             "Tĩnh",
+		"kind.binary":             "Ứng dụng nhị phân",
 		"kind.php":                "PHP",
 		"kind.node":               "Node.js",
 		"kind.python":             "Python",

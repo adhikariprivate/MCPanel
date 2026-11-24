@@ -709,6 +709,12 @@ func (r Request) addSite() ([]string, error) {
 		if r.Python != "" {
 			a = append(a, "-python", r.Python)
 		}
+	case site.Binary:
+		if s.Entry == "" {
+			s.Entry = "bin/server"
+		}
+		s.NodePort = 20000 // only for validation; mpn allocates the real port
+		a = append(a, "-entry", s.Entry)
 	case site.Proxy:
 		a = append(a, "-upstream", s.Upstream)
 	}
@@ -773,7 +779,7 @@ func (r Request) setSite() ([]string, error) {
 	}
 	a := []string{"site", "set", "-name", r.Site}
 	switch site.Kind(r.Kind) {
-	case site.Static, site.PHP, site.Node, site.Python:
+	case site.Static, site.PHP, site.Node, site.Python, site.Binary:
 		if !site.ValidSubdir(r.RootSub) {
 			return nil, fmt.Errorf("web root %q: use folder names of letters, digits, '.', '_' and '-', separated by '/'", r.RootSub)
 		}
@@ -823,6 +829,16 @@ func (r Request) setSite() ([]string, error) {
 			return nil, fmt.Errorf("memory %d MB must be 0 (the default) or between 64 and 8192", r.Mem)
 		}
 		a = append(a, "-python", r.Python, "-entry", r.Entry, "-port", strconv.Itoa(r.Port), "-mem", strconv.Itoa(r.Mem))
+	case site.Binary:
+		switch {
+		case !site.ValidBinaryEntry(r.Entry):
+			return nil, fmt.Errorf("binary entry %q must be a relative executable path under the site's home", r.Entry)
+		case !site.ValidAppPort(r.Port):
+			return nil, fmt.Errorf("port %d must be between 1024 and 65535 and not one that the server itself uses", r.Port)
+		case !site.ValidMemMB(r.Mem):
+			return nil, fmt.Errorf("memory %d MB must be 0 (the default) or between 64 and 8192", r.Mem)
+		}
+		a = append(a, "-entry", r.Entry, "-port", strconv.Itoa(r.Port), "-mem", strconv.Itoa(r.Mem))
 	case site.Proxy:
 		if !site.ValidUpstream(r.Upstream) {
 			return nil, fmt.Errorf("upstream %q must be a plain http or https URL", r.Upstream)

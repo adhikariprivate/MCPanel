@@ -330,6 +330,8 @@ func (s *Store) AddSite(st site.Site) error {
 		port, nodeVer, entry, mem = appPort(st), nullStr(st.NodeVersion), nullStr(st.Entry), st.MemMB
 	case site.Python:
 		port, pyVer, entry, mem = appPort(st), nullStr(st.PyVersion), nullStr(st.Entry), st.MemMB
+	case site.Binary:
+		port, entry, mem = appPort(st), nullStr(st.Entry), st.MemMB
 	case site.Proxy:
 		upstream = nullStr(st.Upstream)
 	}
@@ -609,6 +611,8 @@ func (s *Store) UpdateSite(st site.Site) error {
 		port, nodeVer, entry, mem = appPort(st), nullStr(st.NodeVersion), nullStr(st.Entry), st.MemMB
 	case site.Python:
 		port, pyVer, entry, mem = appPort(st), nullStr(st.PyVersion), nullStr(st.Entry), st.MemMB
+	case site.Binary:
+		port, entry, mem = appPort(st), nullStr(st.Entry), st.MemMB
 	case site.Proxy:
 		upstream = nullStr(st.Upstream)
 	}
