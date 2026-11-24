@@ -23,7 +23,7 @@ The installer checks the operating system, downloads `mpn` from the latest GitHu
 
 When it finishes, open the setup link it prints (`https://<IP>:2610/setup?t=…`) to create the administrator account. The link carries a one-time key and works until the account exists; `mpn web setup-link` prints it again.
 
-Options: `MPN_VERSION=1.0.2` installs a fixed version, `MPN_PANEL_PORT=2610` changes the panel port.
+Options: `MPN_VERSION=1.2.4` installs a fixed version, `MPN_PANEL_PORT=2610` changes the panel port.
 
 **Operating systems:** Ubuntu 22.04, 24.04, 26.04, Debian 12, 13, and AlmaLinux, Rocky Linux, CentOS Stream 9, 10, on x86_64 or arm64 (aarch64). On the RHEL family SELinux stays on and firewalld is turned off (the panel manages the firewall with nftables).
 
