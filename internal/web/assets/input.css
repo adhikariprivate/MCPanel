@@ -203,11 +203,12 @@
     @apply size-4 shrink-0;
   }
   .account-area { @apply border-sidebar-border relative mt-auto border-t pt-3; }
-  .site-switcher { @apply relative mx-2 mt-3 mb-2; }
+  .site-switcher { @apply relative mt-3 mb-2; }
   .site-sidebar-nav { @apply mt-3; }
-  .site-switcher summary { @apply border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-md border px-3 text-sm font-medium; }
+  .site-switcher summary { @apply border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 overflow-hidden rounded-md border px-3 text-sm font-medium; }
   .site-switcher summary::-webkit-details-marker { display: none; }
   .site-switcher summary svg { @apply size-4 shrink-0 transition-transform; }
+  .site-switcher summary span { @apply min-w-0 flex-1 truncate; }
   .site-switcher[open] summary svg { transform: rotate(180deg); }
   .site-switcher-menu { @apply border-sidebar-border bg-sidebar absolute top-full right-0 left-0 z-30 mt-1 max-h-64 overflow-y-auto rounded-md border p-1 shadow-lg; }
   .site-switcher-menu a { @apply text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground block truncate rounded px-2.5 py-2 text-sm; }

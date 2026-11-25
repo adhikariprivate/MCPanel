@@ -9,6 +9,7 @@ func init() {
 		"site.group.access":       "访问",
 		"site.group.operate":      "运维",
 		"site.group.advanced":     "高级",
+		"nav.group.account":       "账户",
 		"user.logout":             "退出登录",
 		"page.sites":              "网站",
 		"page.result":             "结果",

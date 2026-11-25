@@ -48,7 +48,7 @@ func TestAuthenticatedShellUsesSidebarAndAccountMenu(t *testing.T) {
 		`href="/" class="nav-link" aria-current="page"`, `href="/email" class="nav-link"`, `href="/monitor" class="nav-link"`,
 		`href="/firewall" class="nav-link"`, `href="/services" class="nav-link"`, `href="/security" class="nav-link"`,
 		`href="/activity" class="nav-link"`, `href="/notify" class="nav-link"`, `href="/update" class="nav-link"`,
-		`data-theme-toggle`, `href="/settings"`, `href="/language/en"`, `action="/logout"`} {
+		`data-theme-toggle`, `href="/settings"`, `id="sidebar-group-account"`, `Tài khoản`, `href="/language/en"`, `action="/logout"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("sidebar shell missing %q", want)
 		}

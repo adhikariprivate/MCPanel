@@ -9,6 +9,7 @@ func init() {
 		"site.group.access":       "Access",
 		"site.group.operate":      "Operate",
 		"site.group.advanced":     "Advanced",
+		"nav.group.account":       "Account",
 		"user.logout":             "Sign out",
 		"page.sites":              "Websites",
 		"page.result":             "Result",

@@ -9,6 +9,7 @@ func init() {
 		"site.group.access":       "Truy cập",
 		"site.group.operate":      "Vận hành",
 		"site.group.advanced":     "Nâng cao",
+		"nav.group.account":       "Tài khoản",
 		"user.logout":             "Đăng xuất",
 		"page.sites":              "Website",
 		"page.result":             "Kết quả",
