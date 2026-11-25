@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"mpn/internal/bgservice"
-	"mpn/internal/site"
 )
 
 func (s *Store) BackgroundServices(siteName string) ([]bgservice.Service, error) {
@@ -44,11 +43,9 @@ func (s *Store) AddBackgroundService(siteName string, v bgservice.Service) (int6
 	if err != nil {
 		return 0, err
 	}
-	if v.Kind == bgservice.Mise && x.Kind != site.Mise {
-		return 0, fmt.Errorf("mise tasks require a mise site")
-	}
-	if v.Kind == bgservice.PHP && x.Kind != site.PHP {
-		return 0, fmt.Errorf("PHP commands require a PHP site")
+	want, ok := bgservice.KindForSite(x.Kind)
+	if !ok || want != v.Kind {
+		return 0, fmt.Errorf("background service type %q does not match site type %q", v.Kind, x.Kind)
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -79,11 +76,16 @@ func (s *Store) UpdateBackgroundService(siteName string, id int64, v bgservice.S
 	if err != nil {
 		return err
 	}
-	if v.Kind == bgservice.Mise && x.Kind != site.Mise {
-		return fmt.Errorf("mise tasks require a mise site")
+	want, ok := bgservice.KindForSite(x.Kind)
+	if !ok || want != v.Kind {
+		return fmt.Errorf("background service type %q does not match site type %q", v.Kind, x.Kind)
 	}
-	if v.Kind == bgservice.PHP && x.Kind != site.PHP {
-		return fmt.Errorf("PHP commands require a PHP site")
+	old, err := s.BackgroundService(siteName, id)
+	if err != nil {
+		return err
+	}
+	if v.Kind != old.Kind {
+		return fmt.Errorf("background service type cannot be changed; remove and recreate the service")
 	}
 	res, err := s.db.Exec(`UPDATE background_services SET name=?,kind=?,command=?,task=?,memory_mb=?,updated_at=? WHERE id=? AND site_id=(SELECT id FROM sites WHERE name=?)`, v.Name, v.Kind, v.Command, v.Task, v.MemoryMB, time.Now().Unix(), id, siteName)
 	if err != nil {

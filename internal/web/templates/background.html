@@ -8,23 +8,23 @@
   <section class="card p-5">
     <div class="flex flex-wrap items-start justify-between gap-4"><div><h3 class="font-semibold">{{.Name}}</h3><p class="mt-1 text-sm text-muted-foreground">{{T (printf "bg.kind.%s" .Kind)}} · {{T (printf "bg.status.%s" .Status)}}{{if .StatusError}} — {{.StatusError}}{{end}}</p></div>
       <div class="flex flex-wrap gap-2"><a class="btn-sm" href="/sites/{{$.Site.Name}}/background?logs={{.ID}}">{{T "bg.logs"}}</a>
-      {{if $b.CanManage}}{{if eq .Status "active"}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/restart"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-sm">{{T "bg.restart"}}</button></form><form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/stop"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-sm">{{T "bg.stop"}}</button></form>{{else}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/start"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-primary">{{T "bg.start"}}</button></form>{{end}}{{end}}</div>
+      {{if $b.CanManage}}{{if eq .Status "active"}}{{if eq .Kind $.Site.Kind}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/restart"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-sm">{{T "bg.restart"}}</button></form>{{end}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/stop"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-sm">{{T "bg.stop"}}</button></form>{{else if eq .Kind $.Site.Kind}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/start"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-primary">{{T "bg.start"}}</button></form>{{end}}{{end}}</div>
     </div>
-    {{if $b.CanManage}}<details class="mt-4 border-t border-border pt-3"><summary class="cursor-pointer text-sm font-medium">{{T "bg.edit"}}</summary>
+    {{if $b.CanManage}}<details class="mt-4 border-t border-border pt-3"><summary class="cursor-pointer text-sm font-medium">{{if eq .Kind $.Site.Kind}}{{T "bg.edit"}}{{else}}{{T "bg.remove"}}{{end}}</summary>{{if eq .Kind $.Site.Kind}}
       <form method="post" action="/sites/{{$.Site.Name}}/background" class="mt-4 grid gap-3 sm:grid-cols-2"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="kind" value="{{.Kind}}">
         <label class="text-sm">{{T "bg.name"}}<input class="field mt-1" name="name" maxlength="48" required value="{{.Name}}"></label>
         {{if ne .Kind "mise"}}<label class="text-sm sm:col-span-2">{{if eq .Kind "php"}}{{T "bg.php.command"}}{{else}}{{T "bg.binary.command"}}{{end}}<input class="field mt-1 font-mono" name="command" maxlength="2048" value="{{.Command}}"></label>{{end}}{{if eq .Kind "mise"}}<label class="text-sm">{{T "bg.task"}}<input class="field mt-1 font-mono" name="task" maxlength="128" value="{{.Task}}"></label>{{end}}
         <label class="text-sm">{{T "bg.memory"}}<input class="field mt-1" type="number" name="memory" min="0" max="65536" step="32" value="{{.MemoryMB}}"></label><div class="flex items-end"><button class="btn-primary">{{T "bg.save"}}</button></div>
-      </form><form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/delete" class="mt-3"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link-danger">{{T "bg.remove"}}</button></form></details>{{end}}
+      </form>{{end}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/delete" class="mt-3"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link-danger">{{T "bg.remove"}}</button></form></details>{{end}}
   </section>
 {{end}}</div>
 {{else}}<div class="card p-8 text-center"><p class="font-medium">{{T "bg.empty"}}</p><p class="hint">{{T "bg.empty.d"}}</p></div>{{end}}
 {{if $b.LogID}}<section class="card mt-5 p-5"><div class="flex items-center justify-between"><h3 class="font-semibold">{{T "bg.recent.logs"}}</h3><a class="link" href="/sites/{{.Site.Name}}/background">{{T "bg.close.logs"}}</a></div><pre class="mt-4 max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs">{{if $b.Logs}}{{$b.Logs}}{{else}}{{T "bg.no.logs"}}{{end}}</pre></section>{{end}}
-{{if $b.CanManage}}<section class="card mt-6 p-5"><h3 class="h-section">{{T "bg.add"}}</h3><p class="hint mt-1">{{T "bg.initial"}}</p>
+{{if and $b.CanManage (or (eq .Site.Kind "php") (eq .Site.Kind "binary") (eq .Site.Kind "mise"))}}<section class="card mt-6 p-5"><h3 class="h-section">{{T "bg.add"}}</h3><p class="hint mt-1">{{T "bg.initial"}}</p>
   <div class="mt-4 grid gap-4 lg:grid-cols-2">
-    {{if eq .Site.Kind "php"}}{{template "backgroundadd" (dict "Site" .Site "CSRF" .CSRF "Kind" "php")}}{{end}}
-    {{template "backgroundadd" (dict "Site" .Site "CSRF" .CSRF "Kind" "binary")}}
-    {{if eq .Site.Kind "mise"}}{{template "backgroundadd" (dict "Site" .Site "CSRF" .CSRF "Kind" "mise")}}{{end}}
+    {{if eq .Site.Kind "php"}}{{template "backgroundadd" (dict "Site" .Site "CSRF" .CSRF "Kind" "php")}}
+    {{else if eq .Site.Kind "binary"}}{{template "backgroundadd" (dict "Site" .Site "CSRF" .CSRF "Kind" "binary")}}
+    {{else if eq .Site.Kind "mise"}}{{template "backgroundadd" (dict "Site" .Site "CSRF" .CSRF "Kind" "mise")}}{{end}}
   </div>
 </section>{{end}}
 {{end}}

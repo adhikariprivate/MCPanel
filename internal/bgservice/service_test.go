@@ -57,14 +57,15 @@ func TestBinaryMustStayRelativeAndMiseRequiresTask(t *testing.T) {
 }
 
 func TestBinaryAndMiseUnitsAreSeparateFromWebUnits(t *testing.T) {
-	s := site.Site{Name: "worker", Kind: site.Mise, User: "worker", Root: "/home/worker/htdocs", Hostnames: []string{"worker.example.com"}, AppPort: 24001}
-	binary, err := Render(s, Service{ID: 2, Name: "binary worker", Kind: Binary, Command: "bin/worker --queue default"})
+	binarySite := site.Site{Name: "workerbin", Kind: site.Binary, User: "workerbin", Root: "/home/workerbin/app", Hostnames: []string{"worker.example.com"}, AppPort: 24001, Entry: "bin/server"}
+	binary, err := Render(binarySite, Service{ID: 2, Name: "binary worker", Kind: Binary, Command: "bin/worker --queue default"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(binary, `ExecCondition=/usr/bin/test -x "/home/worker/bin/worker"`) || strings.Contains(binary, "PORT=") {
+	if !strings.Contains(binary, `ExecCondition=/usr/bin/test -x "/home/workerbin/bin/worker"`) || strings.Contains(binary, "PORT=") {
 		t.Fatalf("unexpected binary unit:\n%s", binary)
 	}
+	s := site.Site{Name: "worker", Kind: site.Mise, User: "worker", Root: "/home/worker/htdocs", Hostnames: []string{"worker-mise.example.com"}, AppPort: 24002}
 	mise, err := Render(s, Service{ID: 3, Name: "mise worker", Kind: Mise, Task: "queue:work"})
 	if err != nil {
 		t.Fatal(err)
@@ -73,5 +74,8 @@ func TestBinaryAndMiseUnitsAreSeparateFromWebUnits(t *testing.T) {
 		if !strings.Contains(mise, want) {
 			t.Errorf("mise unit missing %q:\n%s", want, mise)
 		}
+	}
+	if _, err := Render(s, Service{ID: 4, Name: "wrong type", Kind: Binary, Command: "bin/worker"}); err == nil {
+		t.Fatal("rendered Binary worker for mise site")
 	}
 }

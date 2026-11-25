@@ -31,6 +31,21 @@ type Service struct {
 	StatusError string `json:"status_error,omitempty"`
 }
 
+// KindForSite returns the one background-service type offered for an app-backed site.
+// Static and reverse-proxy sites have no runtime-matched background service.
+func KindForSite(kind site.Kind) (Kind, bool) {
+	switch kind {
+	case site.PHP:
+		return PHP, true
+	case site.Binary:
+		return Binary, true
+	case site.Mise:
+		return Mise, true
+	default:
+		return "", false
+	}
+}
+
 var nameRE = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 _.-]{0,47}$`)
 
 func ValidName(s string) error {
@@ -164,6 +179,10 @@ func SystemdEscape(v string) string {
 func Render(siteInfo site.Site, s Service) (string, error) {
 	if err := siteInfo.Validate(); err != nil {
 		return "", fmt.Errorf("invalid site: %w", err)
+	}
+	want, ok := KindForSite(siteInfo.Kind)
+	if !ok || want != s.Kind {
+		return "", fmt.Errorf("background service type %q does not match site type %q", s.Kind, siteInfo.Kind)
 	}
 	if err := Valid(s); err != nil {
 		return "", err

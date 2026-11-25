@@ -112,6 +112,9 @@ func runSiteBackground(args []string) {
 		requireBackgroundInput(*stdin)
 		var next bgservice.Service
 		readBackground(&next)
+		if next.Kind != v.Kind {
+			fail(errors.New("background service type cannot be changed; remove and recreate the service"))
+		}
 		if err := validateBackgroundForSite(s, next); err != nil {
 			fail(err)
 		}
@@ -159,6 +162,14 @@ func readBackground(v *bgservice.Service) {
 	}
 }
 func validateBackgroundForSite(s site.Site, v bgservice.Service) error {
+	want, ok := bgservice.KindForSite(s.Kind)
+	if !ok || want != v.Kind {
+		return fmt.Errorf("background service type must match the site's %s app type", s.Kind)
+	}
+	return validateBackgroundDefinition(s, v)
+}
+
+func validateBackgroundDefinition(s site.Site, v bgservice.Service) error {
 	if err := bgservice.Valid(v); err != nil {
 		return err
 	}

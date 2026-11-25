@@ -4,6 +4,10 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ## [Unreleased]
 
+### Changed
+
+- Background-service creation now follows the website app type: PHP sites offer PHP commands, Binary sites offer Binary services, and mise sites offer mise tasks. Static and reverse-proxy sites have no background-service creation option.
+
 ## [1.2.10] - 2026-11-24
 
 ### Fixed
