@@ -488,7 +488,7 @@
     @apply text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive grid size-9 cursor-pointer place-items-center rounded-md transition-colors duration-150 focus-visible:ring-2 focus:outline-none motion-reduce:transition-none;
   }
   .fm-check {
-    @apply border-input text-primary focus:ring-ring size-4 rounded;
+    @apply border-input text-primary focus:ring-ring mr-2 size-4 shrink-0 rounded align-middle;
   }
   .fm-th {
     @apply text-muted-foreground px-3 py-2 text-xs font-semibold tracking-widest uppercase;

@@ -43,7 +43,7 @@ func TestEveryStorageHasAReadableNameAndHint(t *testing.T) {
 
 func TestTheStorageListHasASearchBox(t *testing.T) {
 	h, _, c, _ := setupWith(t, byOp(map[string]string{"site.list": blogList, "backup.list": `[]`, "cloud.status": `{"connected":false}`}), nil)
-	page := do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
+	page := do(h, "GET", "/backups/offsite", nil, cookie(c)).Body.String()
 	for _, want := range []string{"data-cld-search", "data-cld-list", `data-cld-item="azureblob`, "Azure Blob Storage", "Tìm trong"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("missing %q", want)

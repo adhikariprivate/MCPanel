@@ -52,7 +52,7 @@ func (s *Server) siteTabAccess(user string, row siteRow) map[string]bool {
 		"terminal": "terminal.open", "vhost.view": "vhost.view", "wordpress": "wordpress.view",
 		"site.settings": "site.settings", "ssh.manage": "ssh.manage", "app.manage": "app.manage",
 		"email.manage": "email.manage", "ssl.manage": "ssl.manage", "cron.manage": "cron.manage", "background.manage": "background.manage", "vhost.manage": "vhost.manage",
-		"files.write": "files.write", "files.delete": "files.delete", "files.permissions": "files.permissions", "cloud.manage": "cloud.manage",
+		"files.write": "files.write", "files.delete": "files.delete", "files.permissions": "files.permissions", "cloud.view": "cloud.view", "cloud.manage": "cloud.manage",
 		"wordpress.manage": "wordpress.manage",
 	}
 	out := make(map[string]bool, len(capabilities))
@@ -89,6 +89,7 @@ func (s *Server) sitePagesOfOne(mux *http.ServeMux) {
 		}))
 	}
 	mux.HandleFunc("POST /sites/{name}/cron", s.auth(s.addCron))
+	mux.HandleFunc("POST /sites/{name}/cron/{id}/edit", s.auth(s.editCron))
 	mux.HandleFunc("POST /sites/{name}/cron/{id}/toggle", s.auth(s.toggleCron))
 	mux.HandleFunc("POST /sites/{name}/cron/{id}/delete", s.auth(s.deleteCron))
 	mux.HandleFunc("POST /sites/{name}/background", s.auth(s.backgroundPost))
@@ -168,6 +169,7 @@ func (s *Server) siteTab(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 	}
 	tabAccess, emailEnabled := s.siteNavState(T, ss.User, row)
 	v := view{Page: "site", Site: row, Tab: tab, ServerIP: serverIP(r.Host), TabAccess: tabAccess, EmailEnabled: emailEnabled}
+	s.loadSSH(&v, r, row)
 	switch tab {
 	case "overview":
 		var e string
@@ -179,7 +181,7 @@ func (s *Server) siteTab(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 		v.Dom = newDomainView(row)
 		v.SSL = s.loadSSLText(T, row, v.ServerIP)
 	case "sftp":
-		s.loadSSH(&v, r, row)
+		// SSH state is shared by the top actions on each site page.
 	case "advanced":
 		var e string
 		if v.Over, e = s.loadOverviewText(T, row); e != "" {

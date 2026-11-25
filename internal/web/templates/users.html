@@ -5,15 +5,15 @@
       <h1 class="h-page">Users and site access</h1>
       <p class="mt-1 max-w-3xl text-sm text-muted-foreground">Create panel users, assign them to websites, and decide exactly what each person can do on each site.</p>
     </div>
-    <span class="badge-gray">{{len .AccessUsers}} delegated user(s)</span>
+    <div class="flex items-center gap-3"><span class="badge-gray">{{len .AccessUsers}} delegated user(s)</span><button type="button" class="btn-primary" data-dialog-open="dlg-user">Add user</button></div>
   </div>
 </div>
 
-<div class="grid items-start gap-6 xl:grid-cols-3">
-  <section class="card p-5 sm:p-6 xl:col-span-2" aria-labelledby="user-form-heading">
+<dialog id="dlg-user" class="fm-dialog max-w-5xl" aria-labelledby="user-form-heading" data-close-backdrop {{if .AccessEditing}}data-dialog-auto-open{{end}}>
+  <div class="p-5 sm:p-6">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 id="user-form-heading" class="h-section">{{if .AccessEditing}}Edit {{.AccessUsername}}{{else}}Add a site user{{end}}</h2>
+        <h2 id="user-form-heading" class="h-section">{{if .AccessEditing}}Edit {{.AccessUsername}}{{else}}Add a site user{{end}}</h2><button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button>
         <p class="mt-1 text-sm text-muted-foreground">Site users only see the websites and actions you allow. Instance settings, services, firewall, and site deletion remain administrator-only.</p>
       </div>
       {{if .AccessEditing}}<span class="badge-gray">{{if .AccessEnabled}}Enabled{{else}}Disabled{{end}}</span>{{end}}
@@ -125,9 +125,10 @@
         <span class="text-xs text-muted-foreground">Changes take effect immediately and revoke existing sessions.</span>
       </div>
     </form>
-  </section>
+  </div>
+</dialog>
 
-  <aside class="card p-5 sm:p-6" aria-labelledby="users-list-heading">
+<section class="card p-5 sm:p-6" aria-labelledby="users-list-heading">
     <div class="flex items-center justify-between gap-3">
       <h2 id="users-list-heading" class="h-section">Site users</h2>
       <span class="badge-gray">{{len .AccessUsers}}</span>
@@ -151,8 +152,7 @@
       <p class="mt-1 text-xs text-muted-foreground">Create a separate account for each person who needs website access.</p>
     </div>
     {{end}}
-  </aside>
-</div>
+  </section>
 
 {{if not .AccessEditing}}
 <script src="{{asset "useraccess.js"}}" defer></script>

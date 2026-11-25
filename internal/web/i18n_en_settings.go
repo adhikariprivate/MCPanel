@@ -11,6 +11,8 @@ func init() {
 		"page.siteaccess":    "Site access",
 		"set.title":          "Account settings",
 		"set.sub":            "Password and two-factor authentication for the administrator account.",
+		"set.sub.admin":      "Manage your administrator password and two-factor authentication.",
+		"set.sub.delegated":  "Manage your own panel password. Instance security settings are available only to the administrator.",
 		"set.pw.title":       "Change password",
 		"set.pw.sub":         "Other browsers signed in with the old password will be signed out.",
 		"set.pw.current":     "Current password",

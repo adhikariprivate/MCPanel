@@ -8,7 +8,7 @@ The **Backups** tab manages backups of a website’s files and databases.
 
 ## Automatic backups
 
-Every night at about 03:30 each website is backed up and the **7 newest copies** are kept. They live on this server (`/var/backups/mpn`), so they **do not protect you if the server is lost**. Turn on [off-site backup](#off-site-backup) below.
+Every night at about 03:30 each website is backed up and the **7 newest copies** are kept. They live on this server (`/var/backups/mpn`), so they **do not protect you if the server is lost**. The panel shows this nightly backup policy to every site user.
 
 ## Backup list
 
@@ -16,7 +16,7 @@ Each row shows **Time**, **State** (Complete / Incomplete / Unreadable), **Conte
 
 ## Backup now
 
-Click **Back up** in the **Back up now** section to create a manual copy, for example before updating WordPress.
+Use **Back up** in the page actions to create a manual copy, for example before updating WordPress. This action is available to the instance administrator.
 
 ## Restoring
 
@@ -45,9 +45,9 @@ After each nightly backup, the new copy is sent to the storage you choose, so ba
 
 ### Connecting
 
-1. In the **Backups** tab, on the **Off-site backup** card, under **Choose the storage**, pick a type and fill in the fields.
+1. An instance administrator opens **Off-site backups** in the main sidebar, picks a type under **Choose the storage**, and fills in the fields. This connection and its credentials are shared by all websites.
 2. Click **Connect and test**. The panel writes a small file, reads it back and deletes it; the connection is saved only when all three work. Otherwise it tells you which step failed and saves nothing.
-3. For each website, click **Enable copying**. You can also click **Copy now** to run one copy in the background.
+3. For each website, delegated users with the off-site backup manage permission can choose **Enable copying** or click **Copy now** to start a background copy. The instance administrator controls the shared destination and completes Google Drive authorization.
 
 For Google Drive, in Google Cloud Console enable the Google Drive API, configure the OAuth consent screen, then create an **OAuth client ID** of type **TVs and Limited Input devices**. Enter the **Client ID** and **Client secret**, click **Connect Google Drive**, open the address shown, sign in to Google and enter the code, then return and click **I have authorized access**. The panel asks only for the `drive.file` scope.
 
@@ -59,7 +59,7 @@ Backups contain both the database and the files, so copy them only to storage yo
 
 ### Restoring from off-site storage
 
-Click **View backups in the storage** to list the website’s copies, then **Download to server** on the one you need. The download runs in the background. The panel checks every file and accepts only a backup signed by this machine (see below). Once it is downloaded, restore it from the list at the top of the tab like any other backup.
+The off-site backup view permission lets delegated users list the website’s copies with **View backups in the storage**. **Download to server** requires the off-site backup manage permission. The download runs in the background. The panel checks every file and accepts only a backup signed by this machine (see below). Once it is downloaded, restore it from the list at the top of the tab like any other backup.
 
 ### Backup signatures
 

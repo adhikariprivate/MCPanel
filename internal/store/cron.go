@@ -72,6 +72,24 @@ func (s *Store) SetCronEnabled(site string, id int64, on bool) error {
 	return nil
 }
 
+// EditCronJob updates a job after checking its new schedule and command. The ID must belong to the named site.
+func (s *Store) EditCronJob(site string, id int64, schedule, command string) error {
+	if err := cron.ValidSchedule(schedule); err != nil {
+		return err
+	}
+	if err := cron.ValidCommand(command); err != nil {
+		return err
+	}
+	res, err := s.db.Exec(`UPDATE cron_jobs SET schedule = ?, command = ? WHERE id = ? AND site_id = (SELECT id FROM sites WHERE name = ?)`, schedule, command, id, site)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("site %q has no scheduled job %d: %w", site, id, ErrNotFound)
+	}
+	return nil
+}
+
 // DeleteCronJob removes a job. The job must belong to the site.
 func (s *Store) DeleteCronJob(site string, id int64) error {
 	res, err := s.db.Exec(`DELETE FROM cron_jobs WHERE id = ? AND site_id = (SELECT id FROM sites WHERE name = ?)`, id, site)

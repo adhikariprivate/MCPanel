@@ -1,4 +1,5 @@
 {{define "content"}}
+{{template "sitepagehead" .}}
 <div class="mb-3">
   <a class="inline-flex items-center gap-1.5 text-sm link" href="/sites/{{.Site.Name}}/files{{if .Dir}}?path={{.Dir}}{{end}}">{{template "fmbtn" "up"}}<span>{{T "fm.back"}}</span></a>
 </div>

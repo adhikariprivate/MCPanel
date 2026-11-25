@@ -54,6 +54,26 @@ document.addEventListener('change', function (e) {
 });
 document.querySelectorAll('[data-app-select]').forEach(syncApp);
 
+document.querySelectorAll('dialog[data-dialog-auto-open]').forEach(function (dialog) {
+  if (dialog.showModal) dialog.showModal();
+});
+
+// Shared native dialogs for page actions. Native dialogs supply Escape handling and focus restoration without inline handlers.
+document.addEventListener('click', function (e) {
+  var trigger = e.target.closest('[data-dialog-open]');
+  if (trigger) {
+    var dialog = document.getElementById(trigger.dataset.dialogOpen);
+    if (dialog && dialog.showModal) dialog.showModal();
+    return;
+  }
+  var close = e.target.closest('[data-dialog-close]');
+  if (close) {
+    var owner = close.closest('dialog');
+    if (owner && owner.open) owner.close();
+  }
+  if (e.target instanceof HTMLDialogElement && e.target.open && e.target.dataset.closeBackdrop !== undefined) e.target.close();
+});
+
 // A random password is put in the field when the form opens, and again each time the link is used.
 document.querySelectorAll('[data-password]').forEach(function (field) {
   if (!field.value) field.value = randomPassword();

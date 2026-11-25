@@ -450,10 +450,12 @@ func requestCapability(r *http.Request) (capability, site string, ownerOnly bool
 		return "wordpress.manage", site, false
 	case "app/install":
 		return "app.manage", site, false
-	case "cloud/connect", "cloud/configure", "cloud/finish", "cloud/enable", "cloud/sync", "cloud/disconnect", "cloud/fetch":
+	case "cloud/connect", "cloud/configure", "cloud/finish", "cloud/disconnect":
+		return "", "", true
+	case "cloud/enable", "cloud/sync", "cloud/fetch":
 		return "cloud.manage", site, false
 	}
-	if len(parts) == 5 && parts[2] == "cron" && (parts[4] == "toggle" || parts[4] == "delete") {
+	if len(parts) == 5 && parts[2] == "cron" && (parts[4] == "toggle" || parts[4] == "delete" || parts[4] == "edit") {
 		if id, err := strconv.ParseInt(parts[3], 10, 64); err == nil && id > 0 {
 			return "cron.manage", site, false
 		}
@@ -584,6 +586,7 @@ type view struct {
 	Sec                                         *secView
 	Mail                                        *mailView
 	Cloud                                       *cloudView
+	GlobalCloud                                 bool
 	CloudList                                   *cloudListView
 	WP                                          *wpView
 	Apps                                        []appOption

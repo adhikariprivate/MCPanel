@@ -11,6 +11,8 @@ func init() {
 		"page.siteaccess":    "Quyền truy cập website",
 		"set.title":          "Cài đặt tài khoản",
 		"set.sub":            "Mật khẩu và xác thực hai bước của tài khoản quản trị.",
+		"set.sub.admin":      "Quản lý mật khẩu quản trị và xác thực hai bước của bạn.",
+		"set.sub.delegated":  "Quản lý mật khẩu panel của riêng bạn. Chỉ quản trị viên mới có thể thay đổi cài đặt bảo mật toàn máy chủ.",
 		"set.pw.title":       "Đổi mật khẩu",
 		"set.pw.sub":         "Sau khi đổi, các trình duyệt khác đang đăng nhập bằng mật khẩu cũ sẽ bị đăng xuất.",
 		"set.pw.current":     "Mật khẩu hiện tại",

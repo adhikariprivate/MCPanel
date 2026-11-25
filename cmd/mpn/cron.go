@@ -12,7 +12,7 @@ import (
 )
 
 func cronUsage() {
-	fmt.Fprintln(os.Stderr, "usage: mpn cron <list|add|enable|disable|remove|sync> -site NAME [flags]   (add -h for the flags)")
+	fmt.Fprintln(os.Stderr, "usage: mpn cron <list|add|edit|enable|disable|remove|sync> -site NAME [flags]   (add/edit -h for the flags)")
 	os.Exit(2)
 }
 
@@ -28,9 +28,9 @@ func runCron(args []string) {
 	db := fs.String("db", defaultDB, "database path")
 	site := fs.String("site", "", "site name")
 	id := fs.Int64("id", 0, "job number, for enable, disable and remove")
-	stdin := fs.Bool("stdin", false, "add: read {schedule, command} as JSON on standard input, so the command is not an argument")
-	schedule := fs.String("schedule", "", "add: five fields, or @daily and the like")
-	command := fs.String("command", "", "add: the command line")
+	stdin := fs.Bool("stdin", false, "add/edit: read {schedule, command} as JSON on standard input, so the command is not an argument")
+	schedule := fs.String("schedule", "", "add/edit: five fields, or @daily and the like")
+	command := fs.String("command", "", "add/edit: the command line")
 	asJSON := fs.Bool("json", false, "list: print JSON")
 	apply := fs.Bool("apply", false, "change this machine (Linux, root); otherwise only check")
 	_ = fs.Parse(args[1:])
@@ -53,7 +53,7 @@ func runCron(args []string) {
 		return
 	case "sync":
 		// writes the file again from the database, for a machine where it was lost
-	case "add":
+	case "add", "edit":
 		if *stdin {
 			raw, err := io.ReadAll(io.LimitReader(os.Stdin, 8<<10))
 			fail(err)
@@ -65,10 +65,24 @@ func runCron(args []string) {
 		}
 		fail(cron.ValidSchedule(*schedule))
 		fail(cron.ValidCommand(*command))
-		if len(jobs) >= cron.MaxJobs {
+		if sub == "add" && len(jobs) >= cron.MaxJobs {
 			fail(fmt.Errorf("a site may have at most %d scheduled jobs", cron.MaxJobs))
 		}
-		jobs = append(jobs, cron.Job{ID: -1, Schedule: *schedule, Command: *command, Enabled: true})
+		if sub == "add" {
+			jobs = append(jobs, cron.Job{ID: -1, Schedule: *schedule, Command: *command, Enabled: true})
+		} else {
+			found := false
+			for i := range jobs {
+				if jobs[i].ID == *id {
+					jobs[i].Schedule, jobs[i].Command = *schedule, *command
+					found = true
+					break
+				}
+			}
+			if !found {
+				fail(fmt.Errorf("site %q has no scheduled job %d", s.Name, *id))
+			}
+		}
 	case "enable", "disable", "remove":
 		found := false
 		out := jobs[:0:0]
@@ -104,6 +118,9 @@ func runCron(args []string) {
 		n, err := st.AddCronJob(s.Name, *schedule, *command)
 		fail(err)
 		fmt.Printf("job %d added to site %q\n", n, s.Name)
+	case "edit":
+		fail(st.EditCronJob(s.Name, *id, *schedule, *command))
+		fmt.Printf("job %d of site %q updated\n", *id, s.Name)
 	case "enable", "disable":
 		fail(st.SetCronEnabled(s.Name, *id, sub == "enable"))
 		fmt.Printf("job %d of site %q is %sd\n", *id, s.Name, sub)

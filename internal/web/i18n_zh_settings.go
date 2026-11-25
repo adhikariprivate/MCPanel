@@ -11,6 +11,8 @@ func init() {
 		"page.siteaccess":    "网站访问权限",
 		"set.title":          "账户设置",
 		"set.sub":            "管理员账户的密码和双重验证。",
+		"set.sub.admin":      "管理您的管理员密码和双重验证。",
+		"set.sub.delegated":  "管理您自己的面板密码。实例安全设置仅管理员可用。",
 		"set.pw.title":       "修改密码",
 		"set.pw.sub":         "使用旧密码登录的其他浏览器将被注销。",
 		"set.pw.current":     "当前密码",

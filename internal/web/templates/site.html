@@ -1,5 +1,5 @@
 {{define "content"}}
-{{template "siteheader" .}}
+{{if eq .Tab "overview"}}{{template "siteheader" .}}{{else}}{{template "sitepagehead" .}}{{end}}
 {{if .Error}}<div role="alert" class="alert-error mb-6"><span>{{.Error}}</span></div>{{end}}
 
 {{if eq .Tab "overview"}}
@@ -47,27 +47,18 @@
   </table>
 </div>
 {{else}}<div class="card p-10 text-center"><p class="font-medium">{{T "db.empty"}}</p></div>{{end}}
-{{if .Owner}}<section class="card mt-6 p-6">
-  <h2 class="h-section">{{T "site.dbs.add"}}</h2>
-  <form method="post" action="/databases/add" class="mt-4 max-w-2xl">
+{{if .Owner}}<dialog id="dlg-db-add" class="fm-dialog" aria-labelledby="dlg-db-title" data-close-backdrop>
+  <form method="post" action="/databases/add" class="p-6">
     <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="site" value="{{.Site.Name}}"><input type="hidden" name="back" value="/sites/{{.Site.Name}}/databases">
-    <label for="d-name" class="label">{{T "db.name"}}</label>
-    <label for="d-engine" class="label mt-3">{{T "db.engine"}}</label>
-    <select id="d-engine" name="engine" class="field">
-      {{range .DBEngines}}<option value="{{.}}">{{if eq . "postgresql"}}{{T "db.engine.postgresql"}}{{else}}{{T "db.engine.mysql"}}{{end}}</option>{{else}}<option value="">{{T "db.engine.none"}}</option>{{end}}
-    </select>
-    <div class="mt-1 flex flex-col gap-2 sm:flex-row">
-      <div class="flex min-w-0 flex-1">
-        <span class="inline-flex shrink-0 items-center rounded-l-lg border border-r-0 border-input bg-muted px-3 font-mono text-sm text-muted-foreground">{{.DBBase}}_</span>
-        <input id="d-name" name="name" class="field !mt-0 min-w-0 rounded-l-none font-mono" maxlength="32" placeholder="{{T "db.name.ph"}}" autocomplete="off" spellcheck="false">
-      </div>
-      <button class="btn-primary shrink-0" {{if not .DBEngines}}disabled{{end}}>{{T "db.add"}}</button>
-    </div>
-    <p class="hint">{{T "db.name.hint2" .DBBase}}</p>
+    <div class="flex items-center justify-between gap-3"><h2 id="dlg-db-title" class="h-section">{{T "site.dbs.add"}}</h2><button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button></div>
+    <label for="d-engine" class="label mt-4">{{T "db.engine"}}</label>
+    <select id="d-engine" name="engine" class="field">{{range .DBEngines}}<option value="{{.}}">{{if eq . "postgresql"}}{{T "db.engine.postgresql"}}{{else}}{{T "db.engine.mysql"}}{{end}}</option>{{else}}<option value="">{{T "db.engine.none"}}</option>{{end}}</select>
+    <label for="d-name" class="label mt-4">{{T "db.name"}}</label>
+    <div class="mt-1 flex"><span class="inline-flex shrink-0 items-center rounded-l-lg border border-r-0 border-input bg-muted px-3 font-mono text-sm text-muted-foreground">{{.DBBase}}_</span><input id="d-name" name="name" class="field !mt-0 min-w-0 rounded-l-none font-mono" maxlength="32" placeholder="{{T "db.name.ph"}}" autocomplete="off" spellcheck="false"></div>
+    <p class="hint">{{T "db.name.hint2" .DBBase}}</p><p class="alert-warn mt-4">{{T "db.note"}}</p>
+    <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" data-dialog-close>{{T "c.cancel"}}</button><button class="btn-primary" {{if not .DBEngines}}disabled{{end}}>{{T "db.add"}}</button></div>
   </form>
-  <p class="alert-warn mt-5">{{T "db.note"}}</p>
-</section>
-{{end}}
+</dialog>{{end}}
 
 {{else if eq .Tab "terminal"}}
 {{if .SSHEnabled}}
@@ -99,12 +90,7 @@
   </table>
 </div>
 {{else}}<div class="card p-10 text-center"><p class="font-medium">{{T "bk.empty"}}</p></div>{{end}}
-{{if .Owner}}<section class="card mt-6 p-6">
-  <h2 class="h-section">{{T "site.bk.create"}}</h2>
-  <form method="post" action="/backups/create" class="mt-4"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="site" value="{{.Site.Name}}"><input type="hidden" name="back" value="/sites/{{.Site.Name}}/backups"><button class="btn-primary">{{T "bk.create"}}</button></form>
-  <p class="alert-warn mt-5">{{T "bk.note"}}</p>
-</section>
-{{end}}
-{{if or .Owner (index .TabAccess "cloud.manage")}}{{template "cloudcard" .}}{{end}}
+<p class="alert-warn mt-5">{{T "bk.note"}}</p>
+{{if or .Owner (index .TabAccess "cloud.view") (index .TabAccess "cloud.manage")}}{{template "cloudcard" .}}{{end}}
 {{end}}
 {{end}}

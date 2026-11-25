@@ -24,17 +24,17 @@ func cloudAnswers(status string) func(ctl.Request) (ctl.Response, error) {
 		"cloud.finish": "connected", "cloud.enable": "ok", "cloud.sync": "started", "cloud.disconnect": "gone"})
 }
 
-func TestTheBackupsTabOffersToConnectWhenNothingIsConnected(t *testing.T) {
+func TestTheBackupsTabLinksToSharedOffsiteSettings(t *testing.T) {
 	h, _, c, _ := setupWith(t, cloudAnswers(cloudOff), nil)
 	body := do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
-	for _, want := range []string{"Sao lưu ra ngoài máy chủ", "Chưa kết nối", `action="/sites/blog/cloud/connect"`, `name="client_id"`, `name="client_secret"`, `type="password"`, "TVs and Limited Input devices"} {
+	for _, want := range []string{"Website này", "Kết nối dùng chung cho mọi website", `href="/backups/offsite"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	for _, not := range []string{`action="/sites/blog/cloud/enable"`, `action="/sites/blog/cloud/sync"`, `action="/sites/blog/cloud/disconnect"`} {
+	for _, not := range []string{`action="/cloud/connect"`, `action="/cloud/configure"`, `action="/cloud/disconnect"`} {
 		if strings.Contains(body, not) {
-			t.Errorf("nothing to %s before there is a connection", not)
+			t.Errorf("site page exposes global action %s", not)
 		}
 	}
 }
@@ -43,8 +43,8 @@ func TestWhileWaitingForGoogleTheCodeAndTheAddressAreShown(t *testing.T) {
 	exp := time.Now().Add(20 * time.Minute).Unix()
 	status := `{"connected":false,"email":"","pending":{"user_code":"ABCD-EFGH","url":"https://www.google.com/device","expires":` + itoa(exp) + `},"enabled":false,"state":null}`
 	h, _, c, _ := setupWith(t, cloudAnswers(status), nil)
-	body := do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
-	for _, want := range []string{"ABCD-EFGH", `href="https://www.google.com/device"`, `rel="noopener noreferrer"`, `action="/sites/blog/cloud/finish"`, "Tôi đã cho phép"} {
+	body := do(h, "GET", "/backups/offsite", nil, cookie(c)).Body.String()
+	for _, want := range []string{"ABCD-EFGH", `href="https://www.google.com/device"`, `rel="noopener noreferrer"`, `action="/cloud/finish"`, "Tôi đã cho phép"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -58,23 +58,22 @@ func itoa(n int64) string {
 	return strings.TrimSpace(strings.Join(strings.Fields(time.Unix(n, 0).UTC().Format("20060102150405")), ""))
 }
 
-func TestAConnectedSiteShowsTheAccountTheLastResultAndTheControls(t *testing.T) {
+func TestConnectedStorageCanBeEnabledForAnIndividualSite(t *testing.T) {
 	state := `{"at":1794167637,"ok":true,"message":"","uploaded":2,"present":7}`
 	h, _, c, _ := setupWith(t, cloudAnswers(cloudConnected(true, state)), nil)
 	body := do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
-	for _, want := range []string{"me@example.com", "Đang bật", "Thành công", "Đã chép 2 bản mới, ở nơi lưu trữ có 7 bản.", `action="/sites/blog/cloud/enable"`, `name="on" value="0"`,
-		"Tắt chép ra ngoài", `action="/sites/blog/cloud/sync"`, `action="/sites/blog/cloud/disconnect"`} {
+	for _, want := range []string{`action="/sites/blog/cloud/enable"`, `name="on" value="0"`, `action="/sites/blog/cloud/sync"`, `href="/backups/offsite"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	if strings.Contains(body, testSecret) {
-		t.Error("the secret must never be drawn")
+	if strings.Contains(body, `action="/cloud/disconnect"`) {
+		t.Error("site cannot disconnect shared storage")
 	}
 	h, _, c, _ = setupWith(t, cloudAnswers(cloudConnected(false, "null")), nil)
 	body = do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
-	if !strings.Contains(body, `name="on" value="1"`) || !strings.Contains(body, "Bật chép ra ngoài") || !strings.Contains(body, "Chưa chép lần nào") {
-		t.Error("a site that is not copied offers to turn it on")
+	if !strings.Contains(body, `name="on" value="1"`) || !strings.Contains(body, "Bật chép ra ngoài") {
+		t.Error("a site can enable its own copying")
 	}
 }
 
@@ -87,7 +86,7 @@ func TestAFailedAndARevokedSyncAreExplained(t *testing.T) {
 	}
 	revoked := `{"at":1794167637,"ok":false,"message":"cloud-revoked: Google no longer accepts the saved permission","uploaded":0,"present":0}`
 	h, _, c, _ = setupWith(t, cloudAnswers(cloudConnected(true, revoked)), nil)
-	body = do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
+	body = do(h, "GET", "/backups/offsite", nil, cookie(c)).Body.String()
 	if !strings.Contains(body, "không còn chấp nhận quyền") || strings.Contains(body, "cloud-revoked") {
 		t.Error("a revoked permission is explained in plain words")
 	}
@@ -95,12 +94,12 @@ func TestAFailedAndARevokedSyncAreExplained(t *testing.T) {
 
 func TestConnectingSendsTheDetailsToTheHelper(t *testing.T) {
 	h, f, c, tok := setupWith(t, cloudAnswers(cloudOff), nil)
-	w := followed(h, do(h, "POST", "/sites/blog/cloud/connect", url.Values{"csrf": {tok}, "client_id": {"  " + testClientID + " "}, "client_secret": {testSecret}}, cookie(c)), c)
+	w := followed(h, do(h, "POST", "/cloud/connect", url.Values{"csrf": {tok}, "client_id": {"  " + testClientID + " "}, "client_secret": {testSecret}}, cookie(c)), c)
 	req, ok := lastOp(f, "cloud.connect")
 	if !ok || req.CloudClientID != testClientID || req.CloudSecret != testSecret {
 		t.Fatalf("%+v\n%s", req, w.Body.String())
 	}
-	if backOf(t, w.Body.String()) != "/sites/blog/backups" {
+	if backOf(t, w.Body.String()) != "/backups/offsite" {
 		t.Errorf("back: %s", w.Body.String())
 	}
 	if strings.Contains(w.Body.String(), testSecret) {
@@ -113,7 +112,7 @@ func TestBadClientDetailsNeverReachTheHelper(t *testing.T) {
 	for _, form := range []url.Values{{"client_id": {""}, "client_secret": {testSecret}}, {"client_id": {testClientID}, "client_secret": {""}},
 		{"client_id": {"short"}, "client_secret": {testSecret}}, {"client_id": {testClientID}, "client_secret": {"x; reboot"}}} {
 		form.Set("csrf", tok)
-		if w := do(h, "POST", "/sites/blog/cloud/connect", form, cookie(c)); w.Code != 400 || !strings.Contains(w.Body.String(), "không đúng dạng") {
+		if w := do(h, "POST", "/cloud/connect", form, cookie(c)); w.Code != 400 || !strings.Contains(w.Body.String(), "không đúng dạng") {
 			t.Errorf("%v: %d", form, w.Code)
 		}
 	}
@@ -138,8 +137,8 @@ func TestEnableSyncAndDisconnectGoToTheHelper(t *testing.T) {
 	if req, ok := lastOp(f, "cloud.sync"); !ok || req.Site != "blog" {
 		t.Errorf("sync: %+v", req)
 	}
-	followed(h, do(h, "POST", "/sites/blog/cloud/finish", url.Values{"csrf": {tok}}, cookie(c)), c)
-	followed(h, do(h, "POST", "/sites/blog/cloud/disconnect", url.Values{"csrf": {tok}}, cookie(c)), c)
+	followed(h, do(h, "POST", "/cloud/finish", url.Values{"csrf": {tok}}, cookie(c)), c)
+	followed(h, do(h, "POST", "/cloud/disconnect", url.Values{"csrf": {tok}}, cookie(c)), c)
 	for _, op := range []string{"cloud.finish", "cloud.disconnect"} {
 		if _, ok := lastOp(f, op); !ok {
 			t.Errorf("%s was not sent", op)
@@ -179,7 +178,7 @@ func TestThePageOfTheDriveListsCopiesAndOffersOnlyTheOnesNotHere(t *testing.T) {
 	h, f, c, _ := setupWith(t, restoreAnswers(cloudRemote), nil)
 	body := do(h, "GET", "/sites/blog/cloud/backups", nil, cookie(c)).Body.String()
 	for _, want := range []string{"Các bản sao lưu của blog ở nơi lưu trữ ngoài", "412.5 MB", "410.2 MB", "Đã có", "Chưa có", `action="/sites/blog/cloud/fetch"`,
-		`name="backup" value="20261107-033000"`, `href="/sites/blog/backups"`, `href="/sites/blog/backups" class="nav-link" aria-current="page"`} {
+		`name="backup" value="20261107-033000"`, `href="/sites/blog/backups"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -282,7 +281,7 @@ func TestKnownRefusalsOfTheCopyAreExplained(t *testing.T) {
 			}
 			return cloudAnswers(cloudOff)(r)
 		}, nil)
-		body := followed(h, do(h, "POST", "/sites/blog/cloud/finish", url.Values{"csrf": {tok}}, cookie(c)), c).Body.String()
+		body := followed(h, do(h, "POST", "/cloud/finish", url.Values{"csrf": {tok}}, cookie(c)), c).Body.String()
 		if !strings.Contains(body, want) {
 			t.Errorf("%q: missing %q", output, want)
 		}
@@ -291,8 +290,8 @@ func TestKnownRefusalsOfTheCopyAreExplained(t *testing.T) {
 
 func TestTheCardOffersEveryKindOfStorageWhenNothingIsConnected(t *testing.T) {
 	h, _, c, _ := setupWith(t, cloudAnswers(cloudOff), nil)
-	body := do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
-	for _, want := range []string{`action="/sites/blog/cloud/configure"`, `name="type" value="s3"`, `name="type" value="b2"`, `name="type" value="sftp"`,
+	body := do(h, "GET", "/backups/offsite", nil, cookie(c)).Body.String()
+	for _, want := range []string{`action="/cloud/configure"`, `name="type" value="s3"`, `name="type" value="b2"`, `name="type" value="sftp"`,
 		`name="type" value="webdav"`, `name="type" value="ftp"`, `name="v_secret_access_key" type="password"`, `name="v_host_keys"`, `name="bucket"`, "Cloudflare R2"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -309,7 +308,7 @@ func TestConfiguringSendsOnlyTheFieldsOfTheChosenType(t *testing.T) {
 	h, f, c, tok := setupWith(t, cloudAnswers(cloudOff), nil)
 	form := url.Values{"csrf": {tok}, "type": {"s3"}, "bucket": {"my-backups"}, "folder": {"/srv1/"}, "v_provider": {"Cloudflare"}, "v_access_key_id": {"AKIA123"},
 		"v_secret_access_key": {"TOPSECRET"}, "v_endpoint": {"https://x.r2.cloudflarestorage.com"}, "v_shared_credentials_file": {"/root/.aws/credentials"}, "v_ssh": {"id"}}
-	w := followed(h, do(h, "POST", "/sites/blog/cloud/configure", form, cookie(c)), c)
+	w := followed(h, do(h, "POST", "/cloud/configure", form, cookie(c)), c)
 	req, ok := lastOp(f, "cloud.configure")
 	if !ok || req.CloudStorage == nil {
 		t.Fatalf("%+v\n%s", req, w.Body.String())
@@ -338,7 +337,7 @@ func TestBadStorageSettingsNeverReachTheHelper(t *testing.T) {
 		{"type": {"webdav"}, "v_url": {"file:///etc"}},
 	} {
 		form.Set("csrf", tok)
-		if w := do(h, "POST", "/sites/blog/cloud/configure", form, cookie(c)); w.Code != 400 {
+		if w := do(h, "POST", "/cloud/configure", form, cookie(c)); w.Code != 400 {
 			t.Errorf("%v: %d", form, w.Code)
 		}
 	}
@@ -350,13 +349,13 @@ func TestBadStorageSettingsNeverReachTheHelper(t *testing.T) {
 func TestAConnectedStorageShowsWhereTheBackupsGo(t *testing.T) {
 	status := `{"connected":true,"kind":"s3","where":"S3 Cloudflare: my-backups/mpn-backups","pending":null,"enabled":true,"state":null}`
 	h, _, c, _ := setupWith(t, cloudAnswers(status), nil)
-	body := do(h, "GET", "/sites/blog/backups", nil, cookie(c)).Body.String()
-	for _, want := range []string{"S3 (Cloudflare R2", "my-backups/mpn-backups", `action="/sites/blog/cloud/disconnect"`, "xóa thông tin đăng nhập"} {
+	body := do(h, "GET", "/backups/offsite", nil, cookie(c)).Body.String()
+	for _, want := range []string{"S3 (Cloudflare R2", "my-backups/mpn-backups", `action="/cloud/disconnect"`, "xóa thông tin đăng nhập"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	if strings.Contains(body, `action="/sites/blog/cloud/configure"`) {
+	if strings.Contains(body, `action="/cloud/configure"`) {
 		t.Error("no form to connect while connected")
 	}
 }
@@ -375,7 +374,7 @@ func TestAFailedTestOfTheStorageIsExplained(t *testing.T) {
 			return cloudAnswers(cloudOff)(r)
 		}, nil)
 		form := url.Values{"csrf": {tok}, "type": {"ftp"}, "v_host": {"ftp.example.com"}, "v_user": {"u"}, "v_pass": {"p"}}
-		body := followed(h, do(h, "POST", "/sites/blog/cloud/configure", form, cookie(c)), c).Body.String()
+		body := followed(h, do(h, "POST", "/cloud/configure", form, cookie(c)), c).Body.String()
 		if !strings.Contains(body, want) {
 			t.Errorf("%q: missing %q", output, want)
 		}

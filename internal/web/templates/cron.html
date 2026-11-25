@@ -13,6 +13,7 @@
       <td class="max-w-md"><code class="block overflow-x-auto font-mono text-[13px] whitespace-pre">{{.Command}}</code></td>
       <td>{{if .Enabled}}<span class="badge-teal">{{T "cr.on"}}</span>{{else}}<span class="badge-gray">{{T "cr.off"}}</span>{{end}}</td>
       <td>{{if index $.TabAccess "cron.manage"}}<div class="flex items-center justify-end gap-3">
+        <button type="button" class="btn-sm" data-dialog-open="dlg-cron-edit-{{.ID}}">{{T "cr.edit"}}</button>
         <form method="post" action="/sites/{{$.Site.Name}}/cron/{{.ID}}/toggle"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="on" value="{{if .Enabled}}0{{else}}1{{end}}"><button class="btn-sm">{{if .Enabled}}{{T "cr.pause"}}{{else}}{{T "cr.resume"}}{{end}}</button></form>
         <form method="post" action="/sites/{{$.Site.Name}}/cron/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link-danger text-sm">{{T "cr.delete"}}</button></form>
       </div>{{end}}</td>
@@ -22,9 +23,9 @@
 </div>
 {{else}}<div class="card p-10 text-center"><p class="font-medium">{{T "cr.empty"}}</p><p class="hint">{{T "cr.empty.d"}}</p></div>{{end}}
 
-{{if index .TabAccess "cron.manage"}}<form method="post" action="/sites/{{.Site.Name}}/cron" class="card mt-6 p-6" autocomplete="off">
+{{if index .TabAccess "cron.manage"}}<dialog id="dlg-cron-add" class="fm-dialog" aria-labelledby="dlg-cron-add-title" data-close-backdrop><form method="post" action="/sites/{{.Site.Name}}/cron" class="p-6" autocomplete="off">
   <input type="hidden" name="csrf" value="{{.CSRF}}">
-  <h2 class="h-section">{{T "cr.add.title"}}</h2>
+  <div class="flex items-center justify-between gap-3"><h2 id="dlg-cron-add-title" class="h-section">{{T "cr.add.title"}}</h2><button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button></div>
   <p class="mt-1 text-sm text-muted-foreground">{{T "cr.add.sub" .Site.User}}</p>
   <div class="mt-5 grid gap-5 sm:grid-cols-2">
     <div>
@@ -42,6 +43,12 @@
       <p class="hint">{{T "cr.command.hint" .Site.User}}</p>
     </div>
   </div>
-  <div class="mt-6 flex items-center gap-3"><button class="btn-primary">{{T "cr.add.btn"}}</button><span class="hint mt-0">{{T "cr.max" $c.Max}}</span></div>
-</form>{{end}}
+  <div class="mt-6 flex items-center justify-end gap-3"><span class="hint mt-0">{{T "cr.max" $c.Max}}</span><button type="button" class="btn-secondary" data-dialog-close>{{T "c.cancel"}}</button><button class="btn-primary">{{T "cr.add.btn"}}</button></div>
+</form></dialog>
+{{range $c.Jobs}}<dialog id="dlg-cron-edit-{{.ID}}" class="fm-dialog" aria-labelledby="dlg-cron-edit-title-{{.ID}}" data-close-backdrop><form method="post" action="/sites/{{$.Site.Name}}/cron/{{.ID}}/edit" class="p-6" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{$.CSRF}}"><div class="flex items-center justify-between gap-3"><h2 id="dlg-cron-edit-title-{{.ID}}" class="h-section">{{T "cr.edit.title"}}</h2><button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button></div>
+  <label for="cron-schedule-{{.ID}}" class="label mt-4">{{T "cr.when"}}</label><input id="cron-schedule-{{.ID}}" name="schedule" class="field font-mono" value="{{.Schedule}}" required maxlength="80" spellcheck="false">
+  <p class="hint">{{T "cr.custom.hint"}}</p><label for="cron-command-{{.ID}}" class="label mt-4">{{T "cr.command"}}</label><input id="cron-command-{{.ID}}" name="command" class="field font-mono" value="{{.Command}}" required maxlength="1000" spellcheck="false" autocapitalize="none">
+  <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" data-dialog-close>{{T "c.cancel"}}</button><button class="btn-primary">{{T "cr.edit.save"}}</button></div>
+</form></dialog>{{end}}{{end}}
 {{end}}

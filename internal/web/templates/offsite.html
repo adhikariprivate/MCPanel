@@ -1,0 +1,5 @@
+{{define "content"}}
+<div class="mb-6"><h1 class="h-page">{{T "page.offsite"}}</h1><p class="mt-1 text-sm text-muted-foreground">{{T "cld.sub"}}</p></div>
+{{if .Cloud.Error}}<div role="alert" class="alert-error mb-5">{{.Cloud.Error}}</div>{{end}}
+{{template "cloudcard" .}}
+{{end}}

@@ -3,10 +3,10 @@
 <section class="card mt-6 p-6">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0">
-      <h2 class="h-section">{{T "cld.title"}}</h2>
-      <p class="mt-1 text-sm text-muted-foreground">{{T "cld.sub"}}</p>
+      <h2 class="h-section">{{if .GlobalCloud}}{{T "cld.title"}}{{else}}{{T "cld.site.title"}}{{end}}</h2>
+      <p class="mt-1 text-sm text-muted-foreground">{{if .GlobalCloud}}{{T "cld.sub"}}{{else}}{{T "cld.shared"}}{{end}}</p>
     </div>
-    <span>{{if and $c.Connected $c.Enabled}}<span class="badge-teal">{{T "cld.on"}}</span>{{else if $c.Connected}}<span class="badge-gray">{{T "cld.off"}}</span>{{else}}<span class="badge-amber">{{T "cld.notconn"}}</span>{{end}}</span>
+    <span>{{if and .GlobalCloud $c.Connected}}<span class="badge-teal">{{T "cld.connected"}}</span>{{else if and $c.Connected $c.Enabled}}<span class="badge-teal">{{T "cld.on"}}</span>{{else if $c.Connected}}<span class="badge-gray">{{T "cld.off"}}</span>{{else}}<span class="badge-amber">{{T "cld.notconn"}}</span>{{end}}</span>
   </div>
   {{if $c.Error}}<p class="alert-error mt-4">{{$c.Error}}</p>{{end}}
 
@@ -30,8 +30,8 @@
   {{else}}<p class="alert-error mt-4 break-words">{{T "cld.fetch.fail" (stamp .Stamp)}} {{$c.FetchMsg}}</p>{{end}}
   {{end}}
 
-  <div class="mt-5 flex flex-wrap items-start gap-x-10 gap-y-5 border-t border-border pt-5">
-    <form method="post" action="/sites/{{.Site.Name}}/cloud/enable" class="min-w-0 flex-1 basis-72">
+  {{if not .GlobalCloud}}<div class="mt-5 flex flex-wrap items-start gap-x-10 gap-y-5 border-t border-border pt-5">
+    {{if or $.Owner (index $.TabAccess "cloud.manage")}}<form method="post" action="/sites/{{.Site.Name}}/cloud/enable" class="min-w-0 flex-1 basis-72">
       <input type="hidden" name="csrf" value="{{.CSRF}}">
       <h3 class="text-sm font-semibold">{{T "cld.site.title"}}</h3>
       <p class="hint mt-1">{{T "cld.site.d"}}</p>
@@ -42,24 +42,24 @@
       <h3 class="text-sm font-semibold">{{T "cld.sync"}}</h3>
       <p class="hint mt-1">{{T "cld.sync.d"}}</p>
       <div class="mt-3"><button class="btn-secondary">{{T "cld.sync"}}</button></div>
-    </form>
+    </form>{{end}}
     <div class="min-w-0 flex-1 basis-72">
       <h3 class="text-sm font-semibold">{{T "cld.restore"}}</h3>
       <p class="hint mt-1">{{T "cld.restore.d"}}</p>
       <div class="mt-3"><a class="btn-secondary" href="/sites/{{.Site.Name}}/cloud/backups">{{T "cld.restore.btn"}}</a></div>
     </div>
   </div>
-  <p class="hint">{{T "cld.shared"}}</p>
+  <p class="hint">{{T "cld.shared"}}</p>{{else}}<p class="alert-ok mt-5">{{T "cld.shared"}}</p>{{end}}
 
-  <details class="mt-4 rounded-lg border border-border">
+  {{if .GlobalCloud}}<details class="mt-4 rounded-lg border border-border">
     <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-400">{{T "cld.disconnect"}}</summary>
     <div class="border-t border-border p-4">
       <p class="alert-warn">{{if eq $c.Kind "gdrive"}}{{T "cld.disconnect.w"}}{{else}}{{T "cld.disconnect.w2"}}{{end}}</p>
-      <form method="post" action="/sites/{{.Site.Name}}/cloud/disconnect" class="mt-4"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-secondary">{{T "cld.disconnect.btn"}}</button></form>
+      <form method="post" action="/cloud/disconnect" class="mt-4"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-secondary">{{T "cld.disconnect.btn"}}</button></form>
     </div>
-  </details>
+  </details>{{else if .Owner}}<p class="mt-3"><a class="link" href="/backups/offsite">{{T "cld.configure"}}</a></p>{{end}}
 
-  {{else if $c.Pending}}
+  {{else if and .GlobalCloud $c.Pending}}
   <div class="mt-5 grid gap-x-10 gap-y-5 lg:grid-cols-2">
     <div>
       <h3 class="text-sm font-semibold">{{T "cld.pending.title"}}</h3>
@@ -70,12 +70,12 @@
       </dl>
     </div>
     <div class="flex flex-wrap items-end gap-3">
-      <form method="post" action="/sites/{{.Site.Name}}/cloud/finish"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-primary">{{T "cld.finish"}}</button></form>
-      <form method="post" action="/sites/{{.Site.Name}}/cloud/disconnect"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-secondary">{{T "cld.cancel"}}</button></form>
+      <form method="post" action="/cloud/finish"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-primary">{{T "cld.finish"}}</button></form>
+      <form method="post" action="/cloud/disconnect"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-secondary">{{T "cld.cancel"}}</button></form>
     </div>
   </div>
 
-  {{else}}
+  {{else if .GlobalCloud}}
   <div class="mt-5 flex flex-wrap items-end justify-between gap-3">
     <p class="text-sm font-medium">{{T "cld.pick"}}</p>
     <div class="w-full sm:w-72">
@@ -86,7 +86,7 @@
   <div class="mt-3 divide-y divide-border rounded-lg border border-border" data-cld-list>
     <details class="group" name="cld-kind" data-cld-item="gdrive google drive">
       <summary class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"><span><span class="text-sm font-semibold">{{T "cld.kind.gdrive"}}</span><span class="hint block">{{T "cld.kind.gdrive.d"}}</span></span><span class="text-muted-foreground group-open:rotate-90" aria-hidden="true">&rsaquo;</span></summary>
-      <form method="post" action="/sites/{{.Site.Name}}/cloud/connect" class="border-t border-border p-4" autocomplete="off">
+      <form method="post" action="/cloud/connect" class="border-t border-border p-4" autocomplete="off">
         <input type="hidden" name="csrf" value="{{.CSRF}}">
         <div class="grid gap-x-6 gap-y-4 lg:grid-cols-2">
           <div>
@@ -105,7 +105,7 @@
     {{range $c.Forms}}{{$p := .}}
     <details class="group" name="cld-kind" data-cld-item="{{.Search}}">
       <summary class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"><span><span class="text-sm font-semibold">{{if .Generated}}{{.Name}}{{else}}{{T (printf "cld.kind.%s" .Type)}}{{end}}</span><span class="hint block">{{T .Desc}}</span></span><span class="text-muted-foreground group-open:rotate-90" aria-hidden="true">&rsaquo;</span></summary>
-      <form method="post" action="/sites/{{$.Site.Name}}/cloud/configure" class="border-t border-border p-4" autocomplete="off">
+      <form method="post" action="/cloud/configure" class="border-t border-border p-4" autocomplete="off">
         <input type="hidden" name="csrf" value="{{$.CSRF}}">
         <input type="hidden" name="type" value="{{.Type}}">
         <div class="grid gap-x-6 gap-y-4 lg:grid-cols-2">
@@ -140,7 +140,7 @@
     {{end}}
     <p class="px-4 py-3 text-sm text-muted-foreground" data-cld-empty hidden>{{T "cld.search.none"}}</p>
   </div>
-  {{end}}
+  {{else}}<div class="card p-6"><h3 class="font-semibold">{{T "cld.notconn"}}</h3><p class="mt-1 text-sm text-muted-foreground">{{T "cld.shared"}}</p>{{if .Owner}}<a class="btn-secondary mt-4 inline-flex" href="/backups/offsite">{{T "cld.configure"}}</a>{{end}}</div>{{end}}
   <p class="hint">{{T "cld.note"}}</p>
 </section>
 {{end}}

@@ -124,6 +124,25 @@ func (s *Server) addCron(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 	})
 }
 
+func (s *Server) editCron(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
+	T := translatorForWriter(w)
+	s.cronAction(w, r, ss, "act.cron.edit", func(row siteRow) (ctl.Request, string) {
+		id, ok := jobID(r)
+		if !ok {
+			return ctl.Request{}, T("cr.err.id")
+		}
+		schedule := strings.Join(strings.Fields(r.PostFormValue("schedule")), " ")
+		command := strings.TrimSpace(strings.ReplaceAll(r.PostFormValue("command"), "\r", ""))
+		if err := cron.ValidSchedule(schedule); err != nil {
+			return ctl.Request{}, T("cr.err.schedule", err.Error())
+		}
+		if err := cron.ValidCommand(command); err != nil {
+			return ctl.Request{}, T("cr.err.command", err.Error())
+		}
+		return ctl.Request{Op: "site.cronedit", Site: row.Name, JobID: id, Schedule: schedule, Command: command}, ""
+	})
+}
+
 func jobID(r *http.Request) (int64, bool) {
 	n, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	return n, err == nil && n > 0

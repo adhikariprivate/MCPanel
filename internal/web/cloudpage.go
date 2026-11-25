@@ -125,6 +125,11 @@ func cloudForms() []cloudForm {
 }
 
 func (s *Server) cloudRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /backups/offsite", s.auth(s.offsitePage))
+	mux.HandleFunc("POST /cloud/connect", s.auth(s.cloudConnect))
+	mux.HandleFunc("POST /cloud/configure", s.auth(s.cloudConfigure))
+	mux.HandleFunc("POST /cloud/finish", s.auth(s.cloudFinish))
+	mux.HandleFunc("POST /cloud/disconnect", s.auth(s.cloudDisconnect))
 	mux.HandleFunc("POST /sites/{name}/cloud/connect", s.auth(s.cloudConnect))
 	mux.HandleFunc("POST /sites/{name}/cloud/configure", s.auth(s.cloudConfigure))
 	mux.HandleFunc("POST /sites/{name}/cloud/finish", s.auth(s.cloudFinish))
@@ -133,6 +138,11 @@ func (s *Server) cloudRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /sites/{name}/cloud/disconnect", s.auth(s.cloudDisconnect))
 	mux.HandleFunc("GET /sites/{name}/cloud/backups", s.auth(s.cloudBackupsPage))
 	mux.HandleFunc("POST /sites/{name}/cloud/fetch", s.auth(s.cloudFetch))
+}
+
+func (s *Server) offsitePage(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
+	T := translatorForWriter(w)
+	s.show(w, http.StatusOK, ss, view{Page: "offsite", GlobalCloud: true, Cloud: s.loadCloudText(T, "")})
 }
 
 func (s *Server) loadCloud(siteName string) *cloudView {
@@ -189,18 +199,27 @@ var cloudRefusals = []struct{ marker, key string }{
 // cloudAction runs one operation of the card and shows its result on the Backups tab, with the sentence for each known refusal.
 func (s *Server) cloudAction(w http.ResponseWriter, r *http.Request, ss webauth.Session, title string, build func(name string) (ctl.Request, string)) {
 	T := translatorForWriter(w)
-	row, status, msg := s.findSiteText(T, r.PathValue("name"))
-	if status != 0 {
-		http.Error(w, msg, status)
-		return
+	name := r.PathValue("name")
+	back := "/backups/offsite"
+	label := name
+	if name != "" {
+		row, status, msg := s.findSiteText(T, name)
+		if status != 0 {
+			http.Error(w, msg, status)
+			return
+		}
+		name = row.Name
+		label = row.Name
+		back = siteTab(row.Name, "backups")
+	} else {
+		label = T("cld.instance")
 	}
-	back := siteTab(row.Name, "backups")
-	req, problem := build(row.Name)
+	req, problem := build(name)
 	if problem != "" {
 		s.refuseTo(w, ss, back, T("cld.fail"), problem)
 		return
 	}
-	res := s.runText(r, T, T(title, row.Name), req)
+	res := s.runText(r, T, T(title, label), req)
 	res.Back = back
 	if !res.OK {
 		for _, x := range cloudRefusals {

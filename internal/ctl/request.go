@@ -68,10 +68,10 @@ type Request struct {
 	Speed          bool   `json:"speed,omitempty"`    // site.speed: compress and cache static files
 	// site.vhostset: the nginx configuration written by hand. It reaches mpn on standard input only.
 	Vhost string `json:"vhost,omitempty"`
-	// Scheduled jobs. site.cronadd sends the schedule and the command on standard input.
+	// Scheduled jobs. site.cronadd/site.cronedit send the schedule and command on standard input.
 	Schedule          string `json:"schedule,omitempty"`
 	Command           string `json:"command,omitempty"`
-	JobID             int64  `json:"job_id,omitempty"` // site.cronset and site.crondel
+	JobID             int64  `json:"job_id,omitempty"` // site.cronset, site.cronedit and site.crondel
 	On                bool   `json:"on,omitempty"`     // site.cronset: the job runs
 	BackgroundID      int64  `json:"background_id,omitempty"`
 	BackgroundName    string `json:"background_name,omitempty"`
@@ -170,7 +170,7 @@ func (r Request) Stdin() string {
 		return r.Code + "\n"
 	case r.Op == "site.vhostset":
 		return r.Vhost
-	case r.Op == "site.cronadd":
+	case r.Op == "site.cronadd", r.Op == "site.cronedit":
 		b, _ := json.Marshal(struct {
 			Schedule string `json:"schedule"`
 			Command  string `json:"command"`
@@ -208,7 +208,7 @@ var writes = map[string]bool{
 	"site.add": true, "site.apply": true, "site.remove": true, "site.access": true, "site.panelkey": true, "site.set": true, "site.domain": true,
 	"site.ssl": true, "site.sslcustom": true, "site.csr": true, "site.ssloff": true, "site.sslredirect": true, // where the certificate comes from
 	"site.vhostset": true, "site.vhostreset": true, "site.speed": true, // the nginx configuration of a site
-	"site.cronadd": true, "site.cronset": true, "site.crondel": true, // the scheduled jobs of a site
+	"site.cronadd": true, "site.cronedit": true, "site.cronset": true, "site.crondel": true, // the scheduled jobs of a site
 	"site.bgadd": true, "site.bgedit": true, "site.bgstart": true, "site.bgstop": true, "site.bgrestart": true, "site.bgdel": true,
 	"firewall.enable": true, "firewall.disable": true, "firewall.add": true, "firewall.del": true,
 	"port.set": true, "port.finish": true, "port.cancel": true, // the ports of SSH, the panel, phpMyAdmin and the web mail
@@ -513,7 +513,7 @@ func (r Request) Argv() ([]string, error) {
 			return nil, err
 		}
 		return []string{"security", "unban", "-jail=" + r.Jail, "-ip=" + ip, "-apply"}, nil
-	case "site.cronlist", "site.cronadd", "site.cronset", "site.crondel":
+	case "site.cronlist", "site.cronadd", "site.cronedit", "site.cronset", "site.crondel":
 		if err := requireSite(r.Site); err != nil {
 			return nil, err
 		}
@@ -528,6 +528,17 @@ func (r Request) Argv() ([]string, error) {
 				return nil, err
 			}
 			return []string{"cron", "add", "-site", r.Site, "-stdin", "-apply"}, nil
+		case "site.cronedit":
+			if r.JobID < 1 {
+				return nil, fmt.Errorf("job number %d is not valid", r.JobID)
+			}
+			if err := cron.ValidSchedule(r.Schedule); err != nil {
+				return nil, err
+			}
+			if err := cron.ValidCommand(r.Command); err != nil {
+				return nil, err
+			}
+			return []string{"cron", "edit", "-site", r.Site, "-id", strconv.FormatInt(r.JobID, 10), "-stdin", "-apply"}, nil
 		}
 		if r.JobID < 1 {
 			return nil, fmt.Errorf("job number %d is not valid", r.JobID)

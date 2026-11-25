@@ -33,6 +33,9 @@ func TestRequestCapabilityCoversRegisteredSiteRoutes(t *testing.T) {
 		{http.MethodGet, "/sites/shop/email/cf", "email.view", "shop"},
 		{http.MethodPost, "/sites/shop/wp/run", "wordpress.manage", "shop"},
 		{http.MethodGet, "/sites/shop/cloud/backups", "cloud.view", "shop"},
+		{http.MethodPost, "/sites/shop/cloud/enable", "cloud.manage", "shop"},
+		{http.MethodPost, "/sites/shop/cloud/sync", "cloud.manage", "shop"},
+		{http.MethodPost, "/sites/shop/cloud/fetch", "cloud.manage", "shop"},
 		{http.MethodGet, "/activity", "activity.view", ""},
 		{http.MethodGet, "/activity.csv", "activity.view", ""},
 	}
@@ -43,7 +46,7 @@ func TestRequestCapabilityCoversRegisteredSiteRoutes(t *testing.T) {
 			t.Errorf("%s %s: got capability=%q site=%q ownerOnly=%t; want %q for %q", tc.method, tc.path, got, site, ownerOnly, tc.want, tc.site)
 		}
 	}
-	for _, path := range []string{"/users", "/firewall", "/services", "/databases/add", "/backups/restore", "/sites/new", "/sites/remove", "/sites/shop/access", "/sites/shop/unknown"} {
+	for _, path := range []string{"/users", "/firewall", "/services", "/databases/add", "/backups/restore", "/backups/offsite", "/cloud/connect", "/cloud/configure", "/cloud/finish", "/cloud/disconnect", "/sites/shop/cloud/connect", "/sites/shop/cloud/configure", "/sites/shop/cloud/finish", "/sites/shop/cloud/disconnect", "/sites/new", "/sites/remove", "/sites/shop/access", "/sites/shop/unknown"} {
 		r := httptest.NewRequest(http.MethodPost, path, nil)
 		if capability, _, ownerOnly := requestCapability(r); !ownerOnly && capability != "session.logout" && capability != "session.result" {
 			t.Errorf("%s: expected owner-only or session-only route, got capability %q", path, capability)
@@ -63,7 +66,7 @@ func TestDelegatedAuthorizationIsPerSiteAndFailsClosed(t *testing.T) {
 	const firstID = "00000000000000000000000000000001"
 	siteJSON := `[{"id":1,"access_id":"` + firstID + `","name":"shop"}]`
 	access.Users["editor"] = webauth.NewDelegatedUser("stored-hash", map[string]map[string]string{
-		firstID: {"site.view": "allow", "files.read": "allow", "files.write": "deny", "ssl.view": "allow", "vhost.view": "allow"},
+		firstID: {"site.view": "allow", "files.read": "allow", "files.write": "deny", "ssl.view": "allow", "vhost.view": "allow", "cloud.view": "allow", "cloud.manage": "allow"},
 	})
 	if err := webauth.SaveDelegatedAccess(path, access); err != nil {
 		t.Fatal(err)
@@ -88,6 +91,12 @@ func TestDelegatedAuthorizationIsPerSiteAndFailsClosed(t *testing.T) {
 		{http.MethodGet, "/sites/shop/advanced", true},
 		{http.MethodGet, "/activity", true},
 		{http.MethodGet, "/activity.csv", true},
+		{http.MethodGet, "/sites/shop/cloud/backups", true},
+		{http.MethodPost, "/sites/shop/cloud/enable", true},
+		{http.MethodPost, "/sites/shop/cloud/sync", true},
+		{http.MethodPost, "/sites/shop/cloud/fetch", true},
+		{http.MethodGet, "/sites/other/cloud/backups", false},
+		{http.MethodPost, "/sites/other/cloud/sync", false},
 		{http.MethodGet, "/sites/other", false},
 		{http.MethodGet, "/services", false},
 		{http.MethodGet, "/users", false},
@@ -99,6 +108,26 @@ func TestDelegatedAuthorizationIsPerSiteAndFailsClosed(t *testing.T) {
 		got := s.authorizeRequest(w, r, webauth.Session{User: "editor"})
 		if got != tc.want {
 			t.Errorf("%s %s: authorize=%t, want %t (status %d)", tc.method, tc.target, got, tc.want, w.Code)
+		}
+	}
+	for _, tc := range []struct{ method, target string }{
+		{http.MethodGet, "/backups/offsite"},
+		{http.MethodPost, "/cloud/configure"},
+		{http.MethodPost, "/cloud/connect"},
+		{http.MethodPost, "/cloud/finish"},
+		{http.MethodPost, "/cloud/disconnect"},
+		{http.MethodPost, "/sites/shop/cloud/configure"},
+		{http.MethodPost, "/sites/shop/cloud/connect"},
+		{http.MethodPost, "/sites/shop/cloud/finish"},
+		{http.MethodPost, "/sites/shop/cloud/disconnect"},
+	} {
+		r := httptest.NewRequest(tc.method, tc.target, nil)
+		w := httptest.NewRecorder()
+		if s.authorizeRequest(w, r, webauth.Session{User: "editor"}) || w.Code != http.StatusForbidden {
+			t.Errorf("delegated user: %s %s returned %d, want %d", tc.method, tc.target, w.Code, http.StatusForbidden)
+		}
+		if !s.authorizeRequest(httptest.NewRecorder(), r, webauth.Session{User: owner.User}) {
+			t.Errorf("instance administrator was denied %s %s", tc.method, tc.target)
 		}
 	}
 	siteJSON = `[{"id":1,"access_id":"00000000000000000000000000000002","name":"shop"}]`

@@ -4,6 +4,8 @@ package web
 func init() {
 	for k, v := range map[string]string{
 		"nav.websites":            "Websites",
+		"nav.offsite":             "Off-site backups",
+		"page.offsite":            "Off-site backups",
 		"site.switch":             "Switch website",
 		"site.group.manage":       "Manage",
 		"site.group.access":       "Access",

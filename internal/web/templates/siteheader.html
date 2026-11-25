@@ -47,3 +47,20 @@ for a moment and tells a screen reader through the status element. */}}
   </div>
 </header>
 {{end}}
+
+{{define "sitepagehead"}}
+<header class="site-page-head mb-6">
+      <div class="site-page-title"><div class="min-w-0"><h1 class="h-page">{{if eq .Tab "background"}}{{T "tab.background"}}{{else}}{{T (printf "tab.%s" .Tab)}}{{end}}</h1><p class="mt-1 text-sm text-muted-foreground">{{T (printf "site.section.%s" .Tab) .Site.Primary}}</p></div>
+    <div class="site-page-actions">
+      {{if .TabAccess.sftp}}<a class="btn-secondary" href="/sites/{{.Site.Name}}/sftp">{{T "ssh.title"}}</a>{{end}}
+      {{if .TabAccess.terminal}}<a class="btn-secondary" href="/sites/{{.Site.Name}}/terminal">{{T "tab.terminal"}}</a>{{end}}
+      {{if and (eq .Tab "databases") .Owner}}<button type="button" class="btn-primary" data-dialog-open="dlg-db-add">{{T "db.add"}}</button>{{end}}
+      {{if and (eq .Tab "backups") .Owner}}<form method="post" action="/backups/create"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="site" value="{{.Site.Name}}"><input type="hidden" name="back" value="/sites/{{.Site.Name}}/backups"><button class="btn-primary">{{T "bk.create"}}</button></form>{{end}}
+      {{if and (eq .Tab "cron") (index .TabAccess "cron.manage")}}<button type="button" class="btn-primary" data-dialog-open="dlg-cron-add">{{T "cr.add.btn"}}</button>{{end}}
+      {{if and (eq .Tab "background") .Background.CanManage (or (eq .Site.Kind "php") (eq .Site.Kind "binary") (eq .Site.Kind "mise"))}}<button type="button" class="btn-primary" data-dialog-open="dlg-bg-add">{{T "bg.add"}}</button>{{end}}
+      {{if index .TabAccess "ssh.manage"}}{{if .SSHEnabled}}<a class="btn-secondary" href="/sites/{{.Site.Name}}/ssh/reset">{{T "ssh.reset"}}</a><a class="btn-secondary" href="/sites/{{.Site.Name}}/ssh/disable">{{T "ssh.disable"}}</a>{{else}}<form method="post" action="/sites/{{.Site.Name}}/ssh/enable"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn-primary">{{T "ssh.enable"}}</button></form>{{end}}{{end}}
+      <a class="btn-secondary" href="{{.Site.URL}}" target="_blank" rel="noopener noreferrer">{{T "hd.open"}}</a>
+    </div>
+  </div>
+</header>
+{{end}}

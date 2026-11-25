@@ -2,7 +2,7 @@
 {{$v := .Settings}}
 <div class="mb-6">
   <h1 class="h-page">{{T "set.title"}}</h1>
-  <p class="mt-1 text-sm text-muted-foreground">{{T "set.sub"}}</p>
+  <p class="mt-1 text-sm text-muted-foreground">{{if .Owner}}{{T "set.sub.admin"}}{{else}}{{T "set.sub.delegated"}}{{end}}</p>
 </div>
 {{if .Notice}}<div role="status" class="alert-ok mb-6"><span>{{.Notice.Title}}</span></div>{{end}}
 

@@ -1,4 +1,5 @@
 {{define "content"}}
+{{template "sitepagehead" .}}
 <div class="mx-auto max-w-xl">
   <h1 class="h-page">{{T "fm.rename.title"}}</h1>
   <form method="post" action="/sites/{{.Site.Name}}/files/rename" class="card mt-6 space-y-4 p-6">

@@ -16,7 +16,7 @@
       <td class="whitespace-nowrap">{{stamp .Stamp}}</td>
       <td class="whitespace-nowrap tabular-nums">{{printf "%.1f" .SizeMB}} MB</td>
       <td>{{if .Local}}<span class="badge-teal">{{T "cld.list.local"}}</span>{{else}}<span class="badge-gray">{{T "cld.list.none"}}</span>{{end}}</td>
-      <td class="text-right">{{if not .Local}}<form method="post" action="/sites/{{$.Site.Name}}/cloud/fetch" class="inline"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="backup" value="{{.Stamp}}"><button class="btn-sm">{{T "cld.list.fetch"}}</button></form>{{end}}</td>
+      <td class="text-right">{{if and (not .Local) (or $.Owner (index $.TabAccess "cloud.manage"))}}<form method="post" action="/sites/{{$.Site.Name}}/cloud/fetch" class="inline"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="backup" value="{{.Stamp}}"><button class="btn-sm">{{T "cld.list.fetch"}}</button></form>{{end}}</td>
     </tr>{{end}}
     </tbody>
   </table>
