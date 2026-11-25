@@ -3,6 +3,8 @@ package web
 // English text of the page of one website.
 func init() {
 	for k, v := range map[string]string{
+		"access.user.add":          "Add user",
+		"access.users.manage":      "Manage all users",
 		"page.site":                "Website",
 		"site.back":                "All websites",
 		"tab.overview":             "Overview",

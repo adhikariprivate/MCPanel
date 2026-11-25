@@ -21,11 +21,12 @@ Pausing keeps the job but stops it from running, which is handy for a temporary 
 
 ## Adding a job
 
-1. In **Runs**, pick a preset schedule (the default is 3 AM every day).
-2. For a custom schedule, fill in **Or a custom schedule** with five fields separated by spaces: `minute hour day month weekday`, for example `*/10 8-18 * * 1-5`. When this field has content, it replaces the preset on the left.
-3. Enter the **Command**, then click **Add**.
+1. Select the **Add scheduled job** plus icon in the page header.
+2. In **Run**, pick a preset schedule (the default is 3 AM every day).
+3. For a custom schedule, fill in **Or a custom schedule** with five fields separated by spaces: `minute hour day month weekday`, for example `*/10 8-18 * * 1-5`. When this field has content, it replaces the preset on the left.
+4. Enter the **Command**, then click **Add**.
 
-Each website has a maximum number of jobs, shown next to the Add button.
+Each website has a maximum number of jobs, shown in the add dialog.
 
 ## Writing the command
 

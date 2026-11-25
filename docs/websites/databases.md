@@ -18,7 +18,7 @@ The **Name (optional)** field:
 * A suffix such as `shop`: becomes `<website-name>_shop`.
 * Only lowercase a-z, digits and underscores. The name is at most 32 characters, including the website prefix.
 
-Click **Add database**. The password is shown **once**, right after creation. The system does not store it, so save it.
+Select the **Add database** plus icon in the page header to open the database form. The password is shown **once**, right after creation. The system does not store it, so save it.
 
 Choose the database engine from the engines installed on the server. MariaDB and MySQL are alternatives; PostgreSQL can run alongside either one. Use a matching database driver in your application. Built-in application installers currently provision MariaDB/MySQL databases; for PostgreSQL, create the database here and configure your application to use it.
 

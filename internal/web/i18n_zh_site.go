@@ -3,6 +3,8 @@ package web
 // Simplified Chinese text of the page of one website.
 func init() {
 	for k, v := range map[string]string{
+		"access.user.add":          "添加用户",
+		"access.users.manage":      "管理所有用户",
 		"page.site":                "网站",
 		"site.back":                "所有网站",
 		"tab.overview":             "概览",

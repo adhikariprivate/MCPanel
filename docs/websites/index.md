@@ -30,7 +30,7 @@ Each type has different settings tabs once you open a website’s detail page �
 
 ## What you can do from here
 
-* [Add a new website](adding-a-website.md)
-* Click a website’s name to open its detail page, with tabs: Overview, Databases, Backups, and more. The SSH/SFTP settings are in Overview.
+* Use the **Add website** plus icon in the header to [add a website](adding-a-website.md).
+* Click a website’s name to open its detail page, with tabs: Overview, Databases, Backups, and more. The SSH/SFTP settings are in **SFTP**.
 * **Apply**: reload the website’s Nginx configuration (useful after a manual edit, or if the running configuration seems out of sync with saved settings).
 * **Remove**: delete the website from the server (with a confirmation step before it happens).

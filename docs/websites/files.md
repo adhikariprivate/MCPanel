@@ -10,7 +10,7 @@ The **Files** tab is the website’s file manager. Every action runs as the webs
 
 ## Requirements
 
-The Files tab needs SSH/SFTP login enabled for the website, see [SSH/SFTP](ssh-sftp.md). If the panel says it cannot sign in as the website account, open the SSH/SFTP card and check the panel key.
+The Files tab needs SSH/SFTP login enabled for the website, see [SSH/SFTP](ssh-sftp.md). If the panel says it cannot sign in as the website account, open **SFTP** and check the panel key. The file browser uses the available content width, and the file list scrolls horizontally if its columns need more room.
 
 ## Browsing
 

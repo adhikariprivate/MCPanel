@@ -6,6 +6,8 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ### Changed
 
+- Website, Users and Site Access headers use compact icon actions with accessible names, right-aligned on the header row. Each website tab shows only its own actions: Files keeps the SSH/SFTP and Terminal shortcuts, Databases, Backups, Cron and Services offer their own add buttons, the SFTP tab holds the SSH access controls, and Logs, Email, Domain, Terminal, Advanced and WordPress show no header buttons. The user editor is wider and keeps its actions visible while permissions scroll, and Files uses the available content width.
+
 - Website sections now use a dedicated, permission-filtered sidebar. Removed the system and version footer from signed-in and sign-in pages.
 - Site navigation groups related sections and labels background services as **Services**. Multi-site users can switch among only the websites they are allowed to view.
 - Delegated users can open Account settings and change their own password; two-factor controls remain administrator-only. Background-service view and manage grants now save correctly.

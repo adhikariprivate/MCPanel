@@ -6,7 +6,7 @@ title: Adding a website
 
 The website page groups controls into tabs. **Overview** shows the current status and website settings. **Domain** contains domain and SSL controls, **SFTP** contains connection and account controls, and **Advanced** contains vHost configuration, acceleration and website deletion. The Email tab and Webmail setting appear only while the instance email service is enabled.
 
-From the [Websites](index.md) page, scroll to the **Add website** form at the bottom, or go directly to `/sites/new`.
+From the [Websites](index.md) page, select the **Add website** plus icon in the page header, or go directly to `/sites/new`.
 
 ![Add website form with name, type and domain fields](../assets/mpanel/sites-new.DqnqyoeC_2cDRNx.webp)
 

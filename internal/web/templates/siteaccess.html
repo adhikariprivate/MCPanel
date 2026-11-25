@@ -1,12 +1,12 @@
 {{define "content"}}
-<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+<header class="page-title-row mb-6">
   <div>
     <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Website access</p>
     <h1 class="h-page mt-1 break-all">{{.AccessSite}}</h1>
     <p class="mt-1 text-sm text-muted-foreground">Review the panel users assigned to this website and update their permissions.</p>
   </div>
-  <a class="btn-secondary" href="/users">Manage all users</a>
-</div>
+  <div class="page-actions"><a class="ico-btn" href="/users" title="{{T "access.users.manage"}}" aria-label="{{T "access.users.manage"}}">{{template "tabicon" "users"}}</a></div>
+</header>
 
 {{if .AccessPeople}}
 <div class="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><span class="badge-gray">{{len .AccessPeople}} assigned user(s)</span><span>Each user’s access is managed independently.</span></div>

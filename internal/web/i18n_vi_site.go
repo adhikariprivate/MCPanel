@@ -3,6 +3,8 @@ package web
 // Vietnamese text of the page of one website.
 func init() {
 	for k, v := range map[string]string{
+		"access.user.add":          "Thêm người dùng",
+		"access.users.manage":      "Quản lý tất cả người dùng",
 		"page.site":                "Website",
 		"site.back":                "Tất cả website",
 		"tab.overview":             "Tổng quan",

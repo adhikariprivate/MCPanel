@@ -4,7 +4,9 @@ title: Users and site access
 
 # Users and site access
 
-The instance administrator can create panel users and assign each user to selected websites. Open **Users and access** from the sidebar, create a username and initial password, choose a starting role preset, select the websites, and set each permission to **Allow**, **Deny**, or **Inherit**. The **Access** link in a website header shows who is assigned to that website.
+The instance administrator can create panel users and assign each user to selected websites. Open **Users and access** from the sidebar and select the **Add user** plus icon in the page header. In the dialog, enter a username and initial password, choose a starting role preset, select the websites, and set each permission to **Allow**, **Deny**, or **Inherit**. Scroll through the permissions and use the actions at the bottom of the dialog to save or cancel.
+
+Open **Site access** from a website’s sidebar to see its assigned users. Use **Edit this user** for an assigned user to open the same dialog in edit mode, or select the **Manage all users** icon in the page header to return to the full user list.
 
 The **Read only**, **Developer**, and **Site manager** presets fill in a starting set of permissions for newly created users. Choosing a preset updates the per-site controls so you can review and change each permission before saving. They are not fixed roles: the saved result is a set of per-site grants. Terminal and SSH access are never included by a preset.
 

@@ -186,6 +186,15 @@
     flex-direction: column;
   }
   .app-main { @apply w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-8; }
+  .page-title-row {
+    @apply flex flex-wrap items-start justify-between gap-x-6 gap-y-3;
+  }
+  .page-title-row > :first-child {
+    @apply min-w-0 flex-1 basis-64;
+  }
+  .page-actions {
+    @apply ml-auto flex items-center justify-end gap-2;
+  }
   .brand {
     @apply focus-visible:ring-sidebar-ring flex min-h-10 shrink-0 items-center gap-2 rounded-md px-2 py-1 focus:outline-none focus-visible:ring-2;
   }
@@ -484,6 +493,12 @@
   .ico-btn {
     @apply text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring grid size-9 cursor-pointer place-items-center rounded-md transition-colors duration-150 focus-visible:ring-2 focus:outline-none motion-reduce:transition-none;
   }
+  .ico-btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground;
+  }
+  .ico-btn-destructive {
+    @apply text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive;
+  }
   .ico-btn-danger {
     @apply text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive grid size-9 cursor-pointer place-items-center rounded-md transition-colors duration-150 focus-visible:ring-2 focus:outline-none motion-reduce:transition-none;
   }
@@ -504,6 +519,14 @@
   }
   .fm-dialog {
     @apply border-border bg-card text-card-foreground backdrop:bg-foreground/50 m-auto w-[min(34rem,calc(100vw-2rem))] rounded-xl border p-0 shadow-2xl;
+  }
+  .fm-dialog-wide {
+    @apply overflow-hidden;
+    width: min(64rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+  }
+  .fm-dialog-wide[open] {
+    @apply flex flex-col;
   }
   .fm-menu {
     @apply border-border bg-card text-card-foreground fixed z-50 min-w-[13rem] rounded-lg border p-1 shadow-xl outline-none focus:outline-none;

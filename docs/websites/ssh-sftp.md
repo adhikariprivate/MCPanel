@@ -4,7 +4,7 @@ title: SSH/SFTP
 
 # SSH/SFTP
 
-SSH/SFTP is a card in the [Overview](overview-tab.md) tab, not a tab of its own. The old address `/sites/<name>/ssh` still works and redirects to the Overview.
+Open **SFTP** from the website sidebar or select the **SSH/SFTP access** key icon in the website page header.
 
 Use it to upload files and manage the website from the command line or SFTP software.
 
@@ -14,15 +14,15 @@ The card shows **Host**, **Port**, **Account** and **State** (On / Off). Click a
 
 ## Enabling login
 
-Click **Enable login**. The panel generates a random password and shows it **only once** on the result page. The panel stores it nowhere, so copy it right away.
+Select the **Enable access** power icon in the page header. The panel generates a random password and shows it **only once** on the result page. The panel stores it nowhere, so copy it right away.
 
 ## Resetting the password
 
-**Reset password** stops the old password working immediately. SFTP software and anyone using the account must enter the new one, which is also shown only once.
+Select the **Reset password** circular-arrow icon in the page header and confirm the reset. This stops the old password working immediately. SFTP software and anyone using the account must enter the new one, which is also shown only once.
 
 ## Disabling login
 
-**Disable login** locks the password: the account can no longer sign in through SSH or SFTP. The website keeps running. Enabling login again creates a new password.
+Select the **Disable access** icon in the page header and confirm. This locks the password: the account can no longer sign in through SSH or SFTP. The website keeps running. Enabling login again creates a new password.
 
 While login is off, the [Terminal](terminal.md) and the panel’s file manager are unavailable too.
 

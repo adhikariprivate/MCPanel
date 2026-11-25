@@ -1,27 +1,27 @@
 {{define "content"}}
-<div class="mb-6">
-  <div class="flex flex-wrap items-start justify-between gap-4">
-    <div>
-      <h1 class="h-page">Users and site access</h1>
-      <p class="mt-1 max-w-3xl text-sm text-muted-foreground">Create panel users, assign them to websites, and decide exactly what each person can do on each site.</p>
-    </div>
-    <div class="flex items-center gap-3"><span class="badge-gray">{{len .AccessUsers}} delegated user(s)</span><button type="button" class="btn-primary" data-dialog-open="dlg-user">Add user</button></div>
+<header class="page-title-row mb-6">
+  <div>
+    <h1 class="h-page">Users and site access</h1>
+    <p class="mt-1 max-w-3xl text-sm text-muted-foreground">Create panel users, assign them to websites, and decide exactly what each person can do on each site.</p>
   </div>
-</div>
+  <div class="page-actions"><span class="badge-gray">{{len .AccessUsers}} delegated user(s)</span><button type="button" class="ico-btn ico-btn-primary" data-dialog-open="dlg-user" title="{{T "access.user.add"}}" aria-label="{{T "access.user.add"}}">{{template "tabicon" "add"}}</button></div>
+</header>
 
-<dialog id="dlg-user" class="fm-dialog max-w-5xl" aria-labelledby="user-form-heading" data-close-backdrop {{if .AccessEditing}}data-dialog-auto-open{{end}}>
-  <div class="p-5 sm:p-6">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 id="user-form-heading" class="h-section">{{if .AccessEditing}}Edit {{.AccessUsername}}{{else}}Add a site user{{end}}</h2><button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button>
-        <p class="mt-1 text-sm text-muted-foreground">Site users only see the websites and actions you allow. Instance settings, services, firewall, and site deletion remain administrator-only.</p>
+<dialog id="dlg-user" class="fm-dialog fm-dialog-wide" aria-labelledby="user-form-heading" data-close-backdrop {{if .AccessEditing}}data-dialog-auto-open{{end}}>
+  <form method="post" action="/users/save" class="flex min-h-0 flex-col" autocomplete="off">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <header class="shrink-0 border-b border-border px-5 py-4 sm:px-6">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="user-form-heading" class="h-section min-w-0 break-all">{{if .AccessEditing}}Edit {{.AccessUsername}}{{else}}Add a site user{{end}}</h2>
+        <div class="flex shrink-0 items-center gap-2">
+          {{if .AccessEditing}}<span class="badge-gray">{{if .AccessEnabled}}Enabled{{else}}Disabled{{end}}</span>{{end}}
+          <button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button>
+        </div>
       </div>
-      {{if .AccessEditing}}<span class="badge-gray">{{if .AccessEnabled}}Enabled{{else}}Disabled{{end}}</span>{{end}}
-    </div>
+      <p class="mt-1 text-sm text-muted-foreground">Site users only see the websites and actions you allow. Instance settings, services, firewall, and site deletion remain administrator-only.</p>
+    </header>
 
-    <form method="post" action="/users/save" class="mt-6 space-y-7" autocomplete="off">
-      <input type="hidden" name="csrf" value="{{.CSRF}}">
-
+    <div class="min-h-0 space-y-7 overflow-y-auto overscroll-contain p-5 sm:p-6">
       <section aria-label="Account details">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
@@ -119,13 +119,15 @@
         {{end}}
       </section>
 
-      <div class="flex flex-wrap items-center gap-3 border-t border-border pt-5">
+    </div>
+    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
+      <span class="mr-auto text-xs text-muted-foreground">Changes take effect immediately and revoke existing sessions.</span>
+      <div class="flex flex-wrap justify-end gap-2">
+        {{if .AccessEditing}}<a class="btn-secondary" href="/users">{{T "c.cancel"}}</a>{{else}}<button type="button" class="btn-secondary" data-dialog-close>{{T "c.cancel"}}</button>{{end}}
         <button class="btn-primary" type="submit">{{if .AccessEditing}}Save user and permissions{{else}}Create user and permissions{{end}}</button>
-        {{if .AccessEditing}}<a class="btn-secondary" href="/users">Cancel</a>{{end}}
-        <span class="text-xs text-muted-foreground">Changes take effect immediately and revoke existing sessions.</span>
       </div>
-    </form>
-  </div>
+    </footer>
+  </form>
 </dialog>
 
 <section class="card p-5 sm:p-6" aria-labelledby="users-list-heading">

@@ -16,7 +16,7 @@ Each row shows **Time**, **State** (Complete / Incomplete / Unreadable), **Conte
 
 ## Backup now
 
-Use **Back up** in the page actions to create a manual copy, for example before updating WordPress. This action is available to the instance administrator.
+Select the **Back up** plus icon in the page header to create a manual copy, for example before updating WordPress. This action is available to the instance administrator.
 
 ## Restoring
 
