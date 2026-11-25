@@ -1,10 +1,10 @@
 ---
-title: Overview tab
+title: Overview and site navigation
 ---
 
-# Overview tab
+# Overview and site navigation
 
-Open a website from the [Websites](index.md) page to land on the **Overview** tab, the default tab of the website detail page.
+Open a website from the [Websites](index.md) page to land on its **Overview** page. Website sections appear in the site sidebar, alongside a link back to Websites and the current site's name. The available sections depend on the signed-in user's site permissions and global email settings.
 
 ## Status information
 
@@ -39,4 +39,4 @@ Click **Save settings**. The panel rebuilds the configuration and validates it b
 
 ## Deleting a website
 
-The **Delete website** section is at the bottom of the tab and requires typing the website name to confirm. By default it only removes the configuration and unregisters the site from the panel. Tick “Also delete the system account, home directory and all files” to remove everything.
+The **Delete website** section is under **Advanced** and requires typing the website name to confirm. By default it only removes the configuration and unregisters the site from the panel. Tick “Also delete the system account, home directory and all files” to remove everything.

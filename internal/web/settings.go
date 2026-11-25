@@ -146,6 +146,9 @@ type settingsView struct {
 	UpdateLog string // the last update, as mpn update wrote it
 }
 
+// Version is the program version shown in the Update page.
+var Version = "dev"
+
 // updateLog is what the last "mpn update" wrote; the root helper makes the file and gives it to mpn-web.
 var updateLog = "/var/lib/mpn-web/update.log"
 

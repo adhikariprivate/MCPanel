@@ -25,7 +25,7 @@ nav:
   - Websites:
       - Overview: websites/index.md
       - Adding a website: websites/adding-a-website.md
-      - Overview tab: websites/overview-tab.md
+      - Overview and site navigation: websites/overview-tab.md
       - Files: websites/files.md
       - SSH / SFTP: websites/ssh-sftp.md
       - Databases: websites/databases.md

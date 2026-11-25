@@ -14,8 +14,6 @@ func init() {
 		"notfound.heading":         "Không tìm thấy trang này",
 		"login.document.title":     "Đăng nhập - MCPN",
 		"setup.heading":            "Tạo tài khoản của bạn.",
-		"foot.cpu":                 "%s CPU",
-		"foot.ram":                 "%s RAM",
 		"login.heading":            "Đăng nhập vào panel.",
 		"setup.document.title":     "Thiết lập MCPN",
 		"notfound.back":            "Quay lại trang trước",

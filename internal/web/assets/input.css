@@ -224,20 +224,9 @@
     .account-trigger { @apply gap-1.5 px-1; }
   }
 
-  /* The sections of one website: second-level navigation, drawn as a segmented strip so it never looks like the main menu. */
-  .site-tabs {
-    @apply border-border bg-muted/60 mb-6 flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-lg border p-1;
-    scrollbar-width: thin;
-  }
-  .tab {
-    @apply text-muted-foreground hover:bg-card hover:text-foreground focus-visible:ring-ring inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none;
-  }
-  .tab[aria-current="page"] {
-    @apply bg-card text-foreground ring-border shadow-xs ring-1;
-  }
-  .tab[aria-current="page"] svg {
-    @apply text-primary;
-  }
+  .site-sidebar-context { @apply border-border mx-2 mb-3 border-b px-2 pb-3; }
+  .site-sidebar-name { @apply text-foreground truncate text-sm font-semibold; }
+  .site-sidebar-back { @apply mb-3; }
 
   .card {
     @apply border-border bg-card text-card-foreground rounded-lg border;

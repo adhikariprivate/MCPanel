@@ -179,7 +179,7 @@ func TestThePageOfTheDriveListsCopiesAndOffersOnlyTheOnesNotHere(t *testing.T) {
 	h, f, c, _ := setupWith(t, restoreAnswers(cloudRemote), nil)
 	body := do(h, "GET", "/sites/blog/cloud/backups", nil, cookie(c)).Body.String()
 	for _, want := range []string{"Các bản sao lưu của blog ở nơi lưu trữ ngoài", "412.5 MB", "410.2 MB", "Đã có", "Chưa có", `action="/sites/blog/cloud/fetch"`,
-		`name="backup" value="20261107-033000"`, `href="/sites/blog/backups"`, `href="/" class="nav-link" aria-current="page"`} {
+		`name="backup" value="20261107-033000"`, `href="/sites/blog/backups"`, `href="/sites/blog/backups" class="nav-link" aria-current="page"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}

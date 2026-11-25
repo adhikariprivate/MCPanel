@@ -298,7 +298,8 @@ func (s *Server) siteAccessPage(w http.ResponseWriter, r *http.Request, ss webau
 		http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
 		return
 	}
-	v := view{Page: "siteaccess", Site: row, AccessSite: row.Name}
+	tabAccess, emailEnabled := s.siteNavState(translatorForWriter(w), ss.User, row)
+	v := view{Page: "siteaccess", Site: row, Tab: "access", TabAccess: tabAccess, EmailEnabled: emailEnabled, AccessSite: row.Name}
 	for name, user := range access.Users {
 		grants, ok := user.Sites[row.AccessID]
 		if !ok {

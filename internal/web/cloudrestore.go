@@ -58,7 +58,8 @@ func (s *Server) cloudBackupsPage(w http.ResponseWriter, r *http.Request, ss web
 			v.Error = T("cld.err.notconnected")
 		}
 	}
-	s.show(w, 200, ss, view{Page: "cloudlist", Site: row, Tab: "backups", CloudList: v})
+	tabAccess, emailEnabled := s.siteNavState(T, ss.User, row)
+	s.show(w, 200, ss, view{Page: "cloudlist", Site: row, Tab: "backups", TabAccess: tabAccess, EmailEnabled: emailEnabled, CloudList: v})
 }
 
 // cloudFetch starts the download of one backup. It runs in the background, because a backup can be gigabytes.

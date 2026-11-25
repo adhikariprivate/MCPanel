@@ -14,8 +14,6 @@ func init() {
 		"notfound.heading":         "This page could not be found",
 		"login.document.title":     "Sign in - MCPN",
 		"setup.heading":            "Create your account.",
-		"foot.cpu":                 "%s CPU",
-		"foot.ram":                 "%s RAM",
 		"login.heading":            "Sign in to your panel.",
 		"setup.document.title":     "Set up MCPN",
 		"notfound.back":            "Go back",

@@ -6,6 +6,7 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ### Changed
 
+- Website sections now use a dedicated, permission-filtered sidebar with a link back to Websites and the current site identity. Removed the system and version footer from signed-in and sign-in pages.
 - Background-service creation now follows the website app type: PHP sites offer PHP commands, Binary sites offer Binary services, and mise sites offer mise tasks. Static and reverse-proxy sites have no background-service creation option.
 
 ## [1.2.10] - 2026-11-24

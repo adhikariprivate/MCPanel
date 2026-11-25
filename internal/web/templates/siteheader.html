@@ -43,11 +43,7 @@ for a moment and tells a screen reader through the status element. */}}
         {{if .ServerIP}}{{template "copychip" (dict "Label" "IP" "Value" .ServerIP)}}{{end}}
       </div>
     </div>
-    <div class="flex gap-2">{{if .Owner}}<a class="btn-secondary shrink-0" href="/sites/{{.Site.Name}}/access">Access</a>{{end}}<a class="btn-secondary shrink-0 gap-1.5" href="{{.Site.URL}}" target="_blank" rel="noopener noreferrer">{{T "hd.open"}}<svg class="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3M11 4h5v5M16 4l-7 7"/></svg></a></div>
+    <div class="flex gap-2"><a class="btn-secondary shrink-0 gap-1.5" href="{{.Site.URL}}" target="_blank" rel="noopener noreferrer">{{T "hd.open"}}<svg class="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3M11 4h5v5M16 4l-7 7"/></svg></a></div>
   </div>
 </header>
-<nav class="site-tabs" aria-label="{{T "hd.sections"}}">
-  {{range $t := siteMenu $.Site $.TabAccess $.EmailEnabled}}<a class="tab" href="/sites/{{$.Site.Name}}{{$t.Path}}"{{if eq $.Tab $t.Key}} aria-current="page"{{end}}>{{template "tabicon" $t.Key}}{{T (printf "tab.%s" $t.Key)}}</a>
-  {{end}}
-</nav>
 {{end}}

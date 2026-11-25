@@ -28,7 +28,7 @@ func passwdWith(t *testing.T, shell string) string {
 	return p
 }
 
-func TestTheSitePageShowsTheSiteAndItsTabs(t *testing.T) {
+func TestTheSitePageUsesItsOwnSidebar(t *testing.T) {
 	h, f, c, _ := setupWith(t, sitePageAnswers(), nil)
 	body := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
 	for _, want := range []string{"blog.example.com", "www.blog.example.com", "php 8.4", "/home/blog/htdocs", `href="/sites/blog/files"`,
@@ -36,6 +36,12 @@ func TestTheSitePageShowsTheSiteAndItsTabs(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q in:\n%s", want, body)
 		}
+	}
+	if !strings.Contains(body, `href="/" class="nav-link site-sidebar-back"`) || !strings.Contains(body, `class="site-sidebar-name"`) {
+		t.Error("site sidebar needs a return link and site identity")
+	}
+	if strings.Contains(body, `class="site-tabs"`) {
+		t.Error("site page still renders horizontal tabs")
 	}
 	if strings.Contains(body, `href="/sites/blog/activity"`) || strings.Contains(body, `href="/sites/blog/vhost"`) {
 		t.Error("Activity and vHost are available outside the per-site tab bar")
@@ -55,11 +61,11 @@ func TestTheSitePageShowsTheSiteAndItsTabs(t *testing.T) {
 	}
 }
 
-func TestSiteTabsFollowGlobalEmailStateAndSeparateAdvancedActions(t *testing.T) {
+func TestSiteSidebarFollowsGlobalEmailStateAndAdvancedActions(t *testing.T) {
 	h, _, c, _ := setupWith(t, sitePageAnswers(), nil)
 	overview := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
 	if strings.Contains(overview, `href="/sites/blog/email"`) || strings.Contains(overview, `action="/sites/blog/webmail"`) {
-		t.Fatal("email and webmail controls are hidden when global email is off")
+		t.Fatal("email navigation and webmail controls are hidden when global email is off")
 	}
 	if strings.Contains(overview, `action="/sites/blog/domain"`) || strings.Contains(overview, `action="/sites/blog/speed"`) || strings.Contains(overview, `href="/sites/remove?site=blog"`) {
 		t.Fatal("domain, acceleration, and deletion controls are outside Overview")

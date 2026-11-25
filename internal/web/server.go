@@ -45,8 +45,6 @@ type Server struct {
 	// the real systemd when nil.
 	Mon       *monitor.Collector
 	UnitState monitor.UnitState
-	// HostOS is the name of the operating system shown in the footer; /etc/os-release when empty.
-	HostOS string
 	// Dialer logs in as a website's account for the terminal; nil switches the terminal off.
 	Dialer            Dialer
 	TermIdle, TermMax time.Duration // a terminal closes after this long without typing, and after this long in all
@@ -578,7 +576,6 @@ type view struct {
 	PHPVersions                                 []string
 	Result                                      *result
 	Confirm                                     *confirm
-	Foot                                        *footerView
 	AccessUsers                                 []accessUserRow
 	AccessSites                                 []accessSiteView
 	AccessSite                                  string

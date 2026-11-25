@@ -107,7 +107,6 @@ func webServe(args []string) {
 		accountExists = false
 	}
 	_ = accountExists // passed to the server below
-	// The measurements are kept next to the account file: the one place the panel is allowed to write.
 	web.Version = version
 	// The terminal and the file manager reach SSH on the port sshd listens on, which the provider may have set to something other
 	// than 22. The panel cannot run sshd -T itself, so it asks the root helper, and asks again when the port may have changed.

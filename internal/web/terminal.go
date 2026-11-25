@@ -52,7 +52,8 @@ func (s *Server) terminalPage(w http.ResponseWriter, r *http.Request, ss webauth
 	_, _ = rand.Read(raw)
 	nonce := base64.RawURLEncoding.EncodeToString(raw)
 	w.Header().Set("Content-Security-Policy", terminalPolicy(nonce))
-	s.show(w, 200, ss, view{Page: "site", Site: row, Tab: "terminal", Nonce: nonce, SSHEnabled: access.Enabled(s.passwdFile(), row.User)})
+	tabAccess, emailEnabled := s.siteNavState(T, ss.User, row)
+	s.show(w, 200, ss, view{Page: "site", Site: row, Tab: "terminal", TabAccess: tabAccess, EmailEnabled: emailEnabled, Nonce: nonce, SSHEnabled: access.Enabled(s.passwdFile(), row.User)})
 }
 
 func clampInt(text string, def, lo, hi int) int {

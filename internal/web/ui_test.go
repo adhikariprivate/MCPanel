@@ -36,6 +36,9 @@ func TestLoginPageUsesTheNewDesignInVietnamese(t *testing.T) {
 			t.Errorf("missing %q in:\n%s", want, body)
 		}
 	}
+	if strings.Contains(body, "Debian GNU/Linux") || strings.Contains(body, "© 2026") || strings.Contains(body, "MCPN v") {
+		t.Error("login page still shows the system/version footer")
+	}
 }
 
 func TestAuthenticatedShellUsesSidebarAndAccountMenu(t *testing.T) {
@@ -52,6 +55,9 @@ func TestAuthenticatedShellUsesSidebarAndAccountMenu(t *testing.T) {
 	}
 	if strings.Contains(body, `class="app-nav"`) {
 		t.Error("authenticated shell still has the horizontal main navigation")
+	}
+	if strings.Contains(body, "Debian GNU/Linux") || strings.Contains(body, "© 2026") || strings.Contains(body, "MCPN v") {
+		t.Error("authenticated shell still shows the system/version footer")
 	}
 }
 
@@ -75,10 +81,13 @@ func TestStaticAssetsAreServedAndTheStylesheetIsCurrent(t *testing.T) {
 		t.Errorf("css: %d %q %q", css.Code, css.Header().Get("Content-Type"), css.Header().Get("Cache-Control"))
 	}
 	// A stylesheet built before the last template change would miss these classes: run the Tailwind build again.
-	for _, want := range []string{".btn-primary", ".card", ".field", ".app-shell", ".bg-primary", ".app-sidebar", ".account-panel", ".site-tabs", ".accent-primary", "JetBrains Mono"} {
+	for _, want := range []string{".btn-primary", ".card", ".field", ".app-shell", ".bg-primary", ".app-sidebar", ".account-panel", ".site-sidebar-context", ".accent-primary", "JetBrains Mono"} {
 		if !strings.Contains(css.Body.String(), want) {
 			t.Errorf("the stylesheet lacks %s", want)
 		}
+	}
+	if strings.Contains(css.Body.String(), ".site-tabs") {
+		t.Error("the stylesheet still contains horizontal site-tab styles")
 	}
 	for _, p := range []string{"/static/app.js", "/static/theme.js"} {
 		if w := do(h, "GET", p, nil); w.Code != 200 || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/javascript") {

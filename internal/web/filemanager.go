@@ -140,7 +140,8 @@ func (s *Server) withFiles(w http.ResponseWriter, r *http.Request, ss webauth.Se
 	f, closeFn, err := s.openFMText(T, row.User)
 	if err != nil {
 		s.termLog("files login failed", row, err)
-		s.show(w, http.StatusBadGateway, ss, view{Page: "site", Site: row, Tab: "files", Error: T("fm.err.login")})
+		tabAccess, emailEnabled := s.siteNavState(T, ss.User, row)
+		s.show(w, http.StatusBadGateway, ss, view{Page: "site", Site: row, Tab: "files", TabAccess: tabAccess, EmailEnabled: emailEnabled, Error: T("fm.err.login")})
 		return nil, false
 	}
 	raw := r.URL.Query().Get(dirParam)
@@ -197,7 +198,8 @@ func (s *Server) filesPage(w http.ResponseWriter, r *http.Request, ss webauth.Se
 		return
 	}
 	defer fc.close()
-	v := view{Page: "site", Site: fc.row, Tab: "files", Dir: fc.dir, TabAccess: s.siteTabAccess(ss.User, fc.row)}
+	tabAccess, emailEnabled := s.siteNavState(T, ss.User, fc.row)
+	v := view{Page: "site", Site: fc.row, Tab: "files", Dir: fc.dir, TabAccess: tabAccess, EmailEnabled: emailEnabled}
 	if c, err := r.Cookie(s.cookieName()); err == nil {
 		v.Notice = s.takeFlash(c.Value)
 	}
@@ -410,7 +412,8 @@ func (s *Server) renamePage(w http.ResponseWriter, r *http.Request, ss webauth.S
 		http.Error(w, fmMessageText(T, fm.ErrBadName), http.StatusBadRequest)
 		return
 	}
-	s.show(w, 200, ss, view{Page: "filerename", Site: fc.row, Dir: fc.dir, FileName: name, TabAccess: s.siteTabAccess(ss.User, fc.row)})
+	tabAccess, emailEnabled := s.siteNavState(translatorForWriter(w), ss.User, fc.row)
+	s.show(w, 200, ss, view{Page: "filerename", Site: fc.row, Tab: "files", Dir: fc.dir, FileName: name, TabAccess: tabAccess, EmailEnabled: emailEnabled})
 }
 
 func (s *Server) deleteConfirm(w http.ResponseWriter, r *http.Request, ss webauth.Session) {

@@ -14,8 +14,6 @@ func init() {
 		"notfound.heading":         "找不到此页面",
 		"login.document.title":     "登录 - MCPN",
 		"setup.heading":            "创建您的账户。",
-		"foot.cpu":                 "%s CPU",
-		"foot.ram":                 "%s RAM",
 		"login.heading":            "登录您的面板。",
 		"setup.document.title":     "设置 MCPN",
 		"notfound.back":            "返回上一页",

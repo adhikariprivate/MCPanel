@@ -18,6 +18,16 @@
     <img src="{{asset "logo.svg"}}" alt="" class="size-7" width="28" height="28">
     <span class="text-[15px] font-semibold tracking-tight">{{T "app.name"}}</span>
   </a>
+  {{if .Site.Name}}
+  <a href="/" class="nav-link site-sidebar-back"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7M5 12h14"/></svg><span>{{T "nav.websites"}}</span></a>
+  <div class="site-sidebar-context"><p class="sidebar-heading">{{T "hd.sections"}}</p><p class="site-sidebar-name" title="{{.Site.Primary}}">{{.Site.Primary}}</p></div>
+  <nav class="sidebar-nav" aria-label="{{T "hd.sections"}}">
+    <section class="sidebar-group">
+      {{range siteMenu .Site .TabAccess .EmailEnabled}}<a href="/sites/{{$.Site.Name}}{{.Path}}" class="nav-link"{{if eq $.Tab .Key}} aria-current="page"{{end}}>{{template "tabicon" .Key}}{{T (printf "tab.%s" .Key)}}</a>{{end}}
+    </section>
+    {{if .Owner}}<section class="sidebar-group"><a href="/sites/{{.Site.Name}}/access" class="nav-link"{{if eq .Page "siteaccess"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>{{T "page.siteaccess"}}</span></a></section>{{end}}
+  </nav>
+  {{else}}
   <nav class="sidebar-nav" aria-label="{{T "nav.main"}}">
     <section class="sidebar-group" aria-labelledby="sidebar-group-manage"><h2 id="sidebar-group-manage" class="sidebar-heading">{{T "nav.group.manage"}}</h2>
       <a href="/" class="nav-link"{{if eq .Nav "sites"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>{{T "nav.websites"}}</span></a>
@@ -38,6 +48,7 @@
       <a href="/update" class="nav-link"{{if eq .Nav "update"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>{{T "nav.update"}}</span></a>
     </section>{{end}}
   </nav>
+  {{end}}
 
   <div class="account-area" data-menu>
     <div id="account-menu" data-menu-panel hidden role="menu" aria-label="{{T "user.menu"}}" class="menu-panel account-panel">
@@ -63,7 +74,6 @@
   <main id="main" class="app-main">
   {{template "content" .}}
   </main>
-  {{template "footer" .}}
 </div>
 <script src="{{asset "app.js"}}" defer></script>
 </body>

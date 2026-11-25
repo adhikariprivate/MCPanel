@@ -74,6 +74,12 @@ func (s *Server) siteTabAccess(user string, row siteRow) map[string]bool {
 	return out
 }
 
+func (s *Server) siteNavState(T translator, user string, row siteRow) (map[string]bool, bool) {
+	mailState := &mailView{}
+	emailEnabled := s.listText(T, ctl.Request{Op: "mail.status"}, mailState) == "" && mailState.On
+	return s.siteTabAccess(user, row), emailEnabled
+}
+
 func (s *Server) sitePagesOfOne(mux *http.ServeMux) {
 	mux.HandleFunc("GET /sites/{name}/access", s.auth(s.siteAccessPage))
 	for _, tab := range []string{"", "/domain", "/sftp", "/advanced", "/databases", "/backups", "/background", "/cron", "/logs", "/email", "/wordpress"} {
@@ -160,9 +166,8 @@ func (s *Server) siteTab(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 		http.Error(w, msg, status)
 		return
 	}
-	v := view{Page: "site", Site: row, Tab: tab, ServerIP: serverIP(r.Host), TabAccess: s.siteTabAccess(ss.User, row)}
-	mailState := &mailView{}
-	v.EmailEnabled = s.listText(T, ctl.Request{Op: "mail.status"}, mailState) == "" && mailState.On
+	tabAccess, emailEnabled := s.siteNavState(T, ss.User, row)
+	v := view{Page: "site", Site: row, Tab: tab, ServerIP: serverIP(r.Host), TabAccess: tabAccess, EmailEnabled: emailEnabled}
 	switch tab {
 	case "overview":
 		var e string
