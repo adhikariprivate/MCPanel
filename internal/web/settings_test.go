@@ -4,12 +4,14 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"mpn/internal/ctl"
 	"mpn/internal/webauth"
 )
 
@@ -135,6 +137,51 @@ func TestChangingThePassword(t *testing.T) {
 	}
 	if do(h, "GET", "/settings", nil, cookie(other)).Code != 303 {
 		t.Error("the other browser is signed out")
+	}
+}
+
+func TestDelegatedUsersCanChangeOnlyTheirOwnPassword(t *testing.T) {
+	const siteID = "00000000000000000000000000000001"
+	hash, err := webauth.Hash(goodPW)
+	if err != nil {
+		t.Fatal(err)
+	}
+	access := webauth.NewDelegatedAccess()
+	access.Users["editor"] = webauth.NewDelegatedUser(hash, map[string]map[string]string{siteID: {"site.view": "allow"}})
+	path := filepath.Join(t.TempDir(), "access.json")
+	if err := webauth.SaveDelegatedAccess(path, access); err != nil {
+		t.Fatal(err)
+	}
+	s := newServer()
+	s.AccessFile = path
+	s.Call = func(ctl.Request) (ctl.Response, error) {
+		return ctl.Response{OK: true, Output: `[{"name":"blog","access_id":"` + siteID + `"}]`}, nil
+	}
+	h := s.Handler()
+	resp := do(h, "POST", "/login", url.Values{"user": {"editor"}, "password": {goodPW}})
+	if resp.Code != http.StatusSeeOther {
+		t.Fatalf("delegated login: %d", resp.Code)
+	}
+	c := cookieNamed(resp, "mpn")
+	page := do(h, "GET", "/settings", nil, cookie(c))
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `action="/settings/password"`) || strings.Contains(page.Body.String(), `href="/settings/2fa"`) {
+		t.Fatalf("delegated account settings page: %d\n%s", page.Code, page.Body.String())
+	}
+	csrf := csrfRe.FindStringSubmatch(page.Body.String())[1]
+	const next = "editor-new-password-99"
+	if got := post(h, "/settings/password", csrf, c, "current", goodPW, "new", next, "again", next).StatusCode; got != http.StatusSeeOther {
+		t.Fatalf("delegated password change: %d", got)
+	}
+	updated, err := webauth.LoadDelegatedAccess(path)
+	if err != nil || !updated.Authenticate("editor", next) || updated.Authenticate("editor", goodPW) {
+		t.Fatalf("delegated password was not updated: err=%v", err)
+	}
+	admin, _ := s.Account()
+	if !admin.Check(admin.User, goodPW) {
+		t.Fatal("changing a delegated password altered the instance administrator account")
+	}
+	if got := do(h, "GET", "/settings/2fa", nil, cookie(c)).Code; got != http.StatusForbidden {
+		t.Fatalf("delegated user accessed owner 2FA settings: %d", got)
 	}
 }
 

@@ -19,13 +19,25 @@
     <span class="text-[15px] font-semibold tracking-tight">{{T "app.name"}}</span>
   </a>
   {{if .Site.Name}}
-  <a href="/" class="nav-link site-sidebar-back"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7M5 12h14"/></svg><span>{{T "nav.websites"}}</span></a>
-  <div class="site-sidebar-context"><p class="sidebar-heading">{{T "hd.sections"}}</p><p class="site-sidebar-name" title="{{.Site.Primary}}">{{.Site.Primary}}</p></div>
-  <nav class="sidebar-nav" aria-label="{{T "hd.sections"}}">
-    <section class="sidebar-group">
-      {{range siteMenu .Site .TabAccess .EmailEnabled}}<a href="/sites/{{$.Site.Name}}{{.Path}}" class="nav-link"{{if eq $.Tab .Key}} aria-current="page"{{end}}>{{template "tabicon" .Key}}{{T (printf "tab.%s" .Key)}}</a>{{end}}
+  {{if gt (len .SiteOptions) 1}}<details class="site-switcher"><summary title="{{T "site.switch"}}" aria-label="{{T "site.switch"}}: {{.Site.Primary}}"><span>{{.Site.Primary}}</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></summary><div class="site-switcher-menu">{{range .SiteOptions}}<a href="/sites/{{.Name}}"{{if eq $.Site.Name .Name}} aria-current="page"{{end}}>{{.Primary}}</a>{{end}}</div></details>{{end}}
+  <nav class="sidebar-nav{{if gt (len .SiteOptions) 1}} site-sidebar-nav{{end}}" aria-label="{{T "hd.sections"}}">
+    {{if or .TabAccess.overview .TabAccess.files .TabAccess.databases .TabAccess.backups .TabAccess.wordpress}}<section class="sidebar-group"><h2 class="sidebar-heading">{{T "site.group.manage"}}</h2>
+      {{range siteMenu .Site .TabAccess .EmailEnabled}}{{if or (eq .Key "overview") (eq .Key "files") (eq .Key "databases") (eq .Key "backups") (eq .Key "wordpress")}}<a href="/sites/{{$.Site.Name}}{{.Path}}" class="nav-link"{{if eq $.Tab .Key}} aria-current="page"{{end}}>{{template "tabicon" .Key}}{{T (printf "tab.%s" .Key)}}</a>{{end}}{{end}}
     </section>
-    {{if .Owner}}<section class="sidebar-group"><a href="/sites/{{.Site.Name}}/access" class="nav-link"{{if eq .Page "siteaccess"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>{{T "page.siteaccess"}}</span></a></section>{{end}}
+    {{end}}
+    {{if or .TabAccess.domain .TabAccess.sftp (and .TabAccess.email .EmailEnabled) .Owner}}<section class="sidebar-group"><h2 class="sidebar-heading">{{T "site.group.access"}}</h2>
+      {{range siteMenu .Site .TabAccess .EmailEnabled}}{{if or (eq .Key "domain") (eq .Key "sftp") (eq .Key "email")}}<a href="/sites/{{$.Site.Name}}{{.Path}}" class="nav-link"{{if eq $.Tab .Key}} aria-current="page"{{end}}>{{template "tabicon" .Key}}{{T (printf "tab.%s" .Key)}}</a>{{end}}{{end}}
+      {{if .Owner}}<a href="/sites/{{.Site.Name}}/access" class="nav-link"{{if eq .Page "siteaccess"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>{{T "page.siteaccess"}}</span></a>{{end}}
+    </section>
+    {{end}}
+    {{if or .TabAccess.background .TabAccess.cron .TabAccess.logs}}<section class="sidebar-group"><h2 class="sidebar-heading">{{T "site.group.operate"}}</h2>
+      {{range siteMenu .Site .TabAccess .EmailEnabled}}{{if or (eq .Key "background") (eq .Key "cron") (eq .Key "logs")}}<a href="/sites/{{$.Site.Name}}{{.Path}}" class="nav-link"{{if eq $.Tab .Key}} aria-current="page"{{end}}>{{template "tabicon" .Key}}{{if eq .Key "background"}}{{T "tab.background"}}{{else}}{{T (printf "tab.%s" .Key)}}{{end}}</a>{{end}}{{end}}
+    </section>
+    {{end}}
+    {{if or .TabAccess.terminal .TabAccess.advanced}}<section class="sidebar-group"><h2 class="sidebar-heading">{{T "site.group.advanced"}}</h2>
+      {{range siteMenu .Site .TabAccess .EmailEnabled}}{{if or (eq .Key "terminal") (eq .Key "advanced")}}<a href="/sites/{{$.Site.Name}}{{.Path}}" class="nav-link"{{if eq $.Tab .Key}} aria-current="page"{{end}}>{{template "tabicon" .Key}}{{T (printf "tab.%s" .Key)}}</a>{{end}}{{end}}
+    </section>
+    {{end}}
   </nav>
   {{else}}
   <nav class="sidebar-nav" aria-label="{{T "nav.main"}}">
@@ -43,6 +55,7 @@
       {{if .Owner}}<a href="/monitor" class="nav-link"{{if eq .Nav "monitor"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>{{T "nav.monitor"}}</span></a>{{end}}
       {{if .ShowActivity}}<a href="/activity" class="nav-link"{{if eq .Nav "activity"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>{{T "nav.activity"}}</span></a>{{end}}
     </section>{{end}}
+    <section class="sidebar-group"><a href="/settings" class="nav-link"{{if eq .Nav "settings"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l.1.1a1.7 1.7 0 0 0 .3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg><span>{{T "user.settings"}}</span></a></section>
     {{if .Owner}}<section class="sidebar-group" aria-labelledby="sidebar-group-system"><h2 id="sidebar-group-system" class="sidebar-heading">{{T "nav.group.system"}}</h2>
       <a href="/notify" class="nav-link"{{if eq .Nav "notify"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span>{{T "nav.notify"}}</span></a>
       <a href="/update" class="nav-link"{{if eq .Nav "update"}} aria-current="page"{{end}}><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>{{T "nav.update"}}</span></a>

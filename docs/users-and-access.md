@@ -30,6 +30,6 @@ Database listing and backup listing are currently read-only for delegated users.
 
 ## Account limitations
 
-The instance administrator creates and resets delegated passwords; delegated users cannot change their own password in this release. Delegated users currently sign in with a password and do not have a separate 2FA enrollment flow. Keep the delegated account list small and use unique, strong passwords until delegated 2FA is available.
+Delegated users can change their own password from **Account settings** in the sidebar. Their password is stored in the delegated access file and changing it does not affect the instance administrator account. Two-factor setup remains available to the instance administrator only; delegated users do not have a separate 2FA enrollment flow.
 
 User creation, updates, permission changes, disablement, and denied high-risk requests are recorded in the activity log. Passwords and hashes are never included in those entries.

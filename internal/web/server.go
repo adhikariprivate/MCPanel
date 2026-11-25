@@ -280,6 +280,15 @@ func (s *Server) authorizeRequest(w http.ResponseWriter, r *http.Request, ss web
 	if capability == "session.logout" || capability == "session.result" {
 		return true
 	}
+	if capability == "account.settings" || capability == "account.password" {
+		access, err := s.delegatedAccess()
+		if err == nil {
+			if user, ok := access.Users[ss.User]; ok && user.Enabled {
+				return true
+			}
+		}
+		return s.denyAccess(w, r, ss, capability, site)
+	}
 	access, err := s.delegatedAccess()
 	if err != nil {
 		http.Error(w, "access control unavailable", http.StatusServiceUnavailable)
@@ -335,6 +344,15 @@ func (s *Server) denyAccess(w http.ResponseWriter, r *http.Request, ss webauth.S
 
 func requestCapability(r *http.Request) (capability, site string, ownerOnly bool) {
 	p := strings.Trim(r.URL.Path, "/")
+	if p == "settings" && r.Method == http.MethodGet {
+		return "account.settings", "", false
+	}
+	if p == "settings/password" && r.Method == http.MethodPost {
+		return "account.password", "", false
+	}
+	if strings.HasPrefix(p, "settings/") || p == "update" || strings.HasPrefix(p, "update/") {
+		return "", "", true
+	}
 	if p == "logout" {
 		return "session.logout", "", false
 	}
@@ -540,6 +558,7 @@ type view struct {
 	Crumbs                                      []crumb
 	Parent                                      string
 	Site                                        siteRow
+	SiteOptions                                 []siteRow
 	Tab                                         string
 	TabAccess                                   map[string]bool
 	SSHEnabled                                  bool

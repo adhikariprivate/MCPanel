@@ -108,6 +108,25 @@ func TestDelegatedAuthorizationIsPerSiteAndFailsClosed(t *testing.T) {
 	}
 }
 
+func TestBackgroundPermissionCanBeSavedAndLoaded(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "delegated.json")
+	access := webauth.NewDelegatedAccess()
+	const siteID = "00000000000000000000000000000001"
+	access.Users["editor"] = webauth.NewDelegatedUser("stored-hash", map[string]map[string]string{
+		siteID: {"site.view": "allow", "background.view": "allow", "background.manage": "allow"},
+	})
+	if err := webauth.SaveDelegatedAccess(path, access); err != nil {
+		t.Fatalf("save user access with background permissions: %v", err)
+	}
+	loaded, err := webauth.LoadDelegatedAccess(path)
+	if err != nil {
+		t.Fatalf("load user access with background permissions: %v", err)
+	}
+	if !loaded.Allows("editor", siteID, "background.view") || !loaded.Allows("editor", siteID, "background.manage") {
+		t.Fatal("saved background permissions were not retained")
+	}
+}
+
 func TestDelegatedSessionRevocationRemovesUserSessions(t *testing.T) {
 	sessions := webauth.NewSessions(time.Minute, time.Hour, 10)
 	editorToken, _ := sessions.Create("editor")

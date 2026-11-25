@@ -4,7 +4,7 @@ title: Overview and site navigation
 
 # Overview and site navigation
 
-Open a website from the [Websites](index.md) page to land on its **Overview** page. Website sections appear in the site sidebar, alongside a link back to Websites and the current site's name. The available sections depend on the signed-in user's site permissions and global email settings.
+Open a website from the [Websites](index.md) page to land on its **Overview** page. Website sections appear in the site sidebar. The available sections depend on the signed-in user's site permissions and global email settings. Use the MCPN logo to return to the main panel navigation.
 
 ## Status information
 

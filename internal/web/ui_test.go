@@ -81,13 +81,18 @@ func TestStaticAssetsAreServedAndTheStylesheetIsCurrent(t *testing.T) {
 		t.Errorf("css: %d %q %q", css.Code, css.Header().Get("Content-Type"), css.Header().Get("Cache-Control"))
 	}
 	// A stylesheet built before the last template change would miss these classes: run the Tailwind build again.
-	for _, want := range []string{".btn-primary", ".card", ".field", ".app-shell", ".bg-primary", ".app-sidebar", ".account-panel", ".site-sidebar-context", ".accent-primary", "JetBrains Mono"} {
+	for _, want := range []string{".btn-primary", ".card", ".field", ".app-shell", ".bg-primary", ".app-sidebar", ".account-panel", ".accent-primary", "JetBrains Mono"} {
 		if !strings.Contains(css.Body.String(), want) {
 			t.Errorf("the stylesheet lacks %s", want)
 		}
 	}
 	if strings.Contains(css.Body.String(), ".site-tabs") {
 		t.Error("the stylesheet still contains horizontal site-tab styles")
+	}
+	for _, removed := range []string{".site-sidebar-context", ".site-sidebar-name", ".site-sidebar-back"} {
+		if strings.Contains(css.Body.String(), removed) {
+			t.Errorf("the stylesheet still contains %s", removed)
+		}
 	}
 	for _, p := range []string{"/static/app.js", "/static/theme.js"} {
 		if w := do(h, "GET", p, nil); w.Code != 200 || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/javascript") {

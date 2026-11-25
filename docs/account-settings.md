@@ -6,9 +6,9 @@ title: Account settings
 
 ![The account settings page](assets/mpanel/settings.v_8LlP4o_1tlR6i.webp)
 
-Open the account menu at the bottom of the left sidebar and choose **Settings**. The same menu contains the language selector, theme switch and sign-out control. This page manages the admin account’s password and two-factor authentication.
+Open **Account settings** in the left sidebar. The account menu also contains the language selector, theme switch and sign-out control. Instance administrators can manage their password and two-factor authentication. Delegated users can change their own password; two-factor settings are administrator-only.
 
-The instance administrator can also create delegated panel users in [Users and site access](users-and-access.md). Delegated users have separate passwords and site-specific permissions.
+The instance administrator can also create delegated panel users in [Users and site access](users-and-access.md). Delegated users have separate passwords and site-specific permissions, and can update their own password here.
 
 ## Changing the password
 

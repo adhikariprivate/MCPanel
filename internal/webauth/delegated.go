@@ -164,6 +164,6 @@ func NewDelegatedUser(hash string, sites map[string]map[string]string) Delegated
 var AccessCapabilities = []string{
 	"site.view", "site.settings", "files.read", "files.write", "files.delete", "files.permissions",
 	"ssl.view", "ssl.manage", "cron.view", "cron.manage", "logs.view", "activity.view", "database.view",
-	"backup.view", "email.view", "email.manage",
+	"backup.view", "email.view", "email.manage", "background.view", "background.manage",
 	"terminal.open", "ssh.manage", "wordpress.view", "wordpress.manage", "cloud.view", "cloud.manage", "vhost.view", "vhost.manage", "app.manage",
 }

@@ -203,6 +203,15 @@
     @apply size-4 shrink-0;
   }
   .account-area { @apply border-sidebar-border relative mt-auto border-t pt-3; }
+  .site-switcher { @apply relative mx-2 mt-3 mb-2; }
+  .site-sidebar-nav { @apply mt-3; }
+  .site-switcher summary { @apply border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-md border px-3 text-sm font-medium; }
+  .site-switcher summary::-webkit-details-marker { display: none; }
+  .site-switcher summary svg { @apply size-4 shrink-0 transition-transform; }
+  .site-switcher[open] summary svg { transform: rotate(180deg); }
+  .site-switcher-menu { @apply border-sidebar-border bg-sidebar absolute top-full right-0 left-0 z-30 mt-1 max-h-64 overflow-y-auto rounded-md border p-1 shadow-lg; }
+  .site-switcher-menu a { @apply text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground block truncate rounded px-2.5 py-2 text-sm; }
+  .site-switcher-menu a[aria-current="page"] { @apply bg-sidebar-accent text-sidebar-accent-foreground font-medium; }
   .account-trigger { @apply text-sidebar-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2; }
   .account-avatar { @apply bg-sidebar-primary/15 text-sidebar-primary grid size-8 shrink-0 place-items-center rounded-full; }
   .account-panel { @apply border-sidebar-border bg-card absolute bottom-0 z-50 overflow-y-auto rounded-lg border shadow-lg; left: calc(100% + 0.5rem); width: min(16rem, calc(100vw - 12rem)); max-height: min(75dvh, 34rem); }
@@ -224,9 +233,6 @@
     .account-trigger { @apply gap-1.5 px-1; }
   }
 
-  .site-sidebar-context { @apply border-border mx-2 mb-3 border-b px-2 pb-3; }
-  .site-sidebar-name { @apply text-foreground truncate text-sm font-semibold; }
-  .site-sidebar-back { @apply mb-3; }
 
   .card {
     @apply border-border bg-card text-card-foreground rounded-lg border;

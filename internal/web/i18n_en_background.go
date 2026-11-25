@@ -2,7 +2,7 @@ package web
 
 func init() {
 	for k, v := range map[string]string{
-		"tab.background":     "Background services",
+		"tab.background":     "Services",
 		"bg.title":           "Background services",
 		"bg.sub":             "Long-running tasks run under the website account %s and are supervised independently from the web process.",
 		"bg.empty":           "No background services",

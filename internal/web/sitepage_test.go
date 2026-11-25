@@ -32,13 +32,13 @@ func TestTheSitePageUsesItsOwnSidebar(t *testing.T) {
 	h, f, c, _ := setupWith(t, sitePageAnswers(), nil)
 	body := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
 	for _, want := range []string{"blog.example.com", "www.blog.example.com", "php 8.4", "/home/blog/htdocs", `href="/sites/blog/files"`,
-		`href="/sites/blog/databases"`, `href="/sites/blog/backups"`, `href="/sites/blog/advanced"`, `aria-current="page"`} {
+		`href="/sites/blog/databases"`, `href="/sites/blog/backups"`, `href="/sites/blog/advanced"`, `aria-current="page"`, `class="brand"`, `alt=""`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q in:\n%s", want, body)
 		}
 	}
-	if !strings.Contains(body, `href="/" class="nav-link site-sidebar-back"`) || !strings.Contains(body, `class="site-sidebar-name"`) {
-		t.Error("site sidebar needs a return link and site identity")
+	if strings.Contains(body, "site-sidebar-back") || strings.Contains(body, "site-sidebar-name") || strings.Contains(body, "site-sidebar-context") {
+		t.Error("site sidebar still has the removed back link or site identity block")
 	}
 	if strings.Contains(body, `class="site-tabs"`) {
 		t.Error("site page still renders horizontal tabs")
@@ -58,6 +58,23 @@ func TestTheSitePageUsesItsOwnSidebar(t *testing.T) {
 		if strings.ContainsAny(r.Site, " /") {
 			t.Errorf("a bad name reached the helper: %+v", r)
 		}
+	}
+}
+
+func TestSiteSwitcherListsSitesAndKeepsThePanelLogo(t *testing.T) {
+	answers := byOp(map[string]string{
+		"site.list": `[{"name":"blog","kind":"php","user":"blog","hostnames":["blog.example.com"],"tls":true,"root":"/home/blog/htdocs"},{"name":"shop","kind":"binary","user":"shop","hostnames":["shop.example.com"],"tls":false,"root":"/home/shop/htdocs"}]`,
+		"site.info": phpInfo(),
+	})
+	h, _, c, _ := setupWith(t, answers, nil)
+	body := do(h, "GET", "/sites/blog", nil, cookie(c)).Body.String()
+	for _, want := range []string{`class="brand"`, `href="/" class="brand"`, `class="site-switcher"`, `aria-label="Chuyển website: blog.example.com"`, `href="/sites/blog" aria-current="page"`, `href="/sites/shop"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("site switcher is missing %q", want)
+		}
+	}
+	if strings.Contains(body, "site-sidebar-back") || strings.Contains(body, "site-sidebar-context") || strings.Contains(body, "site-sidebar-name") {
+		t.Error("site sidebar retained the removed back link or context block")
 	}
 }
 

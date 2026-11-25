@@ -4,6 +4,11 @@ package web
 func init() {
 	for k, v := range map[string]string{
 		"nav.websites":            "网站",
+		"site.switch":             "切换网站",
+		"site.group.manage":       "管理",
+		"site.group.access":       "访问",
+		"site.group.operate":      "运维",
+		"site.group.advanced":     "高级",
 		"user.logout":             "退出登录",
 		"page.sites":              "网站",
 		"page.result":             "结果",

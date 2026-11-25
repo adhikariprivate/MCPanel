@@ -165,7 +165,32 @@ func (s *Server) show(w http.ResponseWriter, status int, ss webauth.Session, v v
 	v.User, v.CSRF = ss.User, ss.CSRF
 	v.Owner = s.isOwner(ss.User)
 	v.ShowActivity = v.Owner || s.hasAssignedSiteView(ss.User)
+	if v.Site.Name != "" {
+		v.SiteOptions = s.siteSwitcherSites(ss.User)
+	}
 	s.render(w, status, v)
+}
+
+// siteSwitcherSites only includes websites the signed-in user can open.
+func (s *Server) siteSwitcherSites(user string) []siteRow {
+	rows, err := s.loadSiteRows()
+	if err != nil || s.isOwner(user) {
+		if err != nil {
+			return nil
+		}
+		return rows
+	}
+	access, err := s.delegatedAccess()
+	if err != nil {
+		return nil
+	}
+	visible := rows[:0]
+	for _, row := range rows {
+		if row.AccessID != "" && access.Allows(user, row.AccessID, "site.view") {
+			visible = append(visible, row)
+		}
+	}
+	return visible
 }
 
 // hasAssignedSiteView controls only whether the Activity navigation link is shown. The Activity routes keep

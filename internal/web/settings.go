@@ -254,10 +254,12 @@ func (s *Server) sessionToken(r *http.Request) string {
 // showSettings draws the page. The account is read again each time, so what the page says is what is stored.
 func (s *Server) showSettings(w http.ResponseWriter, r *http.Request, ss webauth.Session, status int, v settingsView, notice *result) {
 	v.Min = webauth.MinPasswordLen
-	if acct, err := s.Account(); err == nil {
-		v.TOTPOn = acct.TOTP != ""
+	if s.isOwner(ss.User) {
+		if acct, err := s.Account(); err == nil {
+			v.TOTPOn = acct.TOTP != ""
+		}
 	}
-	s.show(w, status, ss, view{Page: "settings", Settings: &v, Notice: notice})
+	s.show(w, status, ss, view{Page: "settings", Nav: "settings", Settings: &v, Notice: notice})
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
@@ -286,6 +288,10 @@ func (s *Server) tooMany(w http.ResponseWriter, r *http.Request, ss webauth.Sess
 
 func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, ss webauth.Session) {
 	T := translatorForWriter(w)
+	if !s.isOwner(ss.User) {
+		s.changeDelegatedPassword(w, r, ss, T)
+		return
+	}
 	fail := func(status int, msg string) {
 		s.showSettings(w, r, ss, status, settingsView{Error: msg, Which: "password"}, nil)
 	}
@@ -332,6 +338,68 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, ss webau
 	s.Throttle.Reset(key)
 	s.note(r, "account.password", "", "user="+acct.User, false)
 	s.Sessions.DeleteExcept(s.sessionToken(r)) // a browser signed in with the old password does not stay signed in
+	s.settingsDone(w, r, T("set.pw.done"))
+}
+
+func (s *Server) changeDelegatedPassword(w http.ResponseWriter, r *http.Request, ss webauth.Session, T translator) {
+	fail := func(status int, msg string) {
+		s.showSettings(w, r, ss, status, settingsView{Error: msg, Which: "password"}, nil)
+	}
+	key := s.guessKey(r, "pw")
+	if s.tooMany(w, r, ss, key, "password") {
+		return
+	}
+	cur, pw, again := r.PostFormValue("current"), r.PostFormValue("new"), r.PostFormValue("again")
+	if len(cur) > 256 {
+		s.Throttle.Fail(key)
+		fail(http.StatusUnauthorized, T("set.pw.wrong"))
+		return
+	}
+	s.accessMu.Lock()
+	access, err := webauth.LoadDelegatedAccess(s.AccessFile)
+	if err != nil {
+		s.accessMu.Unlock()
+		fail(http.StatusServiceUnavailable, T("set.unavailable"))
+		return
+	}
+	user, ok := access.Users[ss.User]
+	if !ok || !user.Enabled || !webauth.Verify(cur, user.Hash) {
+		s.accessMu.Unlock()
+		s.Throttle.Fail(key)
+		s.note(r, "account.password_fail", "", "user="+ss.User, true)
+		fail(http.StatusUnauthorized, T("set.pw.wrong"))
+		return
+	}
+	switch {
+	case len(pw) < webauth.MinPasswordLen || len(pw) > 256:
+		s.accessMu.Unlock()
+		fail(http.StatusBadRequest, T("set.pw.short", webauth.MinPasswordLen))
+		return
+	case pw != again:
+		s.accessMu.Unlock()
+		fail(http.StatusBadRequest, T("set.pw.mismatch"))
+		return
+	case pw == cur:
+		s.accessMu.Unlock()
+		fail(http.StatusBadRequest, T("set.pw.same"))
+		return
+	}
+	hash, err := webauth.Hash(pw)
+	if err == nil {
+		user.Hash = hash
+		user.Updated = time.Now().Unix()
+		access.Users[ss.User] = user
+		err = webauth.SaveDelegatedAccess(s.AccessFile, access)
+	}
+	s.accessMu.Unlock()
+	if err != nil {
+		log.Printf("delegated password could not be saved: %v", err)
+		fail(http.StatusInternalServerError, T("set.save"))
+		return
+	}
+	s.Throttle.Reset(key)
+	s.note(r, "account.password", "", "user="+ss.User, false)
+	s.Sessions.DeleteUserExcept(ss.User, s.sessionToken(r))
 	s.settingsDone(w, r, T("set.pw.done"))
 }
 

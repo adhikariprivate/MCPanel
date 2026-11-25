@@ -87,3 +87,20 @@ func TestEndingTheOtherSessionsKeepsThisOne(t *testing.T) {
 		t.Error("the other session must end")
 	}
 }
+
+func TestEndingThisUsersOtherSessionsKeepsOtherUsersLoggedIn(t *testing.T) {
+	s := NewSessions(time.Hour, time.Hour, 10)
+	admin, _ := s.Create("admin")
+	old, _ := s.Create("editor")
+	current, _ := s.Create("editor")
+	s.DeleteUserExcept("editor", current)
+	if _, ok := s.Get(current); !ok {
+		t.Error("the session used to change the password must stay")
+	}
+	if _, ok := s.Get(old); ok {
+		t.Error("the user's other session must end")
+	}
+	if _, ok := s.Get(admin); !ok {
+		t.Error("another user's session must stay active")
+	}
+}
