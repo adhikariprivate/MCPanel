@@ -5,11 +5,50 @@
 {{if $b.Services}}
 <div class="grid gap-4">{{range $b.Services}}
   <section class="card p-5">
-    <div class="flex flex-wrap items-start justify-between gap-4"><div><h3 class="font-semibold">{{.Name}}</h3><p class="mt-1 text-sm text-muted-foreground">{{T (printf "bg.kind.%s" .Kind)}} · {{T (printf "bg.status.%s" .Status)}}{{if .StatusError}} — {{.StatusError}}{{end}}</p></div>
-      <div class="flex flex-wrap gap-2"><a class="btn-sm" href="/sites/{{$.Site.Name}}/background?logs={{.ID}}">{{T "bg.logs"}}</a>
-      {{if $b.CanManage}}{{if eq .Status "active"}}{{if eq .Kind $.Site.Kind}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/restart"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-sm">{{T "bg.restart"}}</button></form>{{end}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/stop"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-sm">{{T "bg.stop"}}</button></form>{{else if eq .Kind $.Site.Kind}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/start"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn-primary">{{T "bg.start"}}</button></form>{{end}}{{end}}</div>
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h3 class="font-semibold">{{.Name}}</h3>
+        <p class="mt-1 text-sm text-muted-foreground">{{T (printf "bg.kind.%s" .Kind)}} · {{T (printf "bg.status.%s" .Status)}}{{if .StatusError}} — {{.StatusError}}{{end}}</p>
+      </div>
+      <div class="ml-auto flex flex-wrap justify-end gap-2">
+        <a class="ico-btn" href="/sites/{{$.Site.Name}}/background?logs={{.ID}}" title="{{T "bg.logs"}}" aria-label="{{T "bg.logs"}}">{{template "tabicon" "logs"}}</a>
+        {{if $b.CanManage}}
+          {{if eq .Status "active"}}
+            {{if eq .Kind $.Site.Kind}}
+              <form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/restart">
+                <input type="hidden" name="csrf" value="{{$.CSRF}}">
+                <button type="submit" class="ico-btn ico-btn-primary" title="{{T "bg.restart"}}" aria-label="{{T "bg.restart"}}">{{template "tabicon" "reset"}}</button>
+              </form>
+            {{end}}
+            <form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/stop">
+              <input type="hidden" name="csrf" value="{{$.CSRF}}">
+              <button type="submit" class="ico-btn ico-btn-destructive" title="{{T "bg.stop"}}" aria-label="{{T "bg.stop"}}">{{template "tabicon" "stop"}}</button>
+            </form>
+          {{else if eq .Kind $.Site.Kind}}
+            <form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/start">
+              <input type="hidden" name="csrf" value="{{$.CSRF}}">
+              <button type="submit" class="ico-btn ico-btn-primary" title="{{T "bg.start"}}" aria-label="{{T "bg.start"}}">{{template "tabicon" "play"}}</button>
+            </form>
+          {{end}}
+          {{if eq .Kind $.Site.Kind}}
+            <button type="button" class="ico-btn" data-dialog-open="dlg-bg-edit-{{.ID}}" title="{{T "bg.edit"}}" aria-label="{{T "bg.edit"}}">{{template "tabicon" "pencil"}}</button>
+          {{end}}
+          <button type="button" class="ico-btn ico-btn-destructive" data-dialog-open="dlg-bg-remove-{{.ID}}" title="{{T "bg.remove"}}" aria-label="{{T "bg.remove"}}">{{template "tabicon" "trash"}}</button>
+        {{end}}
+      </div>
     </div>
-    {{if $b.CanManage}}<div class="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">{{if eq .Kind $.Site.Kind}}<button type="button" class="btn-sm" data-dialog-open="dlg-bg-edit-{{.ID}}">{{T "bg.edit"}}</button>{{end}}<form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="link-danger text-sm">{{T "bg.remove"}}</button></form></div>
+    {{if $b.CanManage}}
+      <dialog id="dlg-bg-remove-{{.ID}}" class="fm-dialog" aria-labelledby="dlg-bg-remove-title-{{.ID}}" aria-describedby="dlg-bg-remove-description-{{.ID}}" data-close-backdrop>
+        <form method="post" action="/sites/{{$.Site.Name}}/background/{{.ID}}/delete" class="p-6">
+          <input type="hidden" name="csrf" value="{{$.CSRF}}">
+          <h3 id="dlg-bg-remove-title-{{.ID}}" class="h-section">{{T "bg.remove"}}</h3>
+          <p id="dlg-bg-remove-description-{{.ID}}" class="hint mt-1">{{T "bg.remove.confirm" .Name}}</p>
+          <div class="mt-6 flex justify-end gap-2">
+            <button type="button" class="btn-secondary" data-dialog-close autofocus>{{T "c.cancel"}}</button>
+            <button type="submit" class="btn-danger">{{T "bg.remove"}}</button>
+          </div>
+        </form>
+      </dialog>
     {{if eq .Kind $.Site.Kind}}<dialog id="dlg-bg-edit-{{.ID}}" class="fm-dialog" aria-labelledby="dlg-bg-edit-title-{{.ID}}" data-close-backdrop><form method="post" action="/sites/{{$.Site.Name}}/background" class="p-6"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="kind" value="{{.Kind}}">
       <div class="flex items-center justify-between gap-3"><h3 id="dlg-bg-edit-title-{{.ID}}" class="h-section">{{T "bg.edit"}}</h3><button type="button" class="ico-btn" data-dialog-close aria-label="{{T "c.cancel"}}">×</button></div><label class="mt-4 block text-sm">{{T "bg.name"}}<input class="field mt-1" name="name" maxlength="48" required value="{{.Name}}"></label>
       {{if ne .Kind "mise"}}<label class="mt-4 block text-sm">{{if eq .Kind "php"}}{{T "bg.php.command"}}{{else}}{{T "bg.binary.command"}}{{end}}<input class="field mt-1 font-mono" name="command" maxlength="2048" value="{{.Command}}"></label>{{end}}{{if eq .Kind "mise"}}<label class="mt-4 block text-sm">{{T "bg.task"}}<input class="field mt-1 font-mono" name="task" maxlength="128" value="{{.Task}}"></label>{{end}}

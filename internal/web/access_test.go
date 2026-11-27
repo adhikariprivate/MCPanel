@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -184,5 +185,41 @@ func TestAccessPresetsAreStartingSetsAndKeepSensitiveShellAccessSeparate(t *test
 	}
 	if got := accessPreset("unknown"); len(got) != 0 {
 		t.Errorf("unknown preset grants capabilities: %v", got)
+	}
+}
+
+func TestReadOnlyBackgroundServicesOfferLogsOnly(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "delegated.json")
+	const siteID = "00000000000000000000000000000001"
+	access := webauth.NewDelegatedAccess()
+	access.Users["reader"] = webauth.NewDelegatedUser("stored-hash", map[string]map[string]string{
+		siteID: {"site.view": "allow", "background.view": "allow"},
+	})
+	if err := webauth.SaveDelegatedAccess(path, access); err != nil {
+		t.Fatal(err)
+	}
+	s := newServer()
+	s.AccessFile = path
+	s.Call = byOp(map[string]string{
+		"site.list":   `[{"id":1,"access_id":"` + siteID + `","name":"demo","kind":"mise","user":"demo"}]`,
+		"site.bglist": `[{"id":7,"name":"queue worker","kind":"mise","status":"active"},{"id":8,"name":"scheduler","kind":"mise","status":"inactive"}]`,
+	})
+	token, _ := s.Sessions.Create("reader")
+	h := s.Handler()
+	ck := cookie(&http.Cookie{Name: "mpn", Value: token})
+	w := do(h, http.MethodGet, "/sites/demo/background", nil, ck)
+	if w.Code != http.StatusOK {
+		t.Fatalf("background services status = %d", w.Code)
+	}
+	body := w.Body.String()
+	for _, id := range []string{"7", "8"} {
+		if !strings.Contains(body, `href="/sites/demo/background?logs=`+id+`" title="Nhật ký gần đây" aria-label="Nhật ký gần đây"`) {
+			t.Errorf("service %s has no accessible Recent logs link", id)
+		}
+	}
+	for _, forbidden := range []string{`method="post" action="/sites/demo/background`, "dlg-bg-edit-", "dlg-bg-remove-", "dlg-bg-add"} {
+		if strings.Contains(body, forbidden) {
+			t.Errorf("read-only user sees management control %s", forbidden)
+		}
 	}
 }

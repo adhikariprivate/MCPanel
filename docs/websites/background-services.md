@@ -6,7 +6,7 @@ title: Background services
 
 Background services supervise long-running workers such as queue consumers. They run under the website's Linux account and have their own systemd unit, status and journal. They do not replace a site's web process and do not receive its `PORT` setting. Use the [Cron tab](cron.md) for commands that should run and exit on a schedule.
 
-Open **Services** in the website sidebar and select the **Add a background service** plus icon in the page header. New services are saved stopped; start one when it is ready. Each service can be started, stopped, restarted, edited, removed, and inspected through its recent logs. Removing a service stops and disables its unit before removing its unit file and definition.
+Open **Services** in the website sidebar and select the **Add a background service** plus icon in the page header. New services are saved stopped. Use the action icons beside each service to view recent logs, start, stop, restart, edit, or remove it. The icons move below the service details on narrow screens. Select **Remove service** (the trash icon) and confirm to delete the service. MCPN stops and disables its unit before removing its unit file and definition.
 
 The background service type follows the website's app type. Each website offers one matching type:
 

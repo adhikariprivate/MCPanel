@@ -6,6 +6,8 @@ All notable changes to MCPN (My Control Panel) are recorded here. Version number
 
 ### Changed
 
+- Background-service cards group their controls into a row of labeled icons. Removing a service requires confirmation.
+
 - Website, Users and Site Access headers use compact icon actions with accessible names, right-aligned on the header row. Each website tab shows only its own actions: Files keeps the SSH/SFTP and Terminal shortcuts, Databases, Backups, Cron and Services offer their own add buttons, the SFTP tab holds the SSH access controls, and Logs, Email, Domain, Terminal, Advanced and WordPress show no header buttons. The user editor is wider and keeps its actions visible while permissions scroll, and Files uses the available content width.
 
 - Website sections now use a dedicated, permission-filtered sidebar. Removed the system and version footer from signed-in and sign-in pages.

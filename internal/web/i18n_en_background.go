@@ -2,6 +2,7 @@ package web
 
 func init() {
 	for k, v := range map[string]string{
+		"bg.remove.confirm":  "Remove “%s”? Its service unit and definition will be deleted.",
 		"tab.background":     "Services",
 		"bg.title":           "Background services",
 		"bg.sub":             "Long-running tasks run under the website account %s and are supervised independently from the web process.",
